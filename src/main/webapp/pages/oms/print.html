@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>print</title>
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/easyui/jquery.min.js"></script>
+
+<STYLE type="text/css">
+
+body {
+    box-sizing: content-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    height: 100%;
+    width: 100%;
+}
+
+.print-box {
+    height: 100%;
+    width: 100%;
+    text-align: center;
+}
+
+.print-panel{
+    height: 100%;
+    width: 100%;
+}
+
+.order {
+    position: relative;
+}
+
+.btn-print{
+    width: 180px;
+    height: 40px;
+    text-align: center; 
+    margin: 20px;
+    background-color: orange;
+}
+
+.blank {
+    height: 10mm;
+}
+
+@media print {
+    .noPrint {
+        display: none;
+    }
+
+    .nextPage {
+        page-break-before: always;
+    }
+}
+		 
+</STYLE>
+
+<script type="text/javascript">
+$(function(){
+    var templates = parent.globalV.templates;
+    initPrint(templates);
+});
+
+function initPrint(data){
+    for(var i = data.length; i >= 1; i--){
+        var html = getHtml(data[i-1]);
+        $('#main').after(html);
+    }
+}
+
+function getHtml(temp){
+    var width = temp.templateWidth || "100";
+    var height = temp.templateHeight || "180";
+    return htmlStr = `<div class="order nextPage" style="width:${width}mm;height:${height}mm;">${temp.printTemplate}</div><div class="blank noPrint"></div>`;
+} 
+
+function preview() { 
+    var bdhtml = window.document.body.innerHTML; 
+    var sprnstr = "<!--startprint-->"; 
+    var eprnstr = "<!--endprint-->"; 
+    var prnhtml = bdhtml.substring( bdhtml.indexOf(sprnstr) + 17); 
+    prnhtml = prnhtml.substring(0, prnhtml.indexOf(eprnstr));
+    window.document.body.innerHTML = prnhtml;
+    window.print(); 
+    window.document.body.innerHTML = bdhtml; 
+}
+
+</script>
+
+
+</head>
+
+<body>
+    <div class="print-box">
+        <input class="btn-print noPrint" type="button" value="打  印" onClick="preview()">
+        <!--startprint-->
+        <div calss="print-panel">
+            <div id="main" class="noPrint"></div>
+        </div>
+        <!--endprint-->
+    </div>
+</body>
+</html>

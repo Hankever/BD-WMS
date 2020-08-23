@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>bi导航</title>
+<link rel="shortcut icon" href="../images/tss.ico">
+<link rel="Bookmark" href="../images/tss.ico">
+
+<link rel="stylesheet" href="../tools/tssJS/fonts/icons.css">
+<link rel="stylesheet" href="../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../tools/ionicons.css">
+
+<script src="../tools/tssJS/tssJS.js"></script>
+<script src="../tools/tssJS/tssJS.ajax.js"></script>
+<script src="../tools/tssJS/tssJS.jsonp.js"></script>
+<script src="../tools/portlet.js"></script>
+
+<script src="../tools/easyui/jquery.min.js"></script>
+<script src="../tools/easyui/jquery.easyui.min.js"></script>
+<script src="page_code.js"></script>
+
+<STYLE type="text/css">
+
+* { font-size: 12px; font-family: Tahoma,Verdana,微软雅黑,新宋体; }
+html, body { height: 100%; }
+a { color:black; text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+/* 启用自定义滚动条，并设置容器属性 */
+*::-webkit-scrollbar {
+  /* 这里的宽是指竖向滚动条的宽，高是指横向滚动条的高*/      
+  width: 8px; height: 8px; background: #ccc; 
+}
+/* 滚动条凹槽，还可以设置边框属性。此处属性也可以直接在容器中设置 */
+*::-webkit-scrollbar-track-piece {
+  background-color: #fff;
+}
+/* 滚动条 */
+*::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background: linear-gradient(#ccc, #bbb); 
+}
+
+#north {
+  overflow:hidden; height:30px; line-height:20px; color:#fff; 
+  background: #4d5b76;
+  padding: 0em 1em;
+  margin: 0px;
+  border-radius: 0px;
+  border: 0px;
+}
+#south { height: 24px; background: #D2E0F2; }
+#west { width:200px; }
+#tabs .panel-body { overflow: hidden; }
+#nav { overflow: auto; }
+
+.head { float:right; padding-right:20px; }
+.head a { color:white; text-decoration:underline; }
+.footer { text-align:center;color:#15428B; margin:0px; padding:0px;line-height:23px; font-weight:bold; }
+
+.navlist { list-style-type:none; margin:0px; padding:0px; }
+.navlist li { height: 30px; border-bottom: 1px solid rgba(204, 204, 204, 0.2); padding-left: 8px; }
+.navlist li a { display: inline-block; line-height: 28px; text-indent: 10px; }
+.navlist li:hover { background-color: #FEF7A9; }
+.navlist li:hover a { color:#416AA3; text-decoration: none; }
+.navlist li a span { 
+	font-size: 13px; 
+	overflow: hidden;
+	text-overflow: ellipsis;
+	word-break: break-all;
+	white-space: nowrap; 
+}
+.navlist li img { display: inline-block; height: 13px; width: 13px; padding-left: 2px; margin-top: -2px; vertical-align: middle; }
+.panel-title > img { height: 16px; width: 13px; margin-top: -2px; padding-right: 8px; vertical-align: middle; }
+
+.tssicon { display: inline-block; font-size: 16px; width: 13px; padding-right: 8px; }
+.tssicon:before { vertical-align: middle; }
+.navlist li .tssicon { padding-left: 2px; padding-right: 0; }
+.icon-question { font-size: 16px; }
+.wfCount { color: red; }
+#tab-tools a { width: 30px; height:26px;}
+
+#configBtn{display: none;}
+
+.mapPage { width: 75%; position: absolute; left: 196px; top: 12%; z-index: 999; background: white; }
+		 
+</STYLE>
+
+<script type="text/javascript">
+
+var report_portlet_url = "../modules/dm/report_portlet.html?leftBar=true&id=",
+	record_portlet_url = "../modules/dm/recorder.html?id=",
+	onlyOpenTitle = "默认首页",
+	_menus, global_env = {},
+	iframes = {},
+	pageHelps = {},
+	pageCodes = {};
+
+var group = tssJS.Query.get("group"),
+    _default = tssJS.Query.get("_default"),
+	_defaultItem = tssJS.Query.get("_defaultItem"),
+	isAdmin = parent.userHas[1].contains(-8) || parent.userHas[1].contains(-1);
+
+if( _default ) {
+	_default = resourceUrl(_default) + (_defaultItem ? "&itemId=" + _defaultItem : "");
+} 
+else {
+	var roles = parent.userHas[1];
+	var domain_page = parent.domain_page || "domain.html";
+	_default = ( group == "-1" || !(roles.contains(-8) || roles.contains(-9) || roles.contains(-1)) ) ? "" : domain_page;
+}
+
+function resourceUrl(resource) {
+	resource = parseInt(resource);
+	return (resource > 0 ? record_portlet_url : report_portlet_url) + Math.abs(resource);
+}
+
+$(function(){
+	var globalV = window.parent.globalValiable;
+	_menus = globalV.list;
+
+	initMenu();
+	_default && $("#ifr1").attr("src", _default);
+});
+
+function fixICON(icon) {
+	icon = icon ||'';
+	if(icon.indexOf('.') > 0 && icon.toLowerCase().indexOf("img") < 0) {
+		icon = "<img src='" +icon+ "'/>";
+	} 
+	else if(icon.indexOf("<") < 0 && icon.indexOf('.') < 0 && icon.indexOf('/') < 0) {
+		icon = "<div class='" +icon+ " tssicon'></div>";
+	}
+
+	if(icon.indexOf("<") < 0 && icon.indexOf(">") < 0) { 
+		icon = "";
+	}
+
+	return icon;
+}
+
+//初始化左侧
+function initMenu() {
+	$("#nav").accordion({animate:true, fit:true, border:false});
+
+	var selectedPanelname = '', index = 0, count = 0;
+
+	$.each(_menus, function(i, menu1) {
+		count += (menu1.children && menu1.children.length ? menu1.children.length + 1 : 0);
+
+	})
+	var collapsed = count > 32; // 菜单个数（加目录） > 32 个，默认收缩手风琴
+
+	$.each(_menus, function(i, menu1) {
+		var menu1Name =  fixICON(menu1[5] ||'icon icon-triangle-right' ) +  menu1[1];
+		// 没有任何报表的二级目录将被过滤掉
+		if( !menu1.children || menu1.children.length == 0 ) {
+			return true;
+		}
+
+		var menuHTML = [];
+		menuHTML.push('<ul class="navlist">');
+	    menu1.children && $.each(menu1.children, function(j, menu2) {
+	    	var icon = fixICON(menu2[5] || 'icon icon-file-text');  // 自定义图标
+	    	var wfCount  = menu2[6] ? '(' +menu2[6]+ ')' : '';
+	    	var pageHelp = menu2[7]||'';
+	    	var pageCode = menu2[8]||'';
+	    	var pageUrl  = menu2[9]||'';
+
+	    	menuHTML.push('<li>');
+	    	menuHTML.push('<div>' +icon+ '<a ref="' + menu2[0] + '" wfCount="' +menu2[6]+ '" pageHelp="' +pageHelp+ '" pageCode="' +pageCode+ '" pageUrl="' +pageUrl+ '" href="#">');
+	    	menuHTML.push('  <span class="nav">' + menu2[1] + '</span>');
+	    	menuHTML.push('  <span class="wfCount">' + wfCount + '</span>');
+	    	menuHTML.push('</a></div>');
+			menuHTML.push('</li>');
+	    });
+		menuHTML.push('</ul>');
+
+      	$('#nav').accordion('add', {
+			title: menu1Name,
+			content: menuHTML.join('\n'),
+			collapsed: collapsed, 
+			collapsible: collapsed
+      	});
+
+		if( index==0 ) selectedPanelname = menu1Name;
+		index++;
+    });
+
+	$('#nav').accordion('select', selectedPanelname);
+
+	$('.navlist li a').click(function(){
+		var tabTitle = $(this).children('.nav').text();
+		var recourceId = $(this).attr("ref"),
+			wfCount  = $(this).attr("wfCount"),
+			pageUrl  = $(this).attr("pageUrl");
+
+		var url = pageUrl || resourceUrl(recourceId);
+		if( wfCount && wfCount != '0' && !pageUrl) {
+			url += '&wfCount=' + wfCount;
+			$(this).find("span.wfCount").text("");
+		}
+
+		if ( url.indexOf("isMapPage") > 0 ) {
+			showMapPage( url )
+			return;
+		}
+		
+		$('#main').layout('collapse', 'west');
+		setTimeout( function() {
+			addTab(tabTitle, url);
+		}, 500 );
+
+		$('.navlist li div').removeClass("selected");
+		$(this).parent().addClass("selected");
+
+		var pageHelp = $(this).attr("pageHelp");
+		if( pageHelp && pageHelp !== 'null' ) {
+			pageHelps[tabTitle] = pageHelp;
+			setTimeout(function(){
+				$('#helpBtn').tooltip({ position: 'left', content: '<b class="icon icon-alert" style="font-size:14px;"><b>点此查看帮助' }).tooltip("show");
+			},550);
+		}
+
+		var pageCode = $(this).attr("pageCode");
+		if( pageCode && pageCode !== 'null' ) {
+			pageCodes[tabTitle] = pageCode;
+		}
+	});
+
+	$('#tabs').tabs({
+		onSelect: function(title, index) {
+			var pageCode = pageCodes[title];
+			if( pageCode && pageCode !== 'null' && isAdmin) {
+				$('#configBtn').show();
+			} else {
+				$('#configBtn').hide();
+			}
+
+			// 调用 内嵌页的 onshow() 方法
+			try {
+				var iframeId = "ifr" + (title == onlyOpenTitle ? 1 : tssJS.hashCode(title) );
+				tssJS("#" + iframeId)[0].contentWindow.onshow();
+			}
+			catch(e) { }
+		}
+	});
+}
+
+function showMapPage(src) {
+	var id = "ifm" + tssJS.hashCode(src);
+    var $mp = $('#' + id);
+    if( !$mp.length ) {
+    	var el = tssJS.createElement("iframe", "mapPage", id);
+    	tssJS("body").appendChild(el);
+
+        $mp = $('#' + id);
+        $mp.attr("frameborder", 0);
+        $mp.css('height', tssJS.getInner().height * 0.75);
+
+        IframeOnClick.track($mp[0], function(el) { tssJS.hideWaitingLayer(); $(el).hide(); }); 
+    }
+    
+    tssJS.showWaitingLayer();
+    $("#_waiting").click( function() {
+    	tssJS.hideWaitingLayer();
+    	$mp.hide();
+    });
+
+    $mp.show(true);
+    if( src != $mp.attr('src') ) {
+    	$mp.attr('src', src)
+    }
+
+    window.frames[id].contentWindow.onshow && window.frames[id].contentWindow.onshow()
+}
+
+function addTab(subtitle, url, refresh){
+	var iframeId = "ifr" + tssJS.hashCode(subtitle);
+
+	if( !$('#tabs').tabs('exists', subtitle) ){
+		iframes[subtitle] = iframeId;
+		$('#tabs').tabs('add', {
+			title:subtitle,
+			content: createFrame(url, iframeId),
+			closable: true
+		});
+	} 
+	else {
+		var $ifr = $("#" + iframeId);
+		if( url != $ifr.attr("src") ) {
+			$ifr.attr("src", url);
+		}
+		$('#tabs').tabs('select', subtitle);
+	}
+}
+
+function refreshTab(tab){
+    var currentTab = tab || $('#tabs').tabs('getSelected');
+    var currtab_title = currentTab.panel('options').title;
+    
+    var src;
+    if(currtab_title === onlyOpenTitle) {
+    	src = _default;
+    }
+    else {
+   		var iframe = $(currentTab.panel('options').content);
+		src = iframe.attr('src');
+    }	
+
+    var iframeId = "ifr" + tssJS.hashCode(currtab_title);
+	iframes[currtab_title] = iframeId;
+
+    src && $('#tabs').tabs('update', {
+	    tab: currentTab,
+	    options: {
+	        content: createFrame(src)
+	    }
+	});
+}
+
+function createFrame(url, iframeId) {
+	return '<iframe scrolling="auto" frameborder="0" id="' + iframeId + '" src="' + url + '" style="width:100%;height:100%;"></iframe>';
+}
+
+var FIELDS_1 = [
+    { field: 'name', title: '资源名称', width: 150, align: 'center'},
+    { field: 'path', title: '资源路径', width: 350},
+    { field: 'opt', title: ' ', width: 50, align: 'center'}
+];
+function _search() {
+    var key = $("#keyword").textbox("getValue");
+    if(!key) return $.messager.show({ title: '提示', msg: '请输入检索关键字。'}); ;
+
+    var resource = tssJS("#resource").value();
+    if(resource == 'Article') {
+    	var boubeiSite = 1; // CMS站点ID
+        window.open( "/tss/searchResult.portal?siteId=" +boubeiSite+ "&searchStr=" + escape(key) );
+    } 
+    else {
+        var params = {};
+        params.resource = resource;
+        params.key = key;
+
+        var resurceName = $("#resource option:selected").text();
+        FIELDS_1[0].title = resurceName + "名称";
+        FIELDS_1[1].title = resurceName + "路径";
+
+        tssJS.getJSON("/tss/auth/search/resource", params, function(result) {
+        	var data = [];
+        	result.each(function(i, item){
+        		var row = {"id": item[0], "name": item[1], "path": item[2]};    		
+        		if(resource == 'Report') {
+        			var url = report_portlet_url + item[0];
+        			row.opt = "<a href='#' onclick='addTab(\"" +row.name+ "\", \"" +url+ "\")'>打开</a>";
+        		}
+        		if(resource == 'Record') {
+        			var url = record_portlet_url + item[0];
+        			row.opt = "<a href='#' onclick='addTab(\"" +row.name+ "\", \"" +url+ "\")'>打开</a>";
+        		}
+        		data.push(row);
+        	});
+            $('#t1').datagrid({
+                fit : true,
+                fitColumns : true,
+                rownumbers : true,
+                singleSelect : true,
+                nowrap: false,
+                columns : [FIELDS_1],
+                data: data
+            });
+
+            $('#dlg').dialog('center');
+        });
+    }
+}
+
+function showSearchDialog() {
+	$('#dlg').dialog( {"modal": true} ).dialog('open').dialog('setTitle', "内容|功能|目录检索");
+}
+
+function help() {
+	var currentTab = $('#tabs').tabs('getSelected');
+    var currtab_title = currentTab.panel('options').title;
+    var curr_html = pageHelps[currtab_title];
+    var title = "【" + currtab_title + "】操作指南 | <a href='#' style='color:blue' onclick='feedback(\"" +currtab_title+ "\");'>【反馈文档异常】</a>"
+
+    if( curr_html ) {
+    	$('#dlg2>iframe').attr('src', curr_html);
+		$('#dlg2').dialog( {"modal": true} ).dialog('open').dialog('setTitle', "内容|功能|目录检索").dialog('setTitle', title);
+    }
+}
+
+function feedback(title) {
+    openUrl( encodeURI('modules/dm/recorder.html?rctable=x_feedback&udf=' + title), true, "建议反馈" );
+}
+
+var global_userlist, global_usercodes = [], global_usernames = [];
+$.getJSON("/tss/wx/api/users", {}, function(result) {
+    global_userlist = result;
+    $.each(result, function(k, v) {
+    	global_usercodes.push(k);
+    	global_usernames.push(v);
+    });
+});
+
+function pageDefineDirectorGo(){
+	var currentTab = $('#tabs').tabs('getSelected');
+    var currtab_title = currentTab.panel('options').title;
+    var pageCode = pageCodes[currtab_title];
+
+	var iframeId = iframes[currtab_title];
+	var pageId = tssJS("#" + iframeId)[0].getAttribute('src').split(/\?id=(\d+)/)[1];
+
+	pageDefineDirector.go(pageCode, pageId);
+}
+    </script>
+
+</head>
+
+<body class="easyui-layout" style="overflow-y: hidden" fit="true" scroll="no" id="main">
+  	
+  	<div region="west" id="west" split="true" title="<span class='icon icon-list-unordered tssicon'></span><b>功能导航</b>">
+		<div id="nav"></div>
+  	</div>
+  
+	<div region="center" id="mainPanle">
+	  <div id="tabs" class="easyui-tabs" fit="true" border="false" data-options="tools:'#tab-tools'">
+			<div title="默认首页" style="text-align: center; ">		
+				<iframe frameborder="0" id="ifr1" style="width:100%;height:100%;"></iframe>
+			</div>
+		</div>
+	</div>
+
+	<div id="tab-tools">       
+		<a href="void(0)" class="easyui-linkbutton" data-options="plain:true,iconCls:'icon-search'" onclick="showSearchDialog()" title="检索"></a>
+		<a href="void(0)" class="easyui-linkbutton" data-options="plain:true,iconCls:'icon-tss-define'" onclick="pageDefineDirectorGo()" title="配置" id='configBtn'></a>
+		<a href="void(0)" class="easyui-linkbutton" data-options="plain:true,iconCls:'icon-question'" onclick="help()" style="font-size:16px;" title="帮助文档" id='helpBtn'></a>
+        <a href="void(0)" class="easyui-linkbutton" data-options="plain:true,iconCls:'icon-reload'" onclick="refreshTab()" style="background-color:#FEF7A9; width:36px;" title="刷新当前页"></a>
+    </div>
+
+    <div id="dlg" class="easyui-dialog" style="width:600px; min-height: 200px; max-height: 400px;" closed="true">
+	    <div class="navbar-form" style="margin: 20px 0 10px 30px;">  
+	        <select class="easyui-combobox" style="width:80px;" id="resource">
+	            <option value="Article">文章</option>
+	            <option value="Record" selected>业务功能</option>
+	            <option value="Report">数据报表</option>
+	            <!--  
+	            <option value="Navigator">导航菜单</option>
+	            <option value="Group">用户组织</option>
+	            <option value="Channel">栏目</option> 
+	            -->
+	        </select> - 
+	        <input class="easyui-textbox" style="width:250px;" prompt="请输入查询关键字" id="keyword">
+	        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="_search()" style="margin-left:10px; width: 100px;">开始检索</a>
+	    </div>
+	    <table id="t1" border="false" style="display:none"></table>
+	</div>				
+
+	 <div id="dlg2" class="easyui-dialog" style="width:1200px; height: 700px;" closed="true" title="帮助文档">
+	    <iframe src="" style="width: 100%; height: 99%;" scrolling="auto" frameborder="0"></iframe>
+	</div>		
+
+<script type="text/javascript">
+	
+var FIELD_CUSTOMIZE;
+
+function loadCustomize(callback) {
+	tssJS.get("/tss/xdata/json/dm_record_field", {}, function(data) {
+		if(data.length) {
+			FIELD_CUSTOMIZE = data;
+			callback && callback();
+		}
+	});
+}
+loadCustomize();
+
+</script>								
+
+</body>
+</html>

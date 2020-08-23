@@ -1,0 +1,84 @@
+button:hover{
+	cursor: pointer;
+}
+button{
+	background-color: #2aa1d3; /* Green */
+	border: 0;
+    color: white; 
+    padding: 1px 8px 2px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    border-radius: 2px;
+}
+
+input[type=text]{
+  outline: none;
+  border: 1px solid #95B8E7;
+  border-radius: 3px;
+  color: #555;
+  background-color: #fff;
+  text-indent: 3px;
+  -moz-transition: all 0.3s ease-in-out;
+  transition: all 0.3s ease-in-out;
+}
+input[type=text]:focus {
+  box-shadow: 0 0 3px #049cdb;
+}
+
+._panel{
+	height: 400px;
+	width: 800px; 
+	background-color: white;
+	position: fixed;
+    left: 50%;
+    top: 50%;
+    -webkit-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+    z-index: 1001;
+}
+._panel > div > div{
+	width: 100%;
+	padding: 2px 15px;
+	position: absolute;
+	box-sizing: border-box;
+}
+._panel-title{
+	background-color: #2aa1d3;
+	top: 0px;
+	height: 30px;
+}
+._panel-title-text{
+	color: white; font-size: 14px;
+	line-height: 27px;
+}
+._panel-content{
+	top: 30px;
+	overflow: auto;
+}
+._panel-title-button {
+	float: right;
+	line-height: 25px;
+	color: white;
+	font-size: 20px;
+}
+._panel-title-button > span:hover{
+	cursor: pointer;
+	color: red;
+}
+._panel-title-button-close {
+	font-size: 18px;
+}
+._panel-footer{
+	border-top: 1px solid #eee;
+	bottom: 0px;
+	height: 30px;
+}
+._panel-footer-button{
+	text-align: center;
+}
+._panel-footer-button button {
+	font-size: 13px;
+	background-color: #2aa1d3;
+	padding: 2px 12px;
+}

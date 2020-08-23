@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>作业进度看板</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="../wms/wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.data.js"></script>
+<script src="../../tools/util_date.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-filter.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+<script src="../../tools/easyui.js"></script>
+<script src="../wms/wms.js"></script>
+
+<STYLE type="text/css">
+
+         
+</STYLE>
+
+<script type="text/javascript">
+ 
+var styler1 = function(value, row, index) { 
+    return 'cursor: pointer; text-decoration: underline; font-weight: bold; background-color: white; '; 
+} 
+var styler2 = function(value, row, index) { 
+    var bgColr = 'RGB(234,242,255)';
+    var vals = (value+"").split("/");
+    if(vals.length == 2 && vals[0] != vals[1] ) {
+        bgColr = 'RGB(255,228,141)';
+    }
+
+    return 'cursor: pointer; text-decoration: underline; font-weight: bold; background-color: ' +bgColr+ '; '; 
+} 
+
+var fromDay = subDateS(now, 0);
+
+// 汇总列
+var OpTypes = [], h = {}, 
+    FIELDS_0_1 = [
+        { title:'出库', field:'出库', colspan: 5},
+        { title:'入库', field:'入库', colspan: 4},
+        { title:'作业异常登记', field:'异常', colspan: 5}
+    ], 
+    FIELDS_0_2 = [
+        
+        { title: '新建', field: 't1', width: 80 },
+        { title: '分配', field: 't2' },
+        { title: '拣货', field: 't3' },
+        { title: '验货', field: 't4' },
+        { title: '出库', field: 't5'},
+
+        { title: '入库', field: 't6', styler: styler1},
+        { title: '上架', field: 't7', styler: styler1 },
+        { title: '装卸', field: 't8', styler: styler1 },
+        { title: '盘点', field: 't9', styler: styler1 },
+
+        { title: '工单未领用', field: 's1'},
+        { title: '工单拒绝', field: 'e1' },
+        { title: '库存异常', field: 'e2'},
+        { title: '人员异常', field: 'e3'},
+        { title: '设备异常', field: 'e4', align: 'left'}
+    ];
+
+$.each(FIELDS_0_2, function(i, field){
+    var key = 's' + field.title;
+    h[key] = '加载中...';
+    if(i < 9) {
+        field.field = 't' + field.title;
+    }
+
+    field.align = field.align || "center";
+    field.width = field.width || 60;
+    field.styler = field.styler || styler2;
+});
+
+$.each(FIELDS_0_1, function(i, field) {
+    field.align = "center";
+});
+
+// 冻结列                                                            
+var FIELDS_1_0 = [
+        {field: "optype_id", title: "作业类型", width: '8%', formatter: optypeid2name},
+        {field: "opno", title: "作业单号", width: '13%', styler:  function(value, row, index) {
+                return 'cursor: pointer; text-decoration: underline;';
+            } 
+        },
+        {field: "qty_actual", title: "已作业量", width: '8%'},
+        {field: "qty", title: "作业量", width: '8%'},
+        {field: "status", title: "状态", width: '8%'},
+    ];
+
+// 活动列
+var FIELDS_1_1 = [
+        {field: "createtime", title: "创建日期", width: '13%', formatter: dateNoSecond},
+        {field: "assigner", title: "创建人", width: '10%', formatter: formatterWorker},
+        {field: "worker", title: "作业人", width: '12%', formatter: formatterWorker},
+        {field: "udf1", title: "备注", width: '20%'}
+    ]; 
+
+$.each(FIELDS_1_0, function(i, field){
+    field.align = field.align || "center";
+    field.sortable = true;
+});
+$.each(FIELDS_1_1, function(i, field) {
+    field.align = field.align || "center";
+    field.sortable = true;
+});
+
+
+$(function() {
+    
+    $.get('/tss/param/json/combo/OpType', {}, function(data) {
+        OpTypes = data;
+
+        var _data = [];
+        OpTypes.each(function(i, item){
+            _data.push({id: item[0], name: item[1]})
+        })
+        $('#query_type, #query_type2').combobox({
+            pannelHeight: '200px',
+            data: _data,
+            textField: "name",
+            valueField: "id"
+        });
+
+        $('#query_status').combobox({
+            pannelHeight: '120px',
+            data: [ {text: '新建'}, {text: '取消'}, {text: '已领用'}, {text: '拒绝'}, {text: '部分完成'}, {text: '已完成'}],
+            valueField: "text"
+        });
+        $("#ex_status").combobox({
+            pannelHeight: '60px',
+            valueField: 'text',
+            data: [{"text": "新建"}, {"text": "关闭"}]
+         });
+        $("#ex_type").combobox({
+            pannelHeight: '100px',
+            valueField: 'text',
+            data: [{"text": "人员异常"}, {"text": "库存异常"}, {"text": "设备异常"}]
+         });
+
+        dg1 = $('#t1').datagrid({
+            fit : true,
+            fitColumns: true,
+            data: [],
+            columns: [FIELDS_0_1, FIELDS_0_2],
+            onClickRow: function (rowIndex, rowData) {
+                $(this).datagrid('unselectRow', rowIndex);
+            },
+            onClickCell: function(index, field, value) {
+                if( field !== 't新建') {
+                    showCell(field);
+                }
+                else {
+                    addTab('url', "出库单", "/tss/pages/wms/order.html?status=新建");
+                }
+            }
+        });
+
+        prepareOperationType( function() {
+            initContext(drawTable);
+        } )
+    });    
+});
+
+function drawTable() {
+    queryHeader();
+    queryKPI();
+    queryEx();
+}
+
+// 查询出【最近一个月】的订单单号、状态、类型
+function queryHeader() {
+    $("#query_date1, #op_date1, #ex_date1").datebox("setValue", fromDay);
+    $("#query_date2, #op_date2, #ex_date2").datebox("setValue", subDateS(now, -1));
+
+    tssJS.get(SERVICE.jobRate, getParams(), function(data) {
+        var data = data.rows
+        OpTypes.each(function(i, item) {
+
+            var kType = '_t' +item[1], kOpQty = '_toq' +item[1], kQty = '_tq' +item[1];
+            h[kType] = [];
+            h[kOpQty] = 0;
+            h[kQty] = 0;
+
+            data.length && data.each(function(j, op) {
+                if( item[0] == op.optype_id ) {
+                    h[kType].push(op.operation_id);
+
+                    // 按单量
+                    // h[kOpQty] += op.qty_actual == op.qty ? 1 : 0;
+                    // h[kQty] += 1;
+
+                    // 按数量
+                    h[kOpQty] += op.optype == '分配' ? op.qty : op.qty_actual;
+                    h[kQty]   += op.qty;
+                }
+            });
+        })
+
+        OpTypes.each(function(i, item) {
+            // h['t' + item[1]] = round( h['_toq' + item[1]] ) + '/' + round( h['_tq' + item[1]] );
+            h['t' + item[1]] = round( h['_toq' + item[1]] );
+        })
+
+        h['t拣货'] += h['t波次拣货']||0;
+
+        dg1.datagrid('loadData', [h]); 
+        showCell("t出库");
+        $("#lrt").text( tssJS.now(true) ); 
+
+    } );
+
+    $.get("/tss/api/bi/queryIOQty", {wh_id: SELECTED_WH, date_from: fromDay, status: '新建'}, function(r) {
+        var d = r.rows;
+        h['t新建'] = (d[0].num||0) +'单，数量：' + (d[0].qty||0).toFixed(_qty_precision);
+        dg1.datagrid('loadData', [h]); 
+    });
+}
+
+function showCell(field) {
+    var list = h["_" + field] || [];
+    list.push(-999);
+
+    showDetailsGrid( {opId: list.join(',')} )
+}
+
+var dg1, dg2;
+function showDetailsGrid(params) {
+    dg2 = $('#t2').datagrid({
+        url: SERVICE.jobRate,
+        method: 'GET',
+        queryParams: params || getParams(),
+        fit : true,
+        fitColumns : false,
+        rownumbers : true,
+        showFooter: true,
+        singleSelect: false,
+        remoteSort : false,
+        frozenColumns: [FIELDS_1_0], 
+        columns: [FIELDS_1_1],
+        pagination: true,
+        pageList:[100, 500, 1000],
+        pageSize: 100,
+        onClickCell: function(index, field, value) {
+            if (field == 'opno'){
+                addTab('url', "作业日志", "/tss/pages/wms/wms_log.html?opno=" + value);
+            }
+        },
+        onLoadSuccess: function(data){
+            showFoot(data.rows);
+        }
+    });
+
+    dg2.datagrid('enableFilter', [{field:'opno',type:'textbox'},{field:'status',type:'textbox'}]);
+}
+
+function showFoot(data, dg){
+    var foot = {
+        'optype_id': '合计',
+        'opno': data.length + ' 单',
+        'qty_actual': 0,
+        'qty': 0
+    };
+
+    data.each(function(i, item) {
+        foot.qty_actual += parseFloat(item.qty_actual || 0);
+        foot.qty += parseFloat(item.qty || 0);
+    });
+    foot.qty_actual = round(foot.qty_actual, 2);
+    foot.qty = round(foot.qty, 2);
+
+    dg = dg || "t2";
+    $('#' + dg).datagrid('reloadFooter', [foot]);
+}
+
+function getParams() {
+    var params = {
+            wh_id: SELECTED_WH,
+            date_from: $('#query_date1').datebox('getValue') || fromDay,
+            date_to:   $('#query_date2').datebox('getValue') || subDateS(now, -1),
+            opno:      tssJS.fixSplit($('#query_opno').val()),
+            optype_id: $('#query_type').combobox('getValue'),
+            status:    $('#query_status').combobox('getValue')
+        };
+
+    return params;
+}
+
+var refreshID;
+function autoRefresh(){
+    if(refreshID){
+        clearInterval(refreshID);
+        refreshID = null;
+        $("#refresh").text("开启刷新");
+    }
+    else{
+        refreshID = setInterval(queryHeader, 180*1000);
+        $("#refresh").text("关闭刷新");
+    }
+}
+
+/* ---------------------------------------------- 2、绩效排行 ---------------------------------------------- */
+var FIELDS_2 = [
+    {field: "optype_id", title: "作业类型", width: '15%', formatter: optypeid2name, 
+        styler: function(value, row, index) {
+            return 'cursor: pointer; text-decoration: underline;';
+        } 
+    },
+    {field: "creator", title: "作业人", width: '20%', formatter: formatterWorker},
+    {field: "qty_actual", title: "作业完成量", width: '20%'},
+    {field: "opnum", title: "作业单数", width: '16%'}
+];
+$.each(FIELDS_2, function(i, field) {
+    field.align = "center";
+});
+
+function getParams2(){
+    var params = {
+            wh_id: SELECTED_WH,
+            date_from: $('#op_date1').datebox('getValue') || _date_from,
+            date_to:   $('#op_date2').datebox('getValue') || _date_to,
+            optype_id: $('#query_type2').combobox('getValue')
+        };
+
+    return params;
+} 
+
+var dg3;
+function queryKPI() {
+    tssJS.get(SERVICE.jobWorkQty, getParams2(), function(data) {
+        dg3 = $('#t3').datagrid({
+            fit : true,
+            fitColumns : false,
+            rownumbers : true,
+            showFooter: true,
+            data: data,
+            columns:[FIELDS_2],
+            onClickCell: function(index, field, value) {
+                if (field == 'optype_id'){
+                    // TODO 显示当前类型的排行
+                }
+            },
+            onLoadSuccess: function(data){
+                showFoot(data.rows, 't3');
+            }
+        });
+    }) 
+}
+
+/* ---------------------------------------------- 3、异常监控 ---------------------------------------------- */
+var FIELDS_3 = [
+    {field: "type", title: "异常类型", width: '15%'},
+    {field: "content", title: "异常内容", width: '30%'}, 
+    {field: "status", title: "状态", width: '10%'},
+    {field: "result", title: "处理结果", width: '20%'},
+    {field: "opno", title: "作业单号", width: '18%'}
+];
+$.each(FIELDS_3, function(i, field) {
+    field.align = "center";
+});
+
+function getParams3(){
+    var params = {
+            wh_id: SELECTED_WH,
+            date_from: $('#ex_date1').datebox('getValue') || _date_from,
+            date_to: $('#ex_date2').datebox('getValue') || _date_to
+        };
+
+    return params;
+}
+
+function queryEx() {
+    
+    tssJS.get(SERVICE.opException, getParams3(), function(data) {
+        var data = data.rows
+        h._e1 = [];
+        h._e2 = [];
+        h._e3 = [];
+
+        data.length && data.each(function(i, item) {
+            if(item.ope_type == '库存异常') h._e2.push(item.ope_id);
+            if(item.ope_type == '人员异常') h._e1.push(item.ope_id);
+            if(item.ope_type == '设备异常') h._e3.push(item.ope_id);
+        });
+
+        h.e1 = h._e1.length;
+        h.e2 = h._e2.length;
+        h.e3 = h._e3.length;
+
+        dg1.datagrid('loadData', [h]); 
+
+        $('#t4').datagrid({
+            fit : true,
+            fitColumns : true,
+            rownumbers : true,
+            data: [],
+            columns:[FIELDS_3],
+            onClickCell: function(index, field, value) {
+                if (field == 'content'){
+                    // TODO 点击可查看详情
+                }
+            }
+        });
+    });
+}
+
+</script>
+
+</head>
+
+<body>
+<div id="init"></div>
+
+<div id="main" class="easyui-layout" fit="true" >
+    <div data-options="region:'north'" border="false">
+        <table id="t1" border="false" style="height:77px;"></table>
+    </div>
+    <div data-options="region:'center'" border="false">
+        <div class="easyui-layout" fit="true" >
+            <div data-options="region:'east',split:true" border="false" style="width: 37%;">
+
+                <div class="easyui-layout" fit="true" >
+                    <div data-options="region:'center',split:true" border="false" title="作业排行">
+                        <table id="t3" border="false" style="height:77px;" data-options="toolbar:'#tb1'" ></table>
+                        <div id="tb1" style="padding:2px 5px;" > 
+                            <div class="toolbar">
+                                <input id="op_date1" class="easyui-datebox" style="width: 95px;" />&nbsp;->
+                                <input id="op_date2" class="easyui-datebox" style="width: 95px;" />&nbsp;
+                                作业类型: <input id="query_type2" class="easyui-combobox" style="width: 60px;" />&nbsp;
+                                <a href="#" class="easyui-linkbutton" iconCls="icon-search" onclick="queryKPI()">查询</a>
+                                
+                            </div>
+                        </div>
+                    </div>
+                    <div data-options="region:'south',split:true" border="false" style="height: 35%;" title="作业异常登记">
+                        <table id="t4" border="false" style="height:77px;" data-options="toolbar:'#tb3'" ></table>
+                        <div id="tb3" style="padding:2px 5px;" > 
+                            <div class="toolbar">
+                                 <input id="ex_date1" class="easyui-datebox" style="width: 95px;" />&nbsp;->
+                                 <input id="ex_date2" class="easyui-datebox" style="width: 95px;" />&nbsp;
+                                状态: <input id="ex_status" class="easyui-combobox" style="width: 60px;" />&nbsp;
+                                类型: <input id="ex_type" class="easyui-combobox" style="width: 70px;" />&nbsp;
+                                <a href="#" class="easyui-linkbutton" iconCls="icon-search" onclick="queryEx()">查询</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div data-options="region:'center'" border="false">
+                <table id="t2" border="false" data-options="toolbar:'#tb2'" 
+                    title="<span id='b1'>作业单列表 -【最后刷新时间为: <time id='lrt'></time>】<a id='refresh' href='#' onclick='autoRefresh()'>开启刷新</a></span>">
+                </table>
+                <div id="tb2" style="padding:2px 5px;" > 
+                    <div class="toolbar">
+                        创建日期: <input id="query_date1" class="easyui-datebox" style="width: 100px;" />&nbsp;->
+                                 <input id="query_date2" class="easyui-datebox" style="width: 100px;" />&nbsp;
+                        作业类型: <input id="query_type" class="easyui-combobox" style="width: 70px;" />&nbsp;
+                        状态: <input id="query_status" class="easyui-combobox" style="width: 70px;" />&nbsp;
+                        作业单号: <input id="query_opno" class="easyui-textbox" style="width: 160px;" prompt="多个单号以逗号分隔"/>&nbsp;
+                        
+                        <a href="#" class="easyui-linkbutton" iconCls="icon-search" onclick="showDetailsGrid()">查询</a>
+                        <!-- <a href="#" class="easyui-linkbutton" onclick="customsExport()">导出</a> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

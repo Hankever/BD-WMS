@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>条形码打印（简易）</title>
+
+<script src="../../tools/tssJS/tssJS.js"></script>
+<script src="../../tools/common/JsBarcode.all.min.js"></script>
+
+<STYLE type="text/css">
+
+ul { list-style-type: none; } 
+ul li { float:left; position:relative; width: 45%; text-align:center;  } 
+.barcode { padding: 3px; min-width: 40%; }
+
+</STYLE>
+
+<body>
+	<button onclick="_print()">打印</button>
+	<ul id="main"></ul>
+</body>
+	<script type="text/javascript">
+		var codes = tssJS.Query.get('codes') || '123456,1234567,12345678,123456789';
+		var code_list = codes.split(',');
+
+		var html = '';
+		code_list.each(function(i, item){	
+			html += '<li class="barcode"><img class="barcode" id="B-' + i + '"></li>';
+		});
+		$('#main').html(html);
+
+		code_list.each(function(i, item){	
+			JsBarcode("#B-" + i, item, {
+	          fontOptions: "bold",
+	          fontSize: 25,
+	          font: "Sans-serif"
+	        });
+		});
+
+		function _print() {
+			$("button").hide();
+			window.print();
+		}
+	</script> 
+</head>
+</html>

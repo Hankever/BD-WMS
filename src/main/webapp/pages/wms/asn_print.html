@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>入库单</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/common/JsBarcode.all.min.js"></script>
+
+<STYLE type="text/css">
+
+table { border-collapse: collapse; border-spacing: 0; }
+img { margin-top: 2px; width: 150px;  height: 50px; }
+
+.bitable { width: 100%; height: auto; }
+.bitable tr { height: 18pt; }
+.bitable td { text-align: center; vertical-align: middle; border-bottom: 1px dashed #ccc; }
+.bitable thead {
+  background: linear-gradient(#f9f9f9 0px, #efefef 100%) repeat-x;
+}
+.bitable tbody { background-color: #fff; }
+.bitable tbody td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
+  white-space: nowrap;
+  height: 28px;
+}
+
+#t1 { table-layout:fixed; }
+#t1 thead tr:nth-child(1) { height: 1px; }
+#t1 thead tr th:nth-child(odd)  { width: 80px; }
+#t1 thead tr th:nth-child(2) { width: 250px; }
+#t1 tbody tr td:nth-child(odd)  { text-align: right; }
+
+
+#t1 h2 { height: 40pt; padding-top: 10pt; display: inline-block; }
+#t1 h2 span { font-size: 12pt;  }/*letter-spacing: 3px;*/
+
+#d1 { margin-top: 6pt; }
+body>.template { display: none; }
+
+/* 清单隔离线 */
+.template tbody tr>td { border-bottom: 1px dashed #ccc; }
+
+td, th { font-size: 6pt; }
+@media print {
+	#b1 { display: none; } 
+	td, th { font-size: 6pt; }
+	#d1>table  { page-break-after: always; }
+	#d1>table:last-child  { page-break-after: avoid; }
+}
+
+#b1 { font-size: 15px; padding: 5px 15px; }
+		 
+</STYLE>
+
+<script type="text/javascript">
+
+$(function(){
+	$("#t1 h2>span").text(document.title);
+	document.title = ".";
+	
+	showOuterData();
+});
+
+// 显示外部传入的数据
+var globalV, params;
+function showOuterData() {
+	globalV = window.parent.globalV;
+	if(globalV && globalV.data) {
+		params = globalV.params || {};
+		show(globalV.data);
+	}
+}
+
+var hide_money = tssJS.Cookie.getValue('js_hide_money') == "1";
+
+function show(data) {
+	$("#b1").click( function() {
+		preview();
+		tssJS.post("/tss/api/log", {table: "打印日志", code: "入库单", content: globalV.asn.asnno + " : " + data.length});
+	 });
+
+	var asn = globalV.asn;
+	for(var key in asn){
+		asn[key] = asn[key] || ''
+	}
+	$("#t1 h2>span").html("【" + asn.asnno + "】" + (asn.type||'入库') + "单");
+	$("#t1 tbody tr:nth-child(2) td:nth-child(2)").html( '<img id="asnno" />');
+	$("#t1 tbody tr:nth-child(2) td:nth-child(4)").text( asn.supplier || asn.owner_name );
+	$("#t1 tbody tr:nth-child(2) td:nth-child(6)").text( new Date().format("yyyy-MM-dd hh:mm") );
+	$("#t1 tbody tr:nth-child(3) td:nth-child(2)").text( asn.qty );
+	$("#t1 tbody tr:nth-child(3) td:nth-child(4)").text( asn.skus );
+	$("#t1 tbody tr:nth-child(3) td:nth-child(6)").text( asn.money ? ("￥" + asn.money) : '' );
+	$("#remark").text( asn.remark ).css("text-align", "left").css("padding-left", "20px");
+
+	JsBarcode("#asnno", asn.asnno, {
+		height: "40px",
+      	fontSize: 20,
+      	font: "Sans-serif"
+    });
+
+	var tos = [];
+	var table;
+	data.each(function(i, item) {
+		for(var key in item){
+			item[key] = item[key] || ''
+		}
+		if( i == 0 ) {
+			table = $("body>.template")[0].cloneNode(true);
+			$("#d1").appendChild(table);
+		}
+
+		var skuDesc = item.skuname + " " + (item.guige||'');
+		if( item.uom ) {
+			skuDesc += "(" +item.uom+ ")";
+		}
+
+		var row = tssJS.createElement("tr"), colIndex = 1;
+		tssJS(row).html("<td/><td/><td style='white-space: inherit;'/><td/><td/><td/><td/><td/><td/><td/><td/><td/>");
+		tssJS("td:nth-child(" +(colIndex++)+ ")", row).html( '' );
+		tssJS("td:nth-child(" +(colIndex++)+ ")", row).html( '<img id="img' +i+ '"/>' );
+		tssJS("td:nth-child(" +(colIndex++)+ ")", row).html( skuDesc );
+		tssJS("td:nth-child(" +(colIndex++)+ ")", row).html( item["lotatt01"]||'' );
+		tssJS("td:nth-child(" +(colIndex++)+ ")", row).html( item["createdate"]||'' );
+		tssJS("td:nth-child(" +(colIndex++)+ ")", row).html( item["lotatt02"]||'' );
+		tssJS("td:nth-child(" +(colIndex++)+ ")", row).html( item["qty"] );
+		!hide_money && tssJS("td:nth-child(" +(colIndex++)+ ")", row).html( item["price"] );
+		!hide_money && tssJS("td:nth-child(" +(colIndex++)+ ")", row).html( item["money"]);
+ 
+		tssJS("tbody", table).appendChild(row);
+
+		JsBarcode("#img" + i, item['barcode'], {
+			height: "35px",
+	      	fontSize: 20,
+	      	font: "Sans-serif"
+	    });
+	});
+
+	if( hide_money ) {
+		tssJS(".money").hide();
+	}
+}
+
+function preview() { 
+	var bdhtml = window.document.body.innerHTML; 
+	var sprnstr = "<!--startprint-->"; 
+	var eprnstr = "<!--endprint-->"; 
+	var prnhtml = bdhtml.substring( bdhtml.indexOf(sprnstr) + 17); 
+	prnhtml = prnhtml.substring(0, prnhtml.indexOf(eprnstr)); 
+	window.document.body.innerHTML = prnhtml; 
+
+	window.print(); 
+
+	window.document.body.innerHTML = bdhtml; 
+	window.location.reload();
+} 
+
+</script>
+
+</head>
+
+<body>
+<!--startprint-->
+   <table id="t1" class="bitable">
+   		<thead>
+   			<tr>
+   				<th/><th/><th/><th/><th/><th/>
+   			</tr>
+   		</thead>
+   		<tbody>
+	   		<tr>
+	   			<td colspan="6" style="text-align: center;">
+	   				<h2>
+	   					<span></span>&nbsp;&nbsp;
+	   					<button id="b1" class="tssbutton orange">打 印</button>
+	   				</h2>
+	   			</td>
+	   		</tr>
+	   		<tr>
+	   			<td>入库单号：</td>
+	   			<td style="width：40%;"></td>
+	   			<td>供货商：</td>
+	   			<td></td>
+	   			<td>打印时间：</td>
+	   			<td></td>
+	   		</tr>
+	   		<tr>
+	   			<td>合计数量：</td>
+	   			<td></td>
+	   			<td>品项数：</td>
+	   			<td></td>
+	   			<td class="money">合计金额：</td>
+	   			<td class="money"></td>
+	   		</tr>
+	   		<tr>
+	   			<td>订单备注：</td>
+	   			<td colspan="5" id="remark"></td>
+	   		</tr>
+   		</tbody>
+   </table>
+
+   <div id="d1"></div>
+
+<!--endprint-->
+<table class="bitable template">
+	<thead>
+		<tr>
+			<th width="0"></th>
+			<th width="220px">货品条码</th>
+			<th width="180px">货品名称</th>		
+			<th width="100px">批号</th>
+			<th width="120px">生产日期</th>
+			<th width="80px">装箱量</th>
+			<th width="80px">数量</th>
+			<th width="80px" class="money">单价</th>
+			<th width="100px" class="money">金额</th>
+		</tr>
+	</thead>
+	<tbody>
+	</tbody>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>IOS</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="../wms/wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.data.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<script src="../../tools/echarts/echarts-all-3.1.2.js"></script>
+
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="../wms/wms.js"></script>
+
+<style type="text/css">
+    
+    #chart1 { min-height: 500px;  }
+    iframe { width:100%; height: 99.5%; display:block; }
+
+</style>
+
+<!-- 库龄报表：单位（个天），当月每天期末库存数量的累加， 直接取进出存数据即可 -->
+
+</head>
+<body>
+
+<div id="main" class="easyui-layout" fit="true">
+    <div class="queryContainer" data-options="region:'north'" border="false">
+        <form id='queryContainerForm'>
+            <label id="warehouseLabel">仓库:</label><input id="wh_id" class="easyui-combobox" style="width: 90px;"/>
+            <label id="ownerLabel">货主:</label><input id="owner_id" class="easyui-combobox" style="width: 100px;"/>
+            <label id="skuLabel">货品:</label><input id="sku_id" class="easyui-combobox" style="width: 120px;"/>
+            <label>统计维度:</label><input id="dimension" class="easyui-combobox" style="width: 140px;"/>
+            <label>日期:</label><input id="fromDate" class="easyui-datebox" style="width: 95px;"/> -> <input id="endDate" class="easyui-datebox" style="width: 95px;"/>
+            <label>按时间汇总:</label><input type="checkbox" name="groupByTime" style="width:15px">
+        
+            <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'ion ion-ios-search'" onclick='queryIOS()'>查询</a>
+            <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'ion ion-md-download'" onclick='exportIOS()'>导出汇总</a>
+        </form>
+    </div>
+    
+    <div id="dataContainer" data-options="region:'center'" border="false">
+        <div class="easyui-tabs" data-options="fit:true" border="false" id="tabs">
+            <div border="false" id="iosContainer" title="进出存汇总">
+                <table id="t1" border="false"></table>
+            </div>
+            <div border="false" title="入库单">
+                <table id="t4" border="false"></table>
+            </div>
+            <div border="false" title="入库明细">
+                <iframe scrolling="auto" frameborder="0" id="if2"></iframe>
+            </div>
+            <div border="false" title="出库单">
+                <table id="t5" border="false"></table>
+            </div>
+            <div border="false" title="出库明细">
+                <iframe scrolling="auto" frameborder="0" id="if3"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+
+$('#wh_id, #owner_id').combobox({
+    textField: 'name',
+    valueField: 'id',
+    panelHeight: '150px',
+    multiple: true,
+    editable: false
+})
+
+$('#sku_id').combobox({
+    textField: 'name',
+    valueField: 'id',
+    panelHeight: '300px',
+    multiple: true,
+})
+
+var dimensions = [
+    {text: "货主", value: "inv.owner_id" },
+    {text: "货品", value: "sku_id" }
+];
+LOTATT_CODES.each( function(i, lot) {
+    var l = LOTATTS[lot];
+    if(l.type != 'hidden' ) {
+        dimensions.push( {text: l.label, value: lot } );
+    }
+} );
+
+
+$('#dimension').combobox({
+    panelHeight: '180px',
+    multiple: true,
+    data: dimensions,
+    value: ['inv.owner_id', 'sku_id']
+});
+
+$(function(){
+    $("#fromDate").datebox("setValue", subDateS(now, 30));
+    $("#endDate").datebox("setValue", cday);
+
+    prepareWHs(function(val) {
+        var warehouseList = WAREHOUSE_WMS;
+        if( userRoleNames.contains("财务") ) {
+            WAREHOUSE_FMS.each(function(i, w) {
+                WAREHOUSE_WMS.push(w);
+            })
+        }
+
+        $('#wh_id').combobox({
+            data: warehouseList,
+            onChange: function(newVal, oldVal) {
+                prepareSKUs(function() {
+                    $('#sku_id').combobox({
+                        data: SKU_L
+                    })
+                }, {wh_id: newVal.join()});
+            }
+        });
+
+        $("#wh_id").combobox("setValue", [warehouseList[0].id]);
+
+        prepareOwners(function() {
+            $('#owner_id').combobox({
+                data: OWNER_D
+            })
+            if(OWNER_D.length == 1) {
+                $('#owner_id').combobox("setValues", [OWNER_D[0].id])
+            }
+            var tab_4 = $('#tabs').tabs('getTab',"入库单").panel('options').tab,
+                tab_5 = $('#tabs').tabs('getTab',"出库单").panel('options').tab; 
+            if(hide_weight) {
+                tab_4.hide();
+                tab_5.hide();
+            } else {
+                tab_4.show();
+                tab_5.show();
+            }
+
+            queryIOS();
+        });
+    });
+});
+
+
+function getParams() {
+    var dimension = $('#dimension').combobox("getValues");
+    var skuIds = $('#sku_id').combobox("getValues");
+
+    var params = {};
+    params.wh_id = $('#wh_id').combobox("getValues").join();
+    params.owner_id = $('#owner_id').combobox("getValues").join();
+    if( skuIds.length ) {
+        params.sku_id = "'" + skuIds.join("','") + "'";
+    }
+    
+    params.fromDate = $("#fromDate").datebox("getValue");
+    params.endDate = $("#endDate").datebox("getValue") || cday;
+
+    if( !params.wh_id ) {
+        return $.messager.show({ title: '提示', msg: '请选择仓库'});
+    }
+    if( !params.fromDate ) {
+        return $.messager.show({ title: '提示', msg: '请选择起始日期'});
+    }
+
+    params.dimension = "," + (dimension.length ? dimension.join() : "1");
+
+    return params;
+}
+
+function exportIOS() {
+    exportDataGrid("t1", "出入库汇总");
+}
+
+/*
+    出入库链接到 出入库报表
+*/
+function queryIOS() {
+    var groupByTime = $("input[name='groupByTime']").is(':checked');
+
+    var params = getParams(), fields ;
+    var fromDate = params.fromDate,
+        endDate = params.endDate;
+
+    if( groupByTime ) { // 按日期汇总
+        queryByTime(params);
+    } 
+    else {
+        queryByDimension(params);
+    }
+
+    var qs = '&param1=' +fromDate+ '&param2=' +endDate+ '&WH_ID=' +params.wh_id+ '&OWNER_ID=' +params.owner_id;
+    if(params.sku_id) {
+        qs += '&skuIds=' +params.sku_id;
+    }
+    $("#if2").attr("src", '/tss/modules/dm/report_portlet.html?id=28' + qs);
+    $("#if3").attr("src", '/tss/modules/dm/report_portlet.html?id=29' + qs);
+
+    queryAsnOrder(params);
+}
+
+function queryAsnOrder(params) {
+    _queryAO('t4', "/tss/api/data/sql/asn_ios", params, 'asn');
+    _queryAO('t5', "/tss/api/data/sql/order_ios", params, 'order');
+}
+
+function _queryAO(id, url, _params, type) {
+    var FIELDS = [
+        [
+            {field: "仓库", title: "仓库", formatter:warehouseid2name, hidden: hide_wh},
+            {field: "货主", title: "货主", formatter:ownerid2name, hidden: hide_ow}
+        ], [],
+        [
+            {field: "数量", title: "数量", width:"7%"},
+            {field: "体积", title: "体积", width:"7%"},
+            {field: "重量", title: "重量", width:"7%"}
+        ]
+    ]; 
+    if(type == 'asn') {
+        FIELDS[1] = [
+            {field: "入库单号", title: "入库单号"},
+            {field: "入库日期", title: "入库日期", width:"6%", formatter: dateNoHour}
+        ];
+    } else {
+        FIELDS[1] = [
+            {field: "出库单号", title: "出库单号"},
+            {field: "出库日期", title: "出库日期", width:"6%", formatter: dateNoHour}
+        ];
+    }
+    FIELDS.each((i, fields) => {
+        $.each(fields, function(i, field) {
+            field.align = field.align || "center";
+            field.width = field.width || "13%";
+        });
+    })
+
+    $('#' + id).datagrid({
+        url: url,
+        queryParams: _params,
+        method: 'GET',
+        fit: true,
+        fitColumns: true,
+        pagination: true,
+        rownumbers: true,
+        pageSize : 50,
+        pageList:[50, 100, 200],
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        showFooter: true,
+        columns: [FIELDS[0].concat(FIELDS[1]).concat(FIELDS[2])],
+        loadFilter: function(data){
+            var _qty = 0, _cube = 0, _weight = 0, _money = 0;
+            data.rows.each((i, item) => {
+                _qty += item["数量"];
+                _cube += item["体积"];
+                _weight += item["重量"];
+            })
+
+            data.footer = [{"asnno": "本页合计", "数量": round(_qty,2), "体积": round(_cube,2), "重量": round(_weight,2)}];
+            return data;
+        }
+    });
+}
+
+/* 
+ * 不能超过60天，超过60天则月份汇总
+ * 1、显示表格
+ * 2、显示进、销、存图表（两柱一折线） 
+ */
+function queryByTime(params) {
+    var fromDate = new Date( params.fromDate ), 
+        endDate  = new Date( params.endDate );
+    var deltaDays = dateDiff(params.fromDate, params.endDate).day + 1;
+
+    params.dimension = ',1';
+
+    if( deltaDays <= 32 ) {
+        var _data = [];
+        for(var i = 0; i < deltaDays; i++) {
+            params.fromDate = params.endDate = subDateS(fromDate, i*-1);
+             
+            $.getJSON('/tss/api/data/sql/sku_ios', params, function(result) {
+                _data.push(result);
+
+                if( _data.length == deltaDays ) {
+                    showDailyIOS(_data);
+                }
+            });
+        }
+    }
+    else {
+        var _data = [], month = 0;
+        var currDate = toDate( getFirstDayOfMonth(fromDate) );
+        while(currDate < now) {
+            params.fromDate = currDate.format("yyyy-MM-dd");
+            params.endDate = getLastDayOfMonth(currDate);
+            month ++; 
+             
+            $.getJSON('/tss/api/data/sql/sku_ios', params, function(result) {
+                _data.push(result);
+
+                if( _data.length == month ) {
+                    showDailyIOS(_data, true);
+                }
+            });
+
+            currDate = subDate( toDate(params.endDate), -1);
+        }
+    }
+}
+
+var dg;
+function showDailyIOS(_data, byMonth) {
+    var _data_ = {rows: []}; // 没有 data.rows 直接传入数据，footer显示不出来
+    _data.each(function(i, rows) {
+        rows.each(function(j, row) {
+            _data_.rows.push(row);
+        })
+    })
+
+    _data_.rows = tssJS.Data.groupby(_data_.rows, '_day', 'beginqty,inqty,outqty,adjustqty,endqty,incube,inweight,outcube,outweight', 2);
+
+    var beginqty = '', inqty = 0, outqty = 0, adjustqty = 0, endqty = 0, incube = 0, inweight = 0, outcube = 0, outweight = 0;
+    _data_.rows.each( (i, item) => {
+        if( byMonth ) {
+            item._day = item._day.substring(0, 7);
+        }
+
+        inqty += item.inqty;
+        outqty += item.outqty;
+        adjustqty += item.adjustqty;
+        endqty += item.endqty;
+        incube += item.incube||0;
+        inweight += item.inweight||0;
+        outcube += item.outcube||0;
+        outweight += item.outweight||0;
+    });
+    var endqtyAvg = Math.round(endqty/_data.length);
+
+    _data_.rows.push( {"_day": "合计", "inqty": round(inqty,2), "outqty": round(outqty,2), "adjustqty": round(adjustqty,2), "endqty": "平均 = " + endqtyAvg, "incube": round(incube,2), "inweight": round(inweight,2), "outcube": round(outcube,2), "outweight": round(outweight,2)} );
+
+    fields = [
+        {title:'日期', field:'_day', styler: linkStyler, sortable: true, width: "15%" },
+        {title:'期初库存', zj_title: '期初金额', field:'beginqty', align: "right"},
+        {title:'+ 本期入', zj_title: true, field:'inqty', align: "right", styler: linkStyler, formatter: excludeZero},
+        {title:'- 本期出', zj_title: true, field:'outqty', align: "right", styler: linkStyler, formatter: excludeZero},
+        {title:'+ 本期调整', field:'adjustqty', align: "right", styler: linkStyler, formatter: excludeZero},
+        {title:'= 期末库存', zj_title: '期末金额', field:'endqty', align: "right", styler: linkStyler},
+        {title:'入库体积', field:'incube', formatter: excludeZero, hidden: hide_weight},
+        {title:'入库重量', field:'inweight', formatter: excludeZero, hidden: hide_weight},
+        {title:'出库体积', field:'outcube', formatter: excludeZero, hidden: hide_weight},
+        {title:'出库重量', field:'outweight', formatter: excludeZero, hidden: hide_weight}                     
+    ]
+
+    if( isMoneyWh( $('#wh_id').combobox("getValues").join() ) ) {
+        transToMoneyWh(fields, '22%');
+    }
+
+    if( byMonth ) {
+        fields[0].title = "月份";
+    }
+
+    $.each(fields, function(i, field) {
+        field.align = field.align||"center";
+        field.width = field.width||"16%";
+    });
+
+    $("#iosContainer").html(`
+        <div class="easyui-layout" fit="true">
+            <div data-options="region:'center'" border="false" style="width: 35%; display:inline-block; vertical-align: top;">
+                <table id="t1" border="false"></table>
+            </div>
+            <div data-options="region:'west'" border="true" style="width: 64%; display:inline-block; vertical-align: top;">
+                <div id="chart1"></div>
+            </div>
+        </div>
+    `);
+    $("#chart1").height(document.body.clientHeight - 40);
+    $("#t1").height(document.body.clientHeight - 40);
+
+    dg = $('#t1').datagrid({
+        fitColumns: true,
+        columns:[ fields ],
+        data: _data_,
+        sortName: "_day",
+        remoteSort : false,
+        showFooter: true, 
+        onClickCell: function(index, field, value) {
+            var row = dg.datagrid("getRows")[index];
+            var date1 = byMonth ? row._day + "-01" : row._day,
+                date2 = byMonth ? getLastDayOfMonth( toDate(date1) ) : row._day,
+                wh_id = $('#wh_id').combobox("getValues").join();
+
+            if(field == '_day') {
+                showOpLog2(wh_id, null, date1, date2);
+            } 
+            if(field == 'inqty') {
+                showOpLog2(wh_id, 60, date1, date2);
+            }
+            if(field == 'outqty') {
+                showOpLog2(wh_id, 68, date1, date2);
+            }    
+            if(field == 'adjustqty') {
+                showOpLog2(wh_id, 69, date1, date2);
+            }
+            if(field == 'endqty') {
+                showInv(wh_id);
+            }              
+        }
+    });
+    checkIOS();
+
+    showChart( _data_.rows );
+}
+
+// 1、just 显示表格，表格每一列支持排序；分页：100每页; 点击SKU跳到SKU单品分析页面
+function queryByDimension(params) {
+    params.rows = 100;
+    var deltaDays = dateDiff(params.fromDate, params.endDate).day + 1;
+
+    var isMoneyWh_ = isMoneyWh( $('#wh_id').combobox("getValues").join() );
+
+    var dimensions = params.dimension.split(",");
+    var showOwner = dimensions.contains("inv.owner_id") && !hide_ow,
+        showSku = dimensions.contains("sku_id"),
+        showLotatt1 = dimensions.contains("lotatt01"),
+        showLotatt2 = dimensions.contains("lotatt02"),
+        showLotatt3 = dimensions.contains("lotatt03"),
+        showLotatt4 = dimensions.contains("lotatt04"),
+        showCreatedate = dimensions.contains("createdate"),
+        showExpiredate = dimensions.contains("expiredate"),
+        showInvstatus = dimensions.contains("invstatus");
+
+    fields = [
+        {title:'仓库', zj_title: '公司', field:'warehouse', width: "7%", hidden: hide_wh},
+        {title:'货主', zj_title: '账户', field:'owner', hidden: !showOwner, width: "7%"},
+        {title:'货品编号', field:'skucode', width: "6%", hidden: !showSku, styler: linkStyler},
+        {title:'货品名称', zj_title: '币种', field:'skuname', width: "10%", hidden: !showSku},
+        {title:'大类', field:'category', width: "4%", hidden: !showSku},
+        {title:'规格', field:'guige', width: "5%", hidden: !showSku},
+        {title:'单位', field:'uom', width: "4%", hidden: !showSku},
+        {title:LOTATTS["lotatt01"].label, field:'lotatt01', width: "8%", hidden: !showLotatt1},
+        {title:LOTATTS["lotatt02"].label, field:'lotatt02', width: "5%", hidden: !showLotatt2},
+        {title:LOTATTS["lotatt03"].label, field:'lotatt03', width: "5%", hidden: !showLotatt3},
+        {title:LOTATTS["lotatt04"].label, field:'lotatt04', width: "5%", hidden: !showLotatt4},
+        {title:LOTATTS["createdate"].label, field:'createdate', hidden: !showCreatedate},
+        {title:LOTATTS["expiredate"].label, field:'expiredate', hidden: !showExpiredate},
+        {title:LOTATTS["invstatus"].label, field:'invstatus', width: "4%", hidden: !showInvstatus},
+
+        {title:'期初库存', zj_title: '期初金额', field:'beginqty', align: "right", width: "5%"},
+        {title:'+ 本期入', zj_title: true, field:'inqty', align: "right", styler: linkStyler, width: "5%"},
+        {title:'- 本期出', zj_title: true, field:'outqty', align: "right", styler: linkStyler, width: "5%"},
+        {title:'+ 本期调整', field:'adjustqty', align: "right", styler: linkStyler, width: "5%"},
+        {title:'= 期末库存', zj_title: '期末金额', field:'endqty', align: "right", styler: linkStyler, width: "5%"} ,
+        {title:'周转天数', field:'turnover_days', align: "right", width: "5%"},
+        {title:'周转率', field:'turnover_rate', align: "right", width: "4%"},
+        {title:'入库体积', field:'incube', width: "5%", formatter: excludeZero, hidden: hide_weight},
+        {title:'入库重量', field:'inweight', width: "5%", formatter: excludeZero, hidden: hide_weight},
+        {title:'出库体积', field:'outcube', width: "5%", formatter: excludeZero, hidden: hide_weight},
+        {title:'出库重量', field:'outweight', width: "5%", formatter: excludeZero, hidden: hide_weight}                      
+    ];
+    fixFields(fields, "wms_sku");
+
+    $.each(fields, function(i, field) {
+        field.align = field.align||"center";
+        field.width = field.width||"6%";
+        field.sortable = true;
+    });
+
+    if( isMoneyWh_ ) {
+        transToMoneyWh(fields);
+    }
+
+    if(dg) {
+        $("#iosContainer").html('<table id="t1" border="false"></table>');
+    } 
+    dg = $('#t1').datagrid({
+        url: '/tss/api/data/sku_ios',
+        method: 'GET',
+        queryParams: params,
+        fit: true,
+        fitColumns: true,
+        pagination: true,
+        pageList:[100, 500, 1000],
+        pageSize: 100,
+        remoteSort : false,
+        showFooter: true, 
+        columns:[ fields ],
+        onClickCell: function(index, field, value) {
+            var row = dg.datagrid("getRows")[index];
+            var wh_id = row.warehouse_id;
+            var owner_id = row.owner_id;
+
+            var date1 = params.fromDate;
+            var date2 = params.endDate;
+
+            if(field == 'skucode' ||  field == 'endqty') {
+                showInv(wh_id, owner_id, row.sku_id);
+                return;
+            } 
+
+            var type;
+            if(field == 'inqty') type = 60;
+            if(field == 'outqty') type = 68;
+            if(field == 'adjustqty') type = 69;
+            if( type ) {
+                params.owner_id = owner_id;
+                params.wh_id = wh_id;
+                params.skucode = row.skucode;
+                params.date1 = date1;
+                params.date2 = date2;
+                $.getJSON('/tss/api/data/sql/queryOpBySku', params, function(result) {
+                    var opIDs = [];
+                    result.rows.each( function(i, item) {
+                        opIDs.push( item.id );
+                    });
+                    showOpLog2(wh_id, type, date1, date2, opIDs.length ? opIDs.join() : null);
+                });
+                return;
+            }        
+        },
+        loadFilter: function(data){
+            var skuIds = [],
+                beginqty = 0, inqty = 0, outqty = 0, adjustqty = 0, endqty = 0, 
+                incube = 0, inweight = 0, outcube = 0, outweight = 0;
+            data.rows.each((i, item) => {
+                item.warehouse = WAREHOUSE_I[item.warehouse_id].name;
+                if( showOwner && OWNER_I[item.owner_id] ) {
+                    item.owner = OWNER_I[item.owner_id].name;
+                }
+                if( showSku ) {
+                    skuIds.push(item.sku_id);
+                }
+                beginqty += item.beginqty;
+                inqty += item.inqty;
+                outqty += item.outqty;
+                adjustqty += item.adjustqty;
+                endqty += item.endqty;
+                incube += item.incube||0;
+                inweight += item.inweight||0;
+                outcube += item.outcube||0;
+                outweight += item.outweight||0;
+
+                if( item.outqty ) {
+                    item.turnover_days = round(deltaDays * (item.beginqty + item.endqty)/2/item.outqty, 1) || 1;
+                    item.turnover_rate = round(365 / item.turnover_days, 2);
+                } else {
+                    item.turnover_days = 999;
+                    item.turnover_rate = 0;
+                }
+            })
+
+            showSku && prepareSKUs(function() {
+                var rows = dg.datagrid("getRows");
+                data.rows.each((i, item) => {
+                    var sku = SKU_M[item.sku_id];
+                    if( sku ) {
+                        item.skucode = sku.code;
+                        item.skuname = sku.name;
+                        item.uom = sku.uom;
+                        item.guige = sku.guige;
+                        item.category = sku.category;
+                        dg.datagrid('refreshRow', i);
+                    } else {
+                        console.log("SKU_M里找不到SKU：" + item);
+                    }  
+                })
+                    
+                }, {ids: skuIds.join()}
+            );
+
+            data.footer = [ {"warehouse": "本页合计", "beginqty": round(beginqty,2), "inqty": round(inqty,2), "outqty": round(outqty,2), "adjustqty": round(adjustqty,2), "endqty": round(endqty,2), "incube": round(incube,2), "inweight": round(inweight,2), "outcube": round(outcube,2), "outweight": round(outweight,2) } ];
+
+            return data;
+        },
+        onLoadSuccess: function(data) { 
+            checkIOS(); 
+        }
+    });
+
+    isMoneyWh_ && dg.datagrid('showColumn', 'owner');
+}
+
+function checkIOS() {
+    var rows = $("#t1").datagrid("getRows");
+    rows.each( function(i, row) {
+        if( round(Math.abs( row.beginqty + row.inqty - row.outqty + row.adjustqty - row.endqty)) > 0.1 ) {
+            $("#t1").datagrid("selectRow", i);
+        }
+    } );
+}
+
+function showChart(data) {
+
+    var label = [], data1 = [], data2 = [], data3 = [], data4 = [], max = 0, max2 = 0;
+    data.each(function(i, item) {
+        if(i == data.length - 1) return true;
+        
+        label.push(item._day);
+
+        data1.push(item.inqty);
+        data2.push(item.outqty*-1);
+        data3.push(item.endqty);
+        data4.push(item.adjustqty);
+
+        max = Math.max(max, item.endqty);
+        max2 = Math.max(max2, item.outqty, item.inqty);
+    });
+    max = Math.ceil(max/100)*100 + 100;
+    max2 = Math.ceil(max2/100)*100 + 100;
+
+    var dom = tssJS('#chart1')[0];
+    var myChart = echarts.init(dom);
+    var option = {
+        title: { text: ' -进出存走势'},
+        toolbox: {
+            feature: {
+                dataView: {show: false, readOnly: false},
+                magicType: {show: false, type: ['line', 'bar']},
+                restore: {show: true},
+                saveAsImage: {show: false}
+            }
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross', crossStyle: { color: '#999' } }
+        },
+        legend: {
+                data:['入库','出库','调整','库存']
+        },
+        xAxis: [ { data: label } ],
+        yAxis: [
+            { name: '出入库', min: max2*-1, max: max2, interval: max2/10 },
+            { name: '库存量', min: max*-1, max: max, interval: max/10 }
+        ],
+        series: [
+            { name: '入库', type: 'bar', yAxisIndex: 0, data: data1 },
+            { name: '出库', type: 'bar', yAxisIndex: 0, data: data2 },
+            // { name: '调整', type: 'bar', yAxisIndex: 0, data: data4 },
+            { name: '库存', type:'line', yAxisIndex: 1, data:data3 }
+        ]
+    }
+    myChart.setOption(option, true);  
+}
+
+</script>
+</body>
+</html>

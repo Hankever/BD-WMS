@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sqls>
+	<sql code="currentInv" name="当前库存（小程序货品详情）">
+		<![CDATA[
+			select round(sum(inv.qty), 2) qty 
+			from wms_inv inv, wms_sku sku
+			where inv.sku_id = sku.id
+				<#if wh_id??> and inv.wh_id = ${wh_id} </#if>
+				<#if owner_id??> and inv.owner_id = ${owner_id} </#if>
+				<#if OWNER_ID??> and inv.owner_id = ${OWNER_ID} </#if>
+				<#if skucode??> and '${skucode}' in (sku.code, sku.barcode) </#if>
+		]]>
+	</sql>
+	
+	<sql code="locInv" name="查询库位库存（小程序）">
+		<![CDATA[
+			select loc.id, loc.code, ploc.code parent_code, loc.type_id, loc.rack, loc.zone, loc.len, loc.width, loc.height, loc.holding, loc.checking, round(sum(inv.qty), 2) qty, cp.text type_name 
+			from wms_location loc
+			    left join wms_inv inv on loc.id = inv.location_id <#if owner_id??> and inv.owner_id = ${owner_id} </#if>
+				left join component_param cp on loc.type_id = cp.id
+				left join wms_location ploc on loc.parent_id = ploc.id
+			where loc.domain = '${DOMAIN}' 
+				<#if wh_id??> and loc.warehouse_id = ${wh_id} </#if>
+				<#if loccode??> and loc.code = '${loccode}' </#if>
+				<#if code??> and (loc.rack = '${code}' or loc.zone = '${code}' or loc.code like '${code}%') </#if>
+			group by loc.id
+			order by ifnull(ploc.type_id, loc.type_id) desc, ifnull(ploc.code, loc.code), ploc.code
+		]]>
+	</sql>
+	
+	<sql code="invTotal" name="查询最新库存总量">
+		<![CDATA[
+			select w.name 仓库, c.name 货主, round(sum(inv.qty), 2) qty, count(distinct inv.sku_id) px
+			from wms_inventory inv, wms_warehouse w, wms_owner c, wms_sku sku 
+			where inv.wh_id = w.id
+			  and inv.owner_id = c.id
+			  and inv.sku_id = sku.id
+			  <#if whIDs??> and w.id in (${whIDs}) </#if> 
+		      <#if owIDs??> and c.id in (${owIDs})</#if>
+		      <#if skuIDs??> and sku.id in (${skuIDs}) </#if> 
+       		group by w.name, c.name
+		]]>
+	</sql>
+	
+	<sql code="queryLockedInfo" name="查看库存锁定详情">
+		select oh.orderno 订单号, oh.orderday 下单日期, oh.status 订单状态, opi.createTime 锁定时间,  u.userName 锁定人,
+			opi.qty 锁定量, inv.id, op.opno 工单号
+		from wms_inv inv, wms_operation_item opi, wms_order_item oi, wms_order oh, wms_operation op, um_user u
+		where inv.id = opi.opinv_id and opi.orderitem_id = oi.id and oi.order_id = oh.id 
+			and opi.operation_id = op.id and optype_id = 65 and op.status not in ('取消', '关闭')
+			and opi.creator = u.loginName
+			and inv.qty_locked > 0 and inv.id = ${invId}
+	</sql>
+	
+	<sql code="invHistory" name="查询库存变化">
+		<![CDATA[
+		select inv.*, ilog.id as logId, ilog.qty as fromQty, ilog.toQty, ilog.qtyLocked as fromQtyLocked, ilog.toQtyLocked, 
+			p.text as optype, op.opno, u.userName oper, olog.operateTime as optime
+		from wms_inventory_log ilog, wms_operation_log olog, wms_operation op, wms_inv inv, component_param p, um_user u
+		where ilog.opLog_id = olog.id
+		  and olog.operation_id = op.id and op.optype_id = p.id and olog.operator = u.id
+		  and ilog.inv_id = inv.id
+		  <#if wh_id??> and inv.wh_id = ${wh_id} </#if>
+		  <#if sku_id??> and inv.sku_id = ${sku_id} </#if>
+		  <#if location_id??> and inv.location_id = ${location_id} </#if>
+		  <#if inv_id??> and inv.id = ${inv_id} </#if>
+		  <#if owner_id??> and inv.owner_id = ${owner_id} </#if>
+		order by ilog.id desc
+		]]>
+	</sql>
+	
+	<sql code="invSupplier" name="查询往来方收付款数据">
+		<![CDATA[
+			select t.id,t.name,t.sku_id, a.qty_in,a.qty_actual in_actual,a.in_stay,a.in_loss, 
+									o.qty_out,o.qty_send out_actual,o.out_stay,o.out_loss
+			from ( -- 往来方、货币类型
+				    select c.id, c.name, s.id sku_id 
+				    from wmsx_customer c, wms_sku s
+					where c.domain = '${DOMAIN}'
+					and c.domain = s.domain and s.category = '货币'
+				) t
+
+				left join ( -- 应收
+					select c.id customer_id, c.name customer_name, ai.sku_id, sum(a.qty) qty_in, sum(ifnull(ai.qty_actual, 0)) qty_actual, 
+						sum(case when a.status in ('已完成', '关闭') then 0 else a.qty - ifnull(ai.qty_actual, 0) end) in_stay,
+						sum(case when a.status = '关闭' then ifnull(a.udf5, a.qty) - ifnull(ai.qty_actual, 0) else 0 end) in_loss
+					from wms_asn a, wms_asn_item ai, wmsx_customer c
+					where a.id = ai.asn_id
+					and a.payer_id = c.id
+					and a.warehouse_id in (${wh_id})
+					and a.asnday >= '${fromDate}'
+					and a.asnday < ('${endDate}' + interval 1 day)
+					group by c.id, ai.sku_id
+				) a on t.id = a.customer_id and t.sku_id = a.sku_id
+
+				left join ( -- 应付
+					select c.id customer_id, c.name customer_name, oi.sku_id, sum(o.qty) qty_out, sum(ifnull(oi.qty_send, 0)) qty_send, 
+						sum(case when o.status in ('已完成', '关闭') then 0 else o.qty - ifnull(oi.qty_send, 0) end) out_stay,
+						sum(case when o.status = '关闭' then o.qty - ifnull(oi.qty_send, 0) else 0 end) out_loss
+					from wms_order o, wms_order_item oi, wmsx_customer c
+					where o.id = oi.order_id
+					and o.payee_id = c.id
+					and o.warehouse_id in (${wh_id})
+					and o.orderday >= '${fromDate}'
+					and o.orderday < ('${endDate}' + interval 1 day)
+					group by c.id, oi.sku_id
+				) o on t.id = o.customer_id and t.sku_id = o.sku_id
+		]]>
+	</sql>
+	
+</sqls>

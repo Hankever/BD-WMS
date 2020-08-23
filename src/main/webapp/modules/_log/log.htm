@@ -1,0 +1,209 @@
+<!DOCTYPE HTML>
+<HTML xmlns:WorkSpace xmlns:Tree xmlns:Grid>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>日志查询</title>
+
+<link href="../../tools/tssJS/css/boubei.css" rel="stylesheet">
+<link href="../../tools/tssJS/fonts/icons.css" rel="stylesheet" >
+<link href="../../css/css.css" rel="stylesheet">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssUtils.js"></script>
+<script src="../../tools/util_date.js"></script>
+
+<style type="text/css">
+	.panel { border-top: 0; }
+</style>
+
+<script type="text/javascript">
+
+    /* 后台响应数据节点名称 */
+    XML_MAIN_TREE = "ObjectTree";
+    XML_LOG_LIST  = "LogList";
+    XML_LOG_INFO  = "LogInfo";
+ 
+    /* XMLHTTP请求地址汇总 */
+	URL_INIT       = NO_AUTH_PATH + "log/objects";
+    URL_LOG_LIST   = NO_AUTH_PATH + "log/";
+    URL_LOG_DETAIL = NO_AUTH_PATH + "log/item/";
+
+	if(IS_TEST) {
+		URL_INIT = "data/log_init.xml?";
+		URL_LOG_LIST = "data/loglist.xml?";
+		URL_LOG_DETAIL = "data/log1.xml?";
+	}
+
+	var _condition = {}, 
+		operationCode = $.Query.get("operationCode"),
+		operateTable = $.Query.get("operateTable");
+	 
+	if(operateTable)  _condition.operateTable  = decodeURI( operateTable );
+	if(operationCode) _condition.operationCode = decodeURI( operationCode );
+
+    /* 页面初始化 */
+    function init() {
+		initMenus();
+		initWorkSpace();
+		initEvents();
+
+		if( _condition.operationCode ) {
+			closePalette();
+			$("div.leftbar").hide();
+		} 
+		else {
+			loadInitData();
+			_condition.operateTimeFrom = subDateS(now, 7);
+		}
+		loadGridData(_condition, "1"); 
+    }
+ 
+    function initMenus() {
+		/* 树菜单初始化  */
+		var item1 = {
+			label:"浏览日志",
+			callback:showLogList,
+			icon:"icon icon-list-ordered",
+			visible:function() {return !isTreeRoot();}
+		}
+		var item2 = {
+			label:"搜索日志",
+			callback:searchLog,
+			icon:"icon icon-search"
+		}
+
+		var menu = new $.Menu();
+		menu.addItem(item1);
+		menu.addItem(item2);
+		$1("tree").contextmenu = menu;
+
+		/* Grid菜单初始化  */
+		var item3 = {
+			label:"查看",
+			callback: function() {
+				showLogInfo(false);
+			},
+			icon:"icon icon-search"
+		}
+
+		var menu2 = new $.Menu();
+		menu2.addItem(item3);
+		$1("grid").contextmenu = menu2;
+    }
+
+	function loadInitData() {
+        $.ajax({
+        	url : URL_INIT, 
+        	onresult : function() {
+	            var tree = $.T("tree", this.getNodeValue(XML_MAIN_TREE));
+	            tree.onTreeNodeDoubleClick = function(ev) {
+	               if( !isTreeRoot() ) { showLogList(); }
+	            }
+	            tree.onTreeNodeRightClick = function(ev) {
+					onTreeNodeRightClick(ev);
+	            }
+	        }
+        });
+    }
+
+    /* grid加载数据  */
+    function loadGridData(requestParam, page) {
+		$.showGrid(URL_LOG_LIST, XML_LOG_LIST, showLogInfo, "grid", page, requestParam);
+    }
+	
+	function showLogList() {
+		var params = {"operateTable": getTreeNodeId()};
+		loadGridData(params, "1"); 
+    }
+
+    function searchLog() {
+        var params = isTreeRoot() ? {} : {operateTable: getTreeNodeId()};
+        
+        popupForm("SearchForm.xml", "SearchLog", params, function(condition) {
+        	loadGridData(condition, "1"); 
+        }, "日志查询");
+    }
+
+    /* 显示日志详细信息 */
+    function showLogInfo() {		
+		var rowID = $.G("grid").getColumnValue("id");  
+		var rowName = "日志" + rowID;
+		
+        var callback = {};
+        callback.onTabChange = function() {
+            setTimeout(function() {
+                loadLogDetailData(rowID);
+            }, TIMEOUT_TAB_CHANGE);
+        };
+
+        var inf = {};
+		inf.label = rowName;
+        inf.SID = "viewRow_" + rowID;
+        inf.defaultPage = "page1";
+        inf.phases = null;
+        inf.callback = callback;
+        var tab = ws.open(inf);   
+
+        $("#ws").show(true);    
+    }
+	
+    function loadLogDetailData(logId) {
+		$.ajax({
+			url : URL_LOG_DETAIL + logId,
+			onresult : function() { 
+				$.F("page1Form", this.getNodeValue(XML_LOG_INFO));
+			}
+		});
+    }
+	
+    window.onload = init;
+
+</script>
+
+</head>
+
+<body>
+
+<!-- 版面 开始 -->
+<table class="panel" >
+  <tr class="header"> <td/><td/><td/><td/> </tr>
+  <tr class="body"> 
+	<td/>
+	<!-- 左栏 开始 -->
+	<td id="palette">
+	  <div>
+	  	<div class="bar">
+			<span class="icon"></span>操作对象
+			<span class="search"><input id="searchKey"/><span class="icon-search"/></span>
+			<span class="refreshTreeBT"></span>
+		</div>
+		<Tree id="tree"><div class="loading"></div></Tree>
+	  </div> 
+	</td>
+	<!-- 左栏 结束 -->
+	<td class="groove">
+	  <table>
+		<tr>
+			<td id="gridTitle">
+			  <span class="icon"></span>日志列表<span class="buttonBox" id="gridToolBar"></span>
+			</td>
+		</tr>
+		<tr>
+			<td id="gridContainer"><Grid id="grid"></Grid></td>
+		</tr>
+	  </table>
+	  <WorkSpace:Box id="ws" class="hiddenWS" style="height:235px;">
+		  <WorkSpace:Page id="page1">
+			 <div id="page1Form" editable="false"></div>
+		  </WorkSpace:Page>
+	  </WorkSpace:Box>
+	</td>
+	<td/>
+  </tr>
+  <tr class="footer"> <td/><td/><td/><td/> </tr>
+</table>
+<!-- 版面 结束 -->
+
+</body>
+</html>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<SourceTree>
+		<actionSet>
+			<treeNode id="_root" name="全部" _open="true">
+				<treeNode icon="images/folder.gif" type="0" id="9" parentId="0" name="业务录入" _open="true">
+					<treeNode icon="images/record_0.png" type="1" id="17" parentId="9" name="库存录入"/>
+				</treeNode>
+				<treeNode icon="images/folder.gif" type="0" id="10" parentId="0" name="临时">
+					<treeNode icon="images/record_0.png" type="1" id="127" parentId="10" name="Temp录入"/>
+				</treeNode>
+				<treeNode icon="images/folder.gif" type="0" id="12" parentId="0" name="测试分组2" _open="true">
+					<treeNode icon="images/record_0.png" type="1" id="14" parentId="12" name="时效录入二"/>
+					<treeNode icon="images/record_0.png" type="1" id="16" parentId="12" name="时效录入四"/>
+				</treeNode>
+			</treeNode>
+		</actionSet>
+	</SourceTree>
+</Response>

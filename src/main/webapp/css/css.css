@@ -1,0 +1,243 @@
+html {
+  box-sizing: content-box;
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  overflow: hidden;
+  background-color: #fff;
+  color: #555;
+}
+table {
+  width: 100%;
+  height: 100%;
+}
+.panel {
+  border-top: 1px solid #95B8E7;
+}
+.panel > tbody > tr > td:nth-child(1),
+.panel > tbody > tr > td:nth-child(4) {
+  width: 0px;
+  display: none;
+}
+.panel .header,
+.panel .footer {
+  height: 0px;
+  display: none;
+}
+/* FireFox：TD显式给高度，TD里面的元素设置height：100%才有效 */
+.panel .body td.groove {
+  position: relative;
+  vertical-align: top;
+  height: 100%;
+}
+.panel .body td.groove .hasframe {
+  height: 100%;
+}
+.panel .body td.groove #ws .hastree {
+  vertical-align: top;
+}
+.panel .body td.groove WorkSpace\:Page {
+  border: 0;
+}
+#gridContainer {
+  vertical-align: top;
+  height: 100%;
+}
+#gridTitle button.tssbutton > span {
+  font-size: 14px;
+  vertical-align: middle;
+}
+/* 左栏 */
+#palette {
+  box-sizing: border-box;
+  width: 250px;
+  min-width: 250px;
+  vertical-align: top;
+}
+#palette > div {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 250px;
+  border-left: 1px solid #95B8E7;
+  border-right: 1px solid #95B8E7;
+}
+#palette > div .bar {
+  height: 25px;
+  padding: 4px 0 0 4px;
+  line-height: 18px;
+  background-color: #E0ECFF;
+  border-bottom: 1px solid #95B8E7;
+  color: #555;
+  font-weight: bold;
+}
+#palette > div .bar .search #searchKey {
+  width: 80px;
+  height: 17px;
+  text-indent: 2px;
+  margin-left: 8px;
+}
+#palette > div .bar .search .icon-search {
+  font-size: 14px;
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  margin-left: 4px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+#palette > div .bar .search .icon-search:hover {
+  color: blue;
+  font-size: 15px;
+}
+#palette > div .bar .icon {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  background: url(../images/icon_title.gif) no-repeat center;
+}
+#palette > div .bar .refreshTreeBT {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  font-size: 16px;
+  width: 16px;
+  height: 15px;
+  cursor: pointer;
+}
+#palette > div .bar .refreshTreeBT:hover {
+  color: blue;
+  font-size: 18px;
+}
+#palette #tree {
+  height: auto;
+  min-height: 90%;
+  max-width: 248px;
+  background-color: #fff;
+}
+.loading {
+  width: 53px;
+  height: 20px;
+  background: url(../images/loading.gif) no-repeat 3px 3px;
+}
+/* 用户组、用户、角色关系维护 */
+.l {
+  border-left: 1px solid #95B8E7;
+}
+.t {
+  border-top: 1px solid #95B8E7;
+}
+.b {
+  border-bottom: 1px solid #95B8E7;
+}
+.r {
+  border-right: 1px solid #95B8E7;
+}
+.titleBox {
+  height: 20px;
+  background-color: #E0ECFF;
+}
+.btnBox {
+  height: 50px;
+  background-color: #E0ECFF;
+}
+.btnBox td {
+  vertical-align: top;
+}
+.btnBox WorkSpace\:PageStep {
+  padding: 2px 0;
+}
+td.mbar {
+  width: 20px;
+  background-color: #E0ECFF;
+}
+td.mbar input {
+  margin-bottom: 100px;
+  width: 20px;
+  border: 0;
+  line-height: 30px;
+  background-color: #049cdb;
+  color: #fff;
+}
+td.mbar input:hover {
+  cursor: pointer;
+  background-color: orange;
+}
+/* 弹层相关 */
+.dialog {
+  position: absolute;
+  top: 100px;
+  margin: 0 auto;
+  padding-bottom: 5px;
+  overflow: auto;
+  background-color: #fff;
+  border-radius: 0 0 5px 5px;
+  box-shadow: #555 0px 0px 100px;
+}
+.dialog h2 {
+  width: 100%;
+  height: 22px;
+  line-height: 22px;
+  font-size: 13px;
+  text-indent: 10px;
+  background-color: #049cdb;
+  color: #fff;
+}
+.dialog .tssForm {
+  padding: 3px 0;
+}
+.dialog Tree {
+  height: 80%;
+}
+.dialog .bts {
+  padding: 5px 0 5px 20px;
+  text-align: center;
+}
+.dialog .bts input {
+  margin-right: 10px;
+}
+#popupForm {
+  padding: 12px 40px;
+}
+.popupItem h2 {
+  padding-top: 1px;
+}
+span.search input[id^="sk"] {
+  width: 80px;
+  height: 15px;
+  text-indent: 2px;
+  margin: 0 3px;
+}
+span.search button {
+  padding: .1em .5em .1em;
+}
+.hiddenWS {
+  display: none;
+  position: absolute;
+  bottom: 0;
+  min-height: 100px;
+  z-index: 100;
+}
+.fileUpload {
+  height: 236px;
+  width: 300px;
+  position: relative;
+  background: url(../images/upload.png) no-repeat 25px bottom;
+}
+.fileUpload input[type='file'] {
+  height: 236px;
+  width: 256px;
+  overflow: hidden;
+  position: absolute;
+  cursor: pointer;
+  opacity: 0;
+  filter: alpha(opacity=0);
+}
+#importDiv input[type='button'] {
+  margin-left: 80px;
+  margin-top: 1px;
+}

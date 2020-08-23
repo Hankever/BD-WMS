@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>发货单打印</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/common/JsBarcode.all.min.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+
+<STYLE type="text/css">
+body {
+    box-sizing: content-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.print-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: black;
+    width: 100%;
+}
+
+.print-btn{
+    width: 100px;
+    text-align: center; 
+    margin: 20px;
+}
+
+.border { border: 0.3mm solid black; }
+.blank { height: 20px; }
+.order{ width: 100%; box-sizing: border-box; }
+
+.order-header { margin-bottom: 20px; }
+.order-header>div{ margin-bottom: 10px; }
+
+.order-title{
+	text-align: center;
+	font-size: 24px;
+	margin-top: 20px;
+	line-height: 33px;
+}
+
+.order-body{ margin-bottom: 10px; }
+
+#t1, #t2{ width: 100%; }
+#t1 .label { width: 100px; text-align: right; padding-right: 5px; }
+#t2 tbody tr td { text-align: center; }
+
+.tag { position: absolute; left: 10%; }
+
+@media print {
+    .no-print {
+        display: none;
+    }
+    .border {
+	    border: 0;
+	}
+    .next-page {
+        page-break-before: always;
+    }
+} 
+</STYLE>
+
+<script type="text/javascript">
+var globalV;
+$(function(){
+	globalV = window.parent.globalV;
+	if(globalV && globalV.data && globalV.data.length > 0) {
+		ininData(globalV.data, globalV.orderItems);
+	}
+});
+
+function ininData(data, items){
+	var params = {"orderno": data.join(",")};
+	tssJS.getJSON("/tss/xdata/json/wms_order", params, function(result) {
+		result.sort(sortStr("orderno"));
+		for(var i = result.length; i > 0; i--){
+			var order = result[i - 1];
+			var tag = result.length + "-" + i;
+			initPrint(order, items[order.orderno], tag);
+		}
+    });
+}
+
+function initPrint(order, items, tag){
+    var html = getHtml(order, items, tag);
+    $('#main').after(html);
+    var orderNo = order.orderno;
+    var orderId = order.id;
+    JsBarcode("#O" + orderId, orderNo, {
+	    height: 70,
+	    displayValue: false
+    });
+}
+
+function getHtml(order, items, tag){
+	for(key in order){
+		if(!order[key]){
+			order[key] = "";
+		}
+	}
+    var orderNo = order.orderno;
+    var orderId = order.id;
+    
+    var htmlItem = "", idx = 1;
+    for(key in items){
+    	var item = items[key];
+    	var barcode = !item.barcode ? item.skucode : item.barcode;
+    	htmlItem += '<tr>' +
+                        '<td>' + idx++ + '</td>' +
+                        // '<td>' + barcode + '<img id="' + itemId + '"></img>' + '</td>' +
+                        '<td>' + item.name + '</td>' +
+                        '<td>' + item.skucode + '</td>' +
+                        '<td>' + (item.guige||'') + '</td>' +
+                        '<td>' + item.qty + '</td>' +
+                    '</tr>';
+    }
+
+    var htmlStr = 
+    '<div class="order border next-page">' +
+        '<div class="order-header">' +
+            '<div class="order-title">' +
+                '<span class="tag">' + tag + '</span>发货单' + 
+            '</div>' +
+            '<div class="order-info">' +
+                '<table id="t1">' +
+	                '<tbody>' +
+	                    '<tr>' + 
+	                        '<td class="label">订单号：</td>' + 
+	                        '<td>' + orderNo + '</td>' + 
+	                        '<td class="label"></td>' + 
+	                        '<td>' +
+	                            '<img id="O' + orderId + '"></img>' + 
+	                        '</td>' +
+	                    '</tr>' + 
+	                    '<tr>' + 
+	                        '<td class="label">下单日期：</td>' + 
+	                        '<td>' + order.createtime + '</td>' + 
+	                        '<td class="label">打印日期：</td>' + 
+	                        '<td>' + new Date().format("yyyy-MM-dd hh:mm:ss") + '</td>' +
+	                    '</tr>' + 
+	                    '<tr>' + 
+	                        '<td class="label">收货人：</td>' + 
+	                        '<td>' + order.d_receiver + '</td>' +
+	                    '</tr>' + 
+	                    '<tr>' + 
+	                        '<td class="label">收货地址：</td>' + 
+	                        '<td>' + order.d_province + order.d_city + order.d_district + order.d_street + order.d_addr+ '</td>' +
+	                    '</tr>' + 
+	                '</tbody>' +
+	            '</table>' +
+            '</div>' +
+        '</div>' +
+        '<div class="order-body">' +
+            '<table id="t2">' +
+                '<thead>' +
+                    '<tr>' +
+                        '<th>序号</th>' +
+                        '<th>商品名</th>' +
+                        '<th>编码</th>' +
+                        '<th>规格</th>' +
+                        '<th>数量</th>' +
+                    '</tr>' +
+                '</thead>' +
+                '<tbody>' +
+                    htmlItem + 
+                '</tbody>' +
+            '</table>' +
+        '</div>' +
+    '</div>' +
+    '<div class="blank no-print"></div>';
+    return htmlStr;
+}
+
+function preview() { 
+    var bdhtml = window.document.body.innerHTML; 
+    var sprnstr = "<!--startprint-->"; 
+    var eprnstr = "<!--endprint-->";
+    var prnhtml = bdhtml.substring( bdhtml.indexOf(sprnstr) + 17); 
+    prnhtml = prnhtml.substring(0, prnhtml.indexOf(eprnstr)); 
+    window.document.body.innerHTML = prnhtml;
+    window.print(); 
+    window.document.body.innerHTML = bdhtml;
+}
+
+function sortStr(field, type){
+    return function(a, b){
+        var valueA = a[field];
+        var valueB = b[field];
+        if(type == "desc"){
+        	return -valueA.localeCompare(valueB);
+        }
+        else{
+        	return valueA.localeCompare(valueB);
+        }
+    }
+}
+
+</script>
+
+</head>
+
+<body>
+	<div class="print-box">
+        <input class="print-btn no-print" type="button" value="打  印" onClick="preview()">
+        <!--startprint-->
+        <div style="width:85%;">
+            <div id="main" class="no-print"></div>
+        </div>
+        <!--endprint-->
+    </div>
+</body>
+</html>

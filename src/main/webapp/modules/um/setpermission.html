@@ -1,0 +1,69 @@
+<!DOCTYPE HTML>
+<HTML xmlns:Tree xmlns:Grid>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>权限设置</title>
+
+<link href="../../tools/tssJS/css/boubei.css" rel="stylesheet">
+<link href="../../css/css.css" rel="stylesheet">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssUtils.js"></script>
+
+<script src="setpermission.js"></script>
+
+<style>
+  
+  body { overflow: auto; height: 98%; margin: 0 auto; color: #555; background-color: #fff; }
+
+  .box { width: 842px; margin: 0 auto; background-color: #fff; }
+  .box .bts { border-top: 1px solid #95B8E7; padding: 5px 0; text-align: center;}
+  .box .bts input { margin-right: 20px; }
+
+  .box .tssForm { height: 25px; background-color: #E0ECFF; text-align: center;}
+  .box .tssForm td { padding-top: 1px; padding-left: 10px; }
+  .box .comment { color: #999; text-align: center; }
+  .box Tree { height: 398px; }
+
+  #permissionForm { border-bottom: 1px solid #95B8E7; }
+
+  Tree .optionTitle { height: 22px; line-height: 20px; }
+  Tree .optionBox { float: right; width: 550px; margin: 0px; }
+  Tree .optionTitle span, Tree .optionBox span { float: right; width: 60px; height: 18px; margin: 0; text-align: center;}  
+  Tree .optionBox span { text-indent: -9999px; background: no-repeat center;}
+  Tree li a { width: auto; }
+  Tree li:hover>:nth-child(3), Tree li:hover>:nth-child(2) { background-color: yellow; }
+  Tree li a:hover { text-decoration: none; }
+
+</style>
+</head>
+<body>
+
+<div class="box">
+  <h2></h2>
+  <div id="permissionForm"></div>
+  <Tree id="permissionTree"></Tree>
+
+  <div class="comment">
+    鼠标点击切换状态, &lt;未选中&gt; → &lt;仅此节点&gt; → &lt;所有子节点&gt; → &lt;未选中&gt;。按住shift键，然后点击节点，其所有子节点将置为相同状态<br/>
+    &nbsp;&nbsp;节点状态 (
+    <img src="images/optionState0.gif"  align=absmiddle> 未选中 
+    <img src="images/optionState10.gif" align=absmiddle> 未选中但有子节点选中 
+    <img src="images/optionState1.gif"  align=absmiddle> 仅此节点 
+    <img src="images/optionState2.gif"  align=absmiddle> 所有子节点 
+    <img src="images/optionState3.gif"  align=absmiddle> 未选中禁用 
+    <img src="images/optionState4.gif"  align=absmiddle> 已选中禁用
+    )
+		<!--
+		<br/>&nbsp;&nbsp;鼠标点击同时按下shift键，可以将所有(未禁用的)子节点设置为与当前节点相同状态
+		-->
+  </div>
+  <div class="bts">
+    <input type="button" value="保存授权" class="tssbutton small blue" onclick="savePermission()"/>
+	<input type="button" value="清除已授权限" class="tssbutton small blue" onclick="clearPermission()"/>
+  </div>
+</div>
+
+</body>
+</html>

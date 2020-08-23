@@ -1,0 +1,687 @@
+<!DOCTYPE HTML>
+<html xmlns:Grid>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/> 
+<meta charset="UTF-8">
+<title> report portlet </title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css"/>
+<link rel="stylesheet" href="../../tools/tssJS/fonts/icons.css"/>
+
+<link rel="stylesheet" href="dm.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.json2Form.js"></script>
+<script src="../../tools/tssJS/tssJS.jsonp.js"></script>
+<script src="../../tools/tssUtils.js"></script>
+<script src="reporter_x.js"></script>
+
+<style type="text/css">
+
+html, body { height: 100%; }
+body { width:100%; overflow: hidden; }
+#t1 { height: 100%; width: 100%; }
+#gridContainer { vertical-align: top; }
+#gridTitle button.tssbutton > span {
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+#subscribeV { display:none; width: 600px; min-height: 200px;
+    background-color: #fff; font-size: 13px; color: #555; 
+    border-radius: 0 0 5px 5px; box-shadow: #555 0px 0px 100px;
+}
+#subscribeV h3 { background-color: #049cdb; color: #fff; line-height: 23px; padding-left: 5px; font-size: 14px; }
+#subscribeV .tssForm { padding: 12px 15px; }
+#subscribeV .tssForm td[width="88"] { width: 108px; }
+#subscribeV .bts { padding: 5px 0 5px 20px; text-align: center;}
+#subscribeV .bts input { margin-right: 10px;}
+
+@media only screen and (max-height: 440px) {
+  .rbar>ul:nth-child(2) { display: none; }
+}
+
+.rbar { position:fixed; right:0; top:0; bottom:0; z-index:100001; width:28px; background-color:#E0ECFF; }
+.rbar>ul { position:absolute; list-style:none; min-height:38px; width: 100%; }
+.rbar>ul>li.item { height: 38px; font-size:12px; }
+.rbar>ul>li.line { width: 61.8%; margin:0 auto; border-bottom:1px dotted #bbb; }
+.rbar>ul>li.item>a { display:block; position:relative; height: 38px; 
+    display:flex; justify-content:center; align-items: center; /* flex布局垂直居中 */
+    color:#666; text-decoration:none!important; cursor:pointer; outline:0;}
+.rbar>ul>li.item>a:hover { color:#c81623; background-color:#fff; }
+.rbar>ul>li.item>a .icon { text-align: center; font-size: 20px; color: #049cdb !important; /* padding-top: 7px;*/ } 
+.rbar>ul:nth-child(1) { top:40px; }
+.rbar>ul:nth-child(2) { bottom:20px; }
+
+.rbar>ul>li.item>a>.tip { display:none; z-index:100002; width:85px; height:30px; border-radius: 3px 0 0 3px;
+    position:absolute; top:4px; left:-85px; box-shadow: #555 0px 0px 100px; 
+    color:#fff; line-height:30px; text-align:center; background:#c81623;
+    -webkit-animation:leftFadeIn .3s ease-out;
+    -moz-animation:leftFadeIn .3s ease-out;
+    animation:leftFadeIn .3s ease-out
+}
+@-webkit-keyframes leftFadeIn {
+    0% { opacity:0; -webkit-transform:translateX(-10px) }
+    100% { opacity:1; -webkit-transform:translateX(0) }
+}
+@-moz-keyframes leftFadeIn {
+    0%   { opacity:0; -moz-transform:translateX(-10px)}
+    100% { opacity:1; -moz-transform:translateX(0)}
+}
+@keyframes leftFadeIn {
+    0%   { opacity:0; transform:translateX(-10px)}
+    100% { opacity:1; transform:translateX(0)}
+}
+
+.rbar>ul>li.item>a:hover .tip { display:block; }
+.rbar>ul>li.item>a>.tip>div { position:absolute; right:-6px; top:0; color:#c81623; }
+
+#tip1 { width:599px; min-height:320px; top:-18px; left:-601px; background:#fff; border-radius: 5px 0 0 5px; z-index: 9999;}
+#tip1>div, #tip2>div, #tip3>div { top: 30px; color: #E4F0F8; }
+#tip1>iframe { border:solid 1px #E0ECFF; width: 600px; height: 320px; border-radius: 5px 0 0 5px; }
+#x6 { display: none; }
+
+#tip2 { width:200px; height:450px; top:-18px; left:-201px; background:#fff; border-radius: 5px; cursor: default; }
+#tip2>h3, #tip3>h3 { color: #555; font-size: 13px; background-color: #E0ECFF; }
+#tip2>ul { color: #555; }
+#tip2>ul>li { line-height: 24px; border-bottom: 1px solid rgba(204, 204, 204, 0.2); }
+#tip2>ul>li:hover { background-color: #FEF7A9; cursor: pointer; }
+
+#tip3 { width:600px; height:300px; top:-18px; left:-601px; background:#fff; border-radius: 5px; cursor: default; }
+#tip3>pre { color: #555; }
+
+</style>
+
+</head>
+<body>
+
+<iframe id="chartFrame" frameborder="0" class="container"></iframe>
+<iframe id="downloadFrame" style="display:none"></iframe>
+
+<table id="t1">
+  <tr>
+    <td id="gridTitle">
+      <span class="icon"></span><span class="title">查询结果</span>
+        <button class="tssbutton small white btDownload" style="margin-left: 15px;">
+            <span class="icon-arrow-down"></span>导出数据
+        </button>
+      <span class="buttonBox" id="gridToolBar"></span>
+    </td>
+  </tr>
+  <tr>
+    <td id="gridContainer">
+       <Grid id="grid"></Grid>
+    </td>
+  </tr>
+</table>   
+
+<div class="rbar">
+  <ul>     
+    <li class="item" id="li1"> 
+      <!-- <a href="#" onclick="tssJS('#tip1').show(true)">  -->
+      <a href="#" onmouseover="$('#tip1').show(true)" onmouseout="$('#tip1').hide()"> 
+        <div class="icon icon-search"></div>
+        <div class="tip" id="tip1">
+          <iframe frameborder="no" scrolling="no"></iframe>
+          <div>◆</div>
+        </div> 
+      </a> 
+    </li>
+    <li class="item" id="li3"> 
+      <a href="javascript:void(0)" onmouseover="openQueryForm();" > 
+        <div class="icon icon-search"></div>
+      </a> 
+    </li>
+
+    <li class="line"></li>
+    <li class="item" id="li2"> 
+      <a href="javascript:void(0)"> 
+        <div class="icon icon-file-text"></div>
+        <div class="tip" id="tip3">
+          <h3>功能说明</h3>
+          <pre>
+暂无任何说明
+          </pre>
+          <div>◆</div>
+        </div> 
+      </a>
+    </li>
+
+    <li class="item"> 
+      <a href="#"> 
+        <div class="icon icon-list-unordered"></div>
+        <div class="tip" id="tip2">
+          <h3>我收藏的报表</h3>
+          <ul>   
+          </ul>
+          <div>◆</div>
+        </div> 
+      </a> 
+    </li>
+    <li class="item" id="x1"> 
+      <a href="javascript:void(0)" onclick="collect(true)"> 
+        <div class="icon icon-plus"></div>
+        <div class="tip"><span>收藏报表</span><div>◆</div></div> 
+      </a> 
+    </li>
+    <li class="item" id="x2"> 
+      <a href="javascript:void(0)" onclick="collect(false)"> 
+        <div class="icon icon-dash"></div>
+        <div class="tip"><span>取消收藏</span><div>◆</div></div> 
+      </a> 
+    </li>
+  </ul>
+
+  <ul>
+    <li class="item"> 
+      <a href="javascript:void(0)" onclick="dianzan(2)"> 
+        <div class="icon icon-heart"></div>
+        <div class="tip"><span>点赞 ( <i id="dznum">0</i> )</span><div>◆</div></div> 
+      </a>
+    </li>
+    <li class="item"> 
+      <a href="javascript:void(0)" onclick="dianzan(3)"> 
+        <div class="icon icon-zap"></div>
+        <div class="tip"><span>差评 ( <i id="cpnum">0</i> )</span><div>◆</div></div> 
+      </a>
+    </li>
+    <li class="item"> 
+      <a href="javascript:void(0)" onclick="openMsgPage()"> 
+        <div class="icon icon-comment-discussion"></div>
+        <div class="tip"><span>收发消息</span><div>◆</div></div> 
+      </a>
+    </li> 
+    <li class="item"> 
+      <a href="javascript:void(0)" onclick="feedback()"> 
+        <div class="icon icon-pencil"></div>
+        <div class="tip"><span>反馈异常</span><div>◆</div></div> 
+      </a>
+    </li>
+    <li class="item"> 
+      <a href="javascript:void(0)" onclick="shareData()"> 
+        <div class="icon icon-gift"></div>
+        <div class="tip"><span>分享数据</span><div>◆</div></div>
+      </a>
+    </li>
+    <li class="item" id="x6"> 
+      <a href="javascript:void(0)" onclick="subscribe()"> 
+        <div class="icon icon-link"></div>
+        <div class="tip"><span>订阅报表</span><div>◆</div></div>
+      </a>
+    </li>
+  </ul>
+</div> 
+
+<div id="subscribeV">
+    <h3></h3>
+    <div id="scheduleForm"></div>
+    <div class="bts">
+        <input type="button" class="tssbutton small blue" value="订阅" id="saveBt"/>
+        <input type="button" class="tssbutton small blue" value="退订" id="cancelBt"/>
+        <input type="button" class="tssbutton small blue" value="关闭" id="closeBt"/>
+    </div>
+    <br/>
+</div>
+
+<script type="text/javascript">
+
+var IS_TEST = (location.protocol === 'file:');
+
+var refresh    = $.Query.get("refresh");
+var reportId   = $.Query.get("id") || 497; 
+var reportName = $.Query.get("rpcode") || $.Query.get("rpName") || $.Query.get("rpname"); 
+var fixedParams;
+
+/* http://localhost:8088/tss/modules/dm/report_portlet.html?refresh=3&id=501&param1=today-10
+   从邮件里打开 或 从文章里打开 */
+$.each( $.Query.getItems(), function(key, value) {
+    fixedParams = fixedParams || {};
+    fixedParams[key] = decodeURI(value);
+} );
+
+var globalValiable = {},  // 用来存放传递给iframe页面的信息
+    report_info_url; 
+
+// 用户&权限信息
+var userHas,
+    userCode, 
+    userName, 
+    userGroups = [], 
+    userRoles = [], 
+    userAssistGroups = [];
+
+// check login
+if(IS_TEST) {
+    report_info_url = 'data/report_potlet.json';
+    init(); 
+} 
+else {
+    report_info_url = '/tss/data/' +reportId+ '/define';
+    $.getJSON("/tss/si/ui/userCode", {}, function(data) {
+        if( data[0] && data[0] != 'ANONYMOUS' ) {  // 检查是否已经登录
+
+            tssJS.getJSON("/tss/auth/user/has", {}, 
+                function(info) {
+                    userHas = info;
+                    userGroups = userHas[0];
+                    userRoles  = userHas[1];
+                    userCode   = userHas[3];
+                    userName   = userHas[4];
+                    userAssistGroups = userHas[5];
+
+                    init(); 
+                }, 
+                "GET"
+            );          
+        } 
+        else {
+            location.href = "/tss/login.html";
+        }
+    }, "GET" );
+
+    queryCollected();
+}
+
+function init() {
+    $("body").css("width", (document.body.offsetWidth - 28) + "px" );
+    // 需要等空间展开后再加载查询页，不然IE、FF等浏览器里会显示异常
+    $("#tip1").show(true);
+    // $("#tip1").hide();
+
+    getZanNum(2);
+    getZanNum(3);
+    
+    if(reportName) {
+        report_info_url += "?rpName=" + reportName;  // 优先使用名称
+    }
+    $.ajax({
+        url: report_info_url,
+        method: 'get',
+        type : "json",
+        ondata: function() {
+            var defines = this.getResponseJSON();
+            globalValiable.title  = defines[0];
+            globalValiable.define = defines[1];
+            globalValiable._url   = defines[2];
+            globalValiable.hasScript = defines[3];
+            globalValiable.remark = defines[5];
+
+            reportId = defines[7];
+            globalValiable.reportId = reportId;
+
+            /* if recorder.html， 如果需要录入表也展示右侧栏的简介、收藏等功能，则注释掉下面代码 */
+            if( (globalValiable._url||"").indexOf("dm/recorder.html?id=") >= 0 ) {
+                location.href = globalValiable._url;
+                return;
+            } 
+
+            // 是否允许订阅
+            if( defines[4] == 1) {
+                $("#x6").show(true);
+            }
+            // 报表说明
+            if( defines[5]) {
+                $("#tip3 pre").html( defines[5].replace(/【/g, "\n") );
+            } else {
+                $("#li2").hide();
+            }
+
+            // 自定义的通用查询条件界面
+            var hideQueryForm = !!defines[6];  // 设置了通用查询条件或设置为no-need，则把report默认的参数框隐藏
+            if( defines[6] && defines[6].indexOf(".htm") > 0) { 
+                $("#tip1>iframe").attr("src", defines[6]);   
+            } else {
+                $("#li1").hide();
+                return initPortlet( hideQueryForm );
+            }
+
+            if( !parent.conditionReady ) {
+                tssJS("#tip1").show(true);
+            } 
+            else {
+                initPortlet( hideQueryForm );
+            }
+        }
+    });   
+}
+
+function initPortlet( hideQueryForm ) {
+    var params = {}, allReady = true;
+    if( globalValiable.define ) {            
+        var _params = $.parseJSON(globalValiable.define);
+        $.each(_params, function(i, param) {
+
+            var key = param.code || ("param" + (i+1));  
+            if(param.defaultValue) {
+                var dv = (param.defaultValue+"").trim();
+                if( dv.indexOf("#") == 0 ) {
+                    var _dvs = (dv+"||").split("||");  // #_day1||today-1
+                    dv = $.Cookie.getValue(_dvs[0].substring(1)) || _dvs[1]; // 通用查询条件写在cookie里
+                }  
+                params[key] = (dv == "undefined" ? "" : dv);
+            }
+
+            // 优先使用通过url传入的参数            
+            if(fixedParams && fixedParams[key]) {
+                params[key] = fixedParams[key];
+            }
+
+            if(params[key] && (param.type == "date" || param.type == "datetime") ) {
+                params[key] = $.transDay(params[key], param.type);
+            }
+
+            // 检查是否所有必填的参数都有默认值了，否的话不发起查询，直接弹出查询框
+            if(param.nullable == "false" && !params[key]) {
+                allReady = false;
+            }
+        });
+    }
+    else { // 没有配置参数，则隐藏打开查询条件框的开关
+        $("#li3").hide();
+    }
+    
+    if(hideQueryForm) {
+        $("#li3,#searchFormDiv").remove();  // 用了通用查询条件或设置为no-need，则把默认的参数框隐藏 
+    } else {
+        openQueryForm( params );
+    }
+
+    if(allReady) {
+        searchReport( params );
+
+        setTimeout( function() { $("#searchFormDiv").hide(); }, 3000); // 关闭查询窗口
+    } 
+    
+    // 是否自动刷新
+    if(refresh) {
+        refresh = parseInt(refresh);
+        window.setInterval( function() { searchReport( params ); }, refresh * 60 * 1000);
+    }
+}
+
+function openQueryForm(_params) {
+    if( !globalValiable.define ) return;
+
+    function updateParams() {
+        var searchForm = $.F("searchForm");
+        if(globalValiable.queryParams) { // 设置上一次的查询条件
+            _params = _params || {};
+            for(var key in _params){    
+                globalValiable.queryParams[key] = _params[key];   
+            }
+
+            setTimeout(function() {
+                $.each(globalValiable.queryParams, function(key, value) {
+                    searchForm.updateDataExternal(key, value);
+                });
+            
+            }, 200); // 待comboTree等加载好
+        }
+    }
+
+    var formId = "searchFormDiv";
+    if( $.cache.XmlDatas["searchFormXML"] ) {
+        $("#" + formId).show(true);
+        updateParams();
+        return;
+    }
+
+    var $searchForm = $("#" + formId);
+    if( !$searchForm.length ) {
+        var searchFormEl = $.createElement("div", "searchForm", formId);
+        document.body.appendChild(searchFormEl);
+
+        $searchForm = $(searchFormEl);
+    }
+
+    var searchForm = genQueryForm(globalValiable.title, globalValiable.define);
+    $searchForm.css('right', '29px').css('left', 'auto').css('top', '58px');
+    updateParams();   
+
+    $searchForm.find(".btSearch").click( function () {
+        if( searchForm.checkForm() ) {
+            var params = getParams();
+            searchReport(params);
+        }
+    });
+    $(".btDownload").click( function () {
+        if( searchForm.checkForm() ) {
+            var params = getParams();
+            exportReport(reportId, params);
+        }
+    });
+}
+
+function searchReport(params) {
+    globalValiable.queryParams = params; // 记录当前的条件
+
+    // 没有独立的displayUri，则用Grid展示查询结果
+    if( !globalValiable._url ) {
+        $("#t1").show();
+        $("#chartFrame").hide();
+        $("#gridTitle .title").html("报表【" + globalValiable.title + "】查询结果");
+        searchGridReport(reportId, params);
+        return;
+    }
+
+    $("#t1").hide();
+    $("#chartFrame").show();
+    /* 
+     * 以下情形直接打开报表页面
+     * 1、如果地址里指明了nodb（数据库已经不可访问），则直接打开展示页面，使之读取静态的本地json数据作为展示用
+     * 2、没有script的报表, 直接嵌入报表展示页（后台直接返回空的SQLExcutor）
+     */
+    if( globalValiable._url.indexOf("?nodb=") > 0 || !globalValiable.hasScript) {
+        $("#chartFrame").attr("src", globalValiable._url);
+        return;
+    }
+
+    // 默认会把reportId对应的数据服务（如果有script脚本的话）数据取出来，通过globalValiable.data 传给展示页面
+    $.ajax({
+        url: "/tss/data/json/" + reportId,
+        type : "json",
+        waiting: true,
+        params: params,
+        ondata: function() {           
+            globalValiable.data = this.getResponseJSON();
+            $("#chartFrame").attr("src", globalValiable._url);
+        }
+    })
+}
+
+/* ------------------ 增加分享、订阅、反馈、收藏等功能 -------------- */
+// 用户查询出结果后，可直接分享给其他人（通过栏目文章）
+function shareData() {
+    var msg = "您可以在特定栏目里创建一篇文章，把您当前查询到的数据结果及评论分享到数据门户里，以供其它人员查阅。";
+    $.confirm(msg, "开始分享", 
+                function() { 
+                    var targetChannel = 2, // 目标栏目
+                        title = encodeURI(globalValiable.title),
+                        url = 'modules/cms/channel.html?channel=' +targetChannel+ '&title='+title;
+                    parent.parent.openUrl(url, true, "分享数据"); 
+                },
+                function() { return;}
+            );
+}
+
+/* 
+ * 用户订阅功能：将可定时推送的报表（设置为“允许订阅”）供用户自行订阅（邮件或站内信）接收。
+ * 订阅条件为用户设置的个性化条件，没有则取报表的默认条件。
+ */
+function subscribe() {
+    var x = [], scheduleForm;
+    x.push({'label':'定时规则', 'name':'scheduleRule', 'nullable':'false', 'defaultValue':'12', 'multiple':'false','options':{'codes':'0|8|12|18|22','names':'每天0点|每天8点|每天12点|每天18点|每天22点'}}); 
+    x.push({'label':'收件人', 'name':'receiverEmails', 'nullable':'false', 'width':"400px"}); 
+
+    var paramConfig = $.parseJSON( (globalValiable.define || "[]").trim() ); 
+    paramConfig.each(function(i, param) {
+        var tmp = {};
+        tmp.label = "参数-" + param.label;
+        tmp.name = "param" + (i+1);
+        tmp.type = "string";
+        tmp.nullable = param.nullable;
+
+        if(param.defaultValue) {
+            var dv = (param.defaultValue+"").trim();
+            if( dv.indexOf("#") == 0 ) {
+                var _dvs = (dv+"||").split("||");  // #_day1||today-1
+                dv =  _dvs[1] || $.Cookie.getValue(_dvs[0].substring(1)); // 优先用默认条件
+            }
+            tmp.defaultValue = (dv == "undefined" ? "" : dv);
+        }
+
+        x.push(tmp);
+    });
+
+    // 检查是否已经订阅过了
+    $.getJSON("/tss/auth/rp/schedule?reportId=" +reportId+ "&self=true", {}, 
+        function(scheduleInfo) {
+            if(scheduleInfo && scheduleInfo.length >= 3) {
+                var jobInfo = scheduleInfo[2].split(":");
+                x[1].defaultValue = jobInfo[2];
+
+                var defaultParamValues = jobInfo[3].split(",");
+                defaultParamValues.each(function(i, item) {
+                    var keyValue = item.split("=");
+                    x.each(function(n, item) {
+                        if(item.name === keyValue[0]) {
+                            item.defaultValue = keyValue[1];
+                        }
+                    });
+                });
+
+                x[0].defaultValue = scheduleInfo[1].trim().split(" ")[2]; // "0 0 12 * * ?" ==> 12
+            }   
+
+            scheduleForm = $.json2Form("scheduleForm", x);
+            $.cache.XmlDatas["scheduleFormXML"] = scheduleForm.template.sourceXML;
+            $1("receiverEmails").placeholder = "输入完整的邮件地址，多个地址以逗号分隔";
+        }, "GET", true);
+
+    $("#subscribeV").show(true).center();
+    $("#subscribeV").find("h3").html("订阅报表【" + globalValiable.title + "】");
+    
+    $("#saveBt").click( function () { 
+        if( scheduleForm.checkForm() ) {
+            var scheduleFormXML = $.cache.XmlDatas["scheduleFormXML"];
+            var dataNode = scheduleFormXML.querySelector("data");
+            var fieldNodes = dataNode.querySelectorAll("row *");
+        
+            var result = {};
+            var paramsValue = [];
+            $.each(fieldNodes, function(i, node) {
+                var value = $.XML.getText(node);
+                if(node.nodeName.indexOf("param") < 0) {
+                    result[node.nodeName] = value;
+                } else {
+                    paramsValue.push(node.nodeName + "=" + value);
+                }
+            });
+            result.scheduleRule = "0 0 " +result.scheduleRule+ " * * ?";
+
+            var params = {"reportId": reportId, "self": true}
+            var receiverEmails = result.receiverEmails.replace(/\，/g, ","); // 替换中文逗号及（空格 replace(/\s/g, ",")）
+            params.configVal = result.scheduleRule +" | "+ reportId +":"+ globalValiable.title +":"+ receiverEmails +":"+ paramsValue.join(",");
+
+            $.ajax({
+                url: "/tss/auth/rp/schedule",
+                params: params,
+                onsuccess: function() {
+                    $("#subscribeV").hide();
+                }
+            });
+        }
+    });
+
+    $("#cancelBt").click( function () { 
+        var params = {"reportId": reportId, "self": true}
+        $.ajax({
+            url: "/tss/auth/rp/schedule",
+            params: params,
+            method: "DELETE",
+            onsuccess: function() {
+                $("#subscribeV").hide();
+            }
+        });
+    });
+
+    $("#closeBt").click(function() { $("#subscribeV").hide(); });
+}
+
+function feedback() {
+    var msg = "您可以在反馈模块里创建一条反馈记录，把查看报表数据过程中发现的异常情况、改进意见等，通过文字描述及上传截图，反馈给管理员。"
+    $.confirm(msg, "开始反馈", 
+                function() { parent.parent.feedback( reportId + "-" + globalValiable.title ); },
+                function() { return;}
+            );
+}
+
+function openMsgPage() {
+    parent.parent.openMsgPage();
+}
+
+function collect(state) {
+    $.ajax({
+        url: "/tss/auth/rp/collection/" + reportId + "/" + state,
+        onsuccess: function() {
+            if(state) {
+                $("#x1").hide();
+                $("#x2").show();
+            } else {
+                $("#x1").show();
+                $("#x2").hide();
+            }
+            queryCollected();
+        }
+    });
+}
+
+function queryCollected() {
+    $("#x2").hide();
+
+    $.getJSON("/tss/auth/rp/collection", {}, function(data) {
+        var lis = [];
+        data.each(function(i, item) {
+            if( reportId == item[0] ) {
+                $("#x1").hide();
+                $("#x2").show();
+            }
+            lis.push("<li onclick=\"openReport(" +item[0]+ ", '" +item[1]+ "')\">" +item[1]+ "</li>");
+        });
+        if(lis.length == 0) {
+            lis.push("<li>您当前没有收藏任何报表</li>")
+        }
+
+        $("#tip2>ul").html(lis.join("\n"));
+
+    }, "GET");
+}
+
+// 点赞
+var OP_TYPES = ["操作","收藏","点赞","差评"];
+function dianzan(type) {
+    $.ajax({
+        url: "/tss/auth/rp/zan/" +reportId+"/"+type,
+        headers: {"noAlert": true},
+        onsuccess: function() {
+            getZanNum(type);
+            $.tip( OP_TYPES[type] + "成功，您还可以通过【反馈异常】进一步提供您宝贵的意见！");
+            $("#alert_box").css("right", "28px")
+        }
+    });
+}
+
+function getZanNum(type) {
+    var el = type == 2 ? "dznum" : "cpnum";
+    $.getJSON( "/tss/auth/rp/zan/" +reportId+"/"+type, {}, function(data) { $("#"+el).text(data); }, "GET" );
+}
+
+function openReport(id, name) {
+    var url = "/tss/modules/dm/report_portlet.html?id=" + id;
+    parent.addTab(name, url);
+}
+
+</script>  
+
+</body>
+</html>

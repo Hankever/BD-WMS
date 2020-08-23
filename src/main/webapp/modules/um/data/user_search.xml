@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<SourceList>
+		<grid>
+			<declare sequence="true">
+				<column caption="头像" name="icon" mode="image" width="50px"/>
+		        <column caption="用户ID" name="id" display="none"/>
+				<column caption="用户名" name="loginName" width="80px" sortable="true" highlightCol="true"/>
+				<column caption="账号状态" name="disabled" mode="string" values="1|0" texts="停用|启用" width="60px"/>
+				<column caption="姓名" name="userName" width="80px"/>
+		        <column caption="性别" name="sex" mode="string" values="0|1" texts="女|男" width="50px"/>
+		        <column caption="出生年月" name="birthday" mode="date" width="100px"/>
+		        <column caption="电子邮件" name="email" width="120px"/>
+		        <column caption="电话" name="telephone" width="80px"/>
+		        
+				<column caption="所属组织" name="groupName" width="100px"/>
+				<column caption="所属组织ID" name="groupId" display="none"/>
+				<column caption="应用系统ID" name="applicationId" display="none"/>
+				<column caption="对应系统用户ID" name="appUserId" display="none"/>
+			</declare>
+			<data>
+				<row icon="images/user_0.gif" id="1" loginName="BL00550" disabled="0" userName="陈涛" sex="" birthday="" email="" telephone="" groupName="WMS管理员组" groupId="1" applicationId="" appUserId=""/>
+				<row icon="images/user_0.gif" id="2" loginName="BL00015" disabled="0" userName="陈鹏" sex="" birthday="" email="pchen@800best.com" telephone="" groupName="WMS管理员组" groupId="1" applicationId="" appUserId=""/>
+			</data>
+		</grid>
+	</SourceList>
+	<PageInfo>
+		<pagelist totalpages="1" totalrecords="2" currentpage="1" pagesize="50" firstpage="1" prepage="0" nextpage="0" lastpage="1" pagerecords="2"/>
+	</PageInfo>
+</Response>

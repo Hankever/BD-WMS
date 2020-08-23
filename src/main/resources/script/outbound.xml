@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sqls>
+
+	<sql code="boxlist" name="查询封箱信息">
+		<![CDATA[
+			SELECT b.id, b.order_id, b.boxno, b.boxdate, b.qty, b.skus, b.cube, b.money, b.weight, b.boxer, b.type,
+				   b.remark, b.pallet, ow.name owner
+				FROM wms_box b, wms_order o, wms_owner ow
+				where b.order_id = o.id and o.owner_id = ow.id
+				and o.warehouse_id = ${wh_id}
+				<#if owner_id??> and ow.id = ${owner_id} </#if>	
+				<#if order_id??> and o.id in (${order_id}) </#if>	
+				<#if boxno??> and b.boxno like '%${boxno}%' </#if>
+				<#if pallet??> and b.pallet like '%${pallet}%' </#if>		
+				<#if boxer??> and b.boxer = '${boxer}' </#if>
+				<#if boxdate1??> and b.boxdate >= '${boxdate1}' </#if> 
+				<#if boxdate2??> and b.boxdate < '${boxdate2}' + interval 1 day </#if> 	
+				order by id desc
+		]]>
+	</sql>
+	
+	<sql code="palletList" name="查询未出库托盘信息">
+	<![CDATA[
+			SELECT b.pallet, max(palleter) palleter, min(palletTime) pallettime, count(distinct b.id) boxnum
+				FROM wms_box b, wms_order o
+				where b.order_id = o.id
+				and o.warehouse_id = ${wh_id}
+				and b.outTime is null
+			group by pallet
+			order by pallettime desc
+		]]>
+	</sql>
+
+</sqls>

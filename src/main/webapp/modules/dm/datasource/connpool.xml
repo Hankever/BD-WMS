@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><Response><TL>
+<xform>
+	<declare prefix="cacheStrategy">
+		<column name="code" caption="数据源编码" empty="false" editable="false"/>
+		<column name="name" caption="数据源名称" empty="false"/>
+		<column name="interruptTime" caption="等待时间(微秒)" mode="number" inputReg="^\d*$" empty="false" errorMsg="请填入整数数字"/>	
+		<column name="cyclelife" caption="连接有效期(微秒)" mode="number" inputReg="^\d*$" empty="false" errorMsg="请填入整数数字"/>
+		<column name="initNum"   caption="初始化连接个数" mode="number" inputReg="^\d*$" empty="false" errorMsg="请填入整数数字"/>
+		<column name="poolSize"  caption="最大连接个数" mode="number" inputReg="^\d*$" empty="false" errorMsg="请填入整数数字"/>
+		
+		<column name="driver"  caption="数据库连类型" empty="false" mode="combo" 
+			values="com.mysql.jdbc.Driver|oracle.jdbc.driver.OracleDriver|org.postgresql.Driver|com.microsoft.sqlserver.jdbc.SQLServerDriver" 
+			texts="MySQL|Oracle|PostgreSQL|SQLServer"/>
+		<column name="connUrl"  caption="数据库连接地址" empty="false"/>
+		<column name="connUser" caption="数据库连接账号" empty="false"/>
+		<column name="connPwd"  caption="数据库连接密码" type="password" empty="false" />
+	</declare>
+	<layout>
+		<TR>
+			<TD width="100"><label binding="name"/></TD>
+			<TD><input binding="name" style="width:200px;"/></TD>
+			<TD width="100"><label binding="code"/></TD>
+			<TD><input binding="code" style="width:200px;"/></TD>
+		</TR>
+		<TR>
+			<TD><label binding="poolSize"/></TD>
+			<TD><input binding="poolSize" style="width:100px;"/></TD>
+			<TD><label binding="initNum"/></TD>
+			<TD><input binding="initNum" style="width:100px;"/></TD>
+		</TR>
+		<TR>
+			<TD><label binding="cyclelife"/></TD>
+			<TD><input binding="cyclelife" style="width:100px;"/></TD>
+			<TD><label binding="interruptTime"/></TD>
+			<TD><input binding="interruptTime" style="width:100px;"/></TD>
+		</TR>
+		<TR>
+            <TD colspan="4"> 
+            	<b style="color: red; padding: 8px 0; display: block;">*注: 0或空表示不限制；数据源编码自动生成，也可以自定义，编码不能重复</b> 
+            </TD>
+        </TR>
+        <TR>
+            <TD colspan="4"><hr noshade="true" size="1"/></TD>
+        </TR>
+        <TR>
+			<TD><label binding="driver"/></TD>
+			<TD colspan="3">
+				<input binding="driver" style="width:150px;"/>
+				<b style="color: red; padding-left: 8px; display: inline-block;">目前支持的数据库类型：MySQL、Oracle、PostgreSQL、SQLServer等</b>
+			</TD>
+		</TR>
+		<TR>
+			<TD><label binding="connUrl"/></TD>
+			<TD colspan="3">
+				<textarea binding="connUrl" style="width:88%;height:65px"/>
+				<b style="color: #999; padding-left: 8px; display: inline-block;">MySQL示例: jdbc:mysql://127.0.0.1:3306/tssbi , Oracle示例: jdbc:oracle:thin:@10.1.12.1:1521:orcl1 , PostgreSQL示例: jdbc:postgresql://127.0.0.1:5432/tssdata , SQLServer示例: jdbc:sqlserver://127.0.0.1:1433;DatabaseName=tssdata</b>
+			</TD>
+		</TR>
+		<TR>
+			<TD><label binding="connUser"/></TD>
+			<TD><input binding="connUser"/></TD>
+			<TD><label binding="connPwd"/></TD>
+			<TD><input binding="connPwd" style="width:150px;"/></TD>
+		</TR>
+	</layout>
+	<data>
+	</data>
+</xform>
+</TL></Response>

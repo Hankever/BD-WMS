@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<SourceList>
+		<grid>
+			<declare sequence="true" header="checkbox">
+				<column caption="姓名" name="userName" mode="string"/>
+				<column name="userId" mode="string" display="none"/>
+				<column caption="所在组" name="groupName" mode="string"/>
+			</declare>
+			<data>
+				<row id="1" groupName="用户组1.1" userName="用户1.1" userId="1"/>
+				<row id="2" groupName="用户组1.1" userName="用户1.2" userId="2"/>
+				<row id="3" groupName="用户组1.1" userName="用户1.3" userId="3"/>
+				<row id="4" groupName="用户组1.1" userName="用户1.4" userId="4"/>
+				<row id="5" groupName="用户组1.1" userName="用户1.5" userId="5"/>
+				<row id="6" groupName="用户组1.1" userName="用户1.6" userId="6"/>
+			</data>
+		</grid>
+	</SourceList>
+</Response>

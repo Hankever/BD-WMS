@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>作业策略规则</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.data.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/datagrid-dnd.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="wms.js"></script>
+
+<style type="text/css">
+
+.easyui-dialog table.l input.easyui-combobox { width: 172px; }
+
+#fm2 {width: 100%; height: 100%;}
+#t2, #t5 {width: 99%; height: 100%; }
+#t2 { max-height: 450px; }
+#fm2 table tr .label {width: 80px;font-size: 13px;text-align: right;padding: 8px;}
+#where_table {width: 600px;height: 160px;}
+a.drag_btn {margin: 0 2px 0 2px; width:70px;}
+#save_btn {background: rgba(54, 148, 250, .8); margin-left: 80px; border:0; color: white; }
+
+.order{display: flex;}
+#order_table {width: 300px;height: 120px;}
+#order_tip {
+    width: 300px;
+    height: 120px; 
+    display: flex;
+    flex-direction: column;
+    align-items: center; 
+    justify-content: center; 
+    padding: 10px; 
+    text-align: center;
+    color: red;
+}
+
+#fm3 {width: 100%;}
+#fm3 table tr .label {width: 50px;font-size: 16px;text-align: center;}
+#fm3 table tr td textarea {width: 100%;}
+#fm3 table tr td textarea[readonly] {background: #DCDCDC}
+#fm3 table tr .sub_rule_btn {width: 40px;font-size: 16px;text-align: center;padding: 8px;}
+.sub_btn {border: 1px dashed #ccc; border-radius: 5px; width: 40px; height: 22px;line-height: 22px; margin-bottom: 3px;}
+.sub_rule {text-align: center; padding: 4px 0 4px 0;}
+.sub_rule textarea {height: 44px;}
+.sub_normal_rule {padding: 4px;}
+.sub_normal_rule textarea {height:100%;}
+
+#pick_change {height: 10%; display: flex; flex-direction: row; align-items: center;}
+#fm3_content {overflow: auto;}
+  
+</style>
+
+<script type="text/javascript">
+
+var PICK_SHOW_TYPE = "sub"; //all
+
+var RULE_TYPE = [
+    {"name": "拣货规则", "value": "PICKUP_RULE"}, 
+    {"name": "波次规则", "value": "WAVE_RULE"}, 
+    {"name": "上架规则", "value": "PUTAWAY_RULE"}
+];
+
+var FROM_INTO_LIST = [
+    {"name": "库存表", "value": "库存表"}, 
+    {"name": "候选集1", "value": "候选集1"}, 
+    {"name": "候选集2", "value": "候选集2"}, 
+    {"name": "候选集3", "value": "候选集3"}, 
+    {"name": "候选集4", "value": "候选集4"}, 
+    {"name": "最终结果集", "value": "最终结果集"}
+];
+
+var WHERE_OBJ = {}, STRICT = [];
+var WHERE_FIELD = [
+    {"name": "生产日期", "field": "createdate", "value": "生产日期", "type": "number"},
+    {"name": "过期日期", "field": "expiredate", "value": "过期日期", "type": "number"},
+    {"name": "库存量", "field": "invqty", "value": "库存量", "type": "combo"},
+    {"name": "库位类型", "field": "loctype", "value": "库位用途", "type": "combo"},
+    {"name": "货物状态", "field": "invstatus", "value": "货物状态", "type": "combo", "strict": true},
+    {"name": "批号", "field": "lotatt01", "value": "批号", "type": "combo", "strict": true},
+    {"name": "包装量", "field": "lotatt02", "value": "包装量", "type": "combo", "strict": true},
+    {"name": "货物批次03", "field": "lotatt03", "value": "货物批次03", "type": "combo", "strict": true},
+    {"name": "货物批次04", "field": "lotatt04", "value": "货物批次04", "type": "combo", "strict": true}
+]
+
+var ORDER_OBJ = {};
+var ORDER_FIELD = [
+    {"name": "生产日期", "field": "createdate", "value": "生产日期", "orderList":[
+        {"value": "升序", "field": "asc", "name": "先生产先出"},
+        {"value": "降序", "field": "desc", "name": "后生产先出"}
+    ]},
+    {"name": "过期日期", "field": "expiredate", "value": "过期日期", "orderList":[
+        {"value": "升序", "field": "asc", "name": "先过期先出"},
+        {"value": "降序", "field": "desc", "name": "后过期先出"}
+    ]},
+    {"name": "库存量", "field": "invqty", "value": "库存量"}
+];
+
+var ORDER_LIST = [
+    {"name": "升序", "field": "asc", "value": "升序"},
+    {"name": "降序", "field": "desc", "value": "降序"}
+];
+
+var CONDITION_LIST = [
+    {"name": ">"},
+    {"name": "<"},
+    {"name": "="},
+    {"name": ">="},
+    {"name": "<="},
+    {"name": "<>"},
+    {"name": "in"}
+];
+
+var STATUS_LIST = [
+    {"name": "启用", "value": "1", "selected": true},
+    {"name": "停用", "value": "0"}
+];
+
+var LOC_LIST = [
+    {"name": "收货区", "value": "收货区"},
+    {"name": "出货区", "value": "出货区"},
+    {"name": "拣选区", "value": "拣选区"},
+    {"name": "存储区", "value": "存储区"},
+    {"name": "中转容器", "value": "中转容器"},
+    {"name": "其它", "value": "其它"}
+];
+
+$(function(){
+    fixFieldsName();
+    init();
+});
+
+function fixFieldsName(){
+    WHERE_FIELD.each(function(i, item){
+        if(FIELDS[item.field]){
+            item.name = FIELDS[item.field].label;
+            item.value = FIELDS[item.field].label;
+        }
+        WHERE_OBJ[item.value] = item;
+        WHERE_OBJ[item.field] = item;
+        if(item.strict){
+            STRICT.push(item.field);
+        }
+    });
+    ORDER_FIELD.each(function(i, item){
+        if(FIELDS[item.field]){
+            item.name = FIELDS[item.field].label;
+            item.value = FIELDS[item.field].label;
+        }
+        if(!item.orderList){
+            item.orderList = ORDER_LIST;
+        }
+        ORDER_OBJ[item.value] = item;
+        ORDER_OBJ[item.field] = item;
+    });
+}
+
+function init(){
+    initRuleContent();
+    prepareWHs(function(){
+        getRules();
+        getSysRules();
+    });
+    bindChangeRadio();
+}
+
+function getRules(){
+    var params = {"sortField": "status desc, type"};
+    tssJS.post(RECORD.wms_rule.URL.QUERY, params, function(data){
+        showTable(data);
+    });
+}
+
+var selectedIndex = undefined, editT1Row = undefined;
+function showTable(data){
+    var FIELDS_1 = [
+        { field: 'type', title: '类型', width: 80, align: 'center', formatter: formatType },
+        { field: 'code', title: '编码', width: 100, align: 'center' , editor: { type: "textbox", options: { required: true } }},
+        { field: 'name', title: '名称', width: 150, align: 'center' , editor: { type: "textbox", options: { required: true } }},
+        { field: 'status', title: '状态', width: 70, align: 'center', formatter: formatStatus, editor: {
+            type: "combobox",
+            options: {
+                textField:'name',
+                valueField:'value',
+                panelHeight:'auto',
+                editable: false,
+                required: true,
+                data: STATUS_LIST
+            }
+        }},
+        { field: 'remark', title: '备注', width: 150, align: 'center', editor: { type: "textbox" } }
+    ];
+
+    $('#t1').datagrid({
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        columns: [FIELDS_1],
+        data: data,
+        toolbar: [
+            { text: '新增', iconCls: 'ion ion-md-add', handler: createRule, id:'btn1'}, '-',
+            { text: '删除', iconCls: 'ion ion-md-close', handler: deleteRule, id:'btn3'}, '-',
+            { text: '保存', iconCls: 'ion ion-md-save', handler: saveRule, id:'btn4'}, '-',
+            { text: '刷新', iconCls: 'ion ion-ios-refresh', handler: getRules}
+        ],
+        onClickRow: function(index,row){
+            selectedIndex = index;
+            showRow(row);
+            endEdit("t1", editT1Row);
+        },
+        onDblClickRow: function(index,row){
+            toT1Edit(index, row);
+        },
+        onAfterEdit: function(index, row, changes){
+            editT1Row = undefined;
+        }
+    });
+    
+    if(selectedIndex != undefined){
+        $('#t1').datagrid("selectRow", selectedIndex);
+        var selectedRow = $('#t1').datagrid("getSelected");
+        showRow(selectedRow);
+    }
+    else{
+        var rows = $('#t1').datagrid("getRows");
+        if(rows.length > 0){
+            selectedIndex = 0;
+            $('#t1').datagrid("selectRow", selectedIndex);
+            showRow(rows[selectedIndex]);
+        }
+    }
+}
+
+function formatType(value, row, index){
+    for(var i = 0; i < RULE_TYPE.length; i++){
+        if(RULE_TYPE[i].value == value){
+            return RULE_TYPE[i].name;
+        }
+    }
+    return value;
+}
+
+function formatStatus(value, row, index){
+    for(var i = 0; i < STATUS_LIST.length; i++){
+        if(STATUS_LIST[i].value == value){
+            return STATUS_LIST[i].name;
+        }
+    }
+    return value;
+}
+
+function toT1Edit(index, row){
+    endEdit("t1", editT1Row);
+
+    var row = $('#t1').datagrid("getRows")[index];
+    if (editT1Row == undefined) {
+        $('#t1').datagrid("beginEdit", index);
+        editT1Row = index;
+    }
+}
+
+function showRow(row, readonly){
+    clearPickRuleEditor();
+    $("#tb4").empty();
+
+    if(readonly) {
+        $("#btn3, #btn4").linkbutton("disable");
+    }
+    else {
+        $("#btn3, #btn4").linkbutton("enable");
+    }
+
+
+    if(row.type == "PICKUP_RULE"){
+        $("#pick_change").show();
+        $("#fm3_content").css("height","90%");
+        var op = $("#l1").layout('panel','south');
+        if(op[0].clientHeight == 0){
+            $('#l1').layout('expand','south');
+        }
+        $("#save_btn").linkbutton("enable");
+        setPickRules(row.content);
+    }
+    else{
+        $("#pick_change").hide();
+        $("#fm3_content").css("height","100%");
+        $("#fm3").css("height","100%");
+        $('#l1').layout('collapse','south');
+        addSubNormalRule(row.content);
+        $("#save_btn").linkbutton("disable");
+    }
+
+    if( readonly ) {
+        $("#save_btn").linkbutton("disable");
+        $(".sub_rule_btn").hide();
+    }
+}
+
+function sortRules(a, b){
+    var lineNumA = parseFloat(a) || 0;
+    var lineNumB = parseFloat(b) || 0;
+    return lineNumA - lineNumB;
+}
+
+function createRule(){
+    endEdit("t1", editT1Row);
+    $("#tb4").empty();
+    clearPickRuleEditor();
+    $('#t1').datagrid("unselectAll");
+    selectedIndex = 0;
+
+    $("#s1").linkbutton("enable");
+    $('#dlg1').dialog( {"modal": true} ).dialog('open').dialog('setTitle', "新增作业规则").dialog('center');
+    $('#fm1').form('clear');
+
+    initContent();
+}
+
+function deleteRule(){
+    endEdit("t1", editT1Row);
+    var deleteRow = $('#t1').datagrid("getSelected");
+    if(!deleteRow){
+        $.messager.alert({ title: '提示', msg: '请先选中一条规则！'});
+        return;
+    }
+
+    $.messager.confirm('提示', '您确定要删除此规则吗?', function(r){
+        if (r){
+            $.ajax({
+                url: RECORD.wms_rule.URL.DELETE + deleteRow.id,
+                type: 'DELETE',
+                success: function(result) {
+                    clearPickRuleEditor();
+                    $("#tb4").empty();
+                    selectedIndex = undefined;
+                    getRules();
+                }
+            });
+        }
+    });
+}
+
+function saveRule(){
+    endEdit("t1", editT1Row);
+    var sRow = $('#t1').datagrid("getSelected");
+    if(!sRow){
+        $.messager.alert({ title: '提示', msg: '请先选中一条规则！'});
+        return;
+    }
+    
+    var rows = $('#t1').datagrid('getChanges');
+    
+    var content = "";
+    if(sRow.type == "PICKUP_RULE"){
+        content = getPickRules();
+    }
+    else{
+        content = $("#rule_content").val();
+    }
+    sRow.content = content;
+    var needInsert = true;
+    for(var k = 0; k < rows.length; k++){
+        if(rows[k].id == sRow.id){
+            rows[k].content = sRow.content;
+            needInsert = false;
+            break;
+        }
+    }
+    if(needInsert){
+        rows.push(sRow);
+    }
+    var result = [];
+    $.each(rows, function(i, row) {
+        var obj = {id: row.id, code: row.code, name: row.name, status: row.status, remark: row.remark, content: row.content};
+        result.push(obj);
+    });
+    
+    $.post( RECORD.wms_rule.URL.CUD_JSON, {"json": JSON.stringify(result)}, function(data) {
+        if(data.errorMsg) {
+            $.messager.alert({ title: '出错提示', msg: data.errorMsg});
+        }
+        if(data.created || data.updated) {
+            $.messager.show({ title: '提示', msg: '保存成功！'});
+            getRules();
+        }
+    });
+}
+
+function initContent(){
+    $("#s1").linkbutton("enable");
+
+    $('#type').combobox({
+        textField:'name',
+        valueField:'value',
+        panelHeight:'auto',
+        editable: false,
+        required: true,
+        data: RULE_TYPE
+    });
+
+    $('#status').combobox({
+        textField:'name',
+        valueField:'value',
+        panelHeight:'auto',
+        editable: false,
+        required: true,
+        data: STATUS_LIST
+    });
+
+    $("#name").textbox({ required: true });
+    $('#content, #remark').textbox({ multiline: true  });
+}
+
+function save(){
+    $("#s1").linkbutton("disable");
+    
+    var params = getFormData("fm1");
+    var flag = $("#fm1").form('validate');
+    tssJS.each(params, function(key, val){
+        if(!val) delete params[key];
+    });
+
+    if(flag){
+        if(params.type == "PICKUP_RULE" && params.content){
+            var subRoleList = params.content.split(";");
+            for(var i = 0; i < subRoleList.length; i++){
+                if(subRoleList[i]){
+                    try{
+                        analyzeSubRule(subRoleList[i]);
+                    }
+                    catch(err){
+                        console.log(err);
+                        $("#s1").linkbutton("enable");
+                        $.messager.alert({ title: '提示', msg: '请检查拣货规则内容格式是否正确！'});
+                        return;
+                    }
+                }
+            }
+        }
+        $.post(RECORD.wms_rule.URL.CREATE + (params.id ? "/" + params.id : ""), params, function(result){
+            $("#s1").linkbutton("enable");
+            if(!result.errorMsg){
+                $.messager.show({ title: '提示', msg: '保存成功' });
+                $("#fm1").form('clear');
+                $('#dlg1').dialog('close');
+                $("#tb4").empty();
+                if(selectedIndex == undefined){
+                    selectedIndex = 0;
+                }
+                getRules();
+            }
+            else{
+                $.messager.alert({
+                    title: '提示',
+                    msg: result.errorMsg,
+                    icon: 'error'
+                });
+            }
+        });
+    }
+    else{
+        $("#s1").linkbutton("enable");
+        $.messager.alert({ title: '提示', msg: '请检查必填字段是否为空'});
+    }
+}
+
+var editRow = undefined, editT4Row = undefined;
+function initRuleContent(){
+    $('#from').combobox({
+        textField:'name',
+        valueField:'value',
+        panelHeight:'auto',
+        editable: false,
+        required: true,
+        data: FROM_INTO_LIST.slice(0,FROM_INTO_LIST.length-1),
+        onSelect: function(d) {
+            if( d.value == '库存表' ) {
+                $("#from_").hide();
+            } else {
+                 $("#from_").show();
+            }
+        }
+    });
+
+    $("#from_").hide();
+
+    $('#into').combobox({
+        textField:'name',
+        valueField:'value',
+        panelHeight:'auto',
+        editable: false,
+        required: true,
+        data: FROM_INTO_LIST.slice(1)
+    });
+    
+    addDragBtn("where_field", WHERE_FIELD, "where");
+    addDragBtn("order_field", ORDER_FIELD, "order");
+
+    $('#t3').datagrid({
+        fitColumns: true,
+        rownumbers: false,
+        singleSelect: true,
+        dragSelection: true,
+        columns: [[
+            { field: 'field_type', title: '条件类型', width: 100, align: 'center', hidden: true },
+            { field: 'field_field', title: '字段名称', width: 100, align: 'center', hidden: true },
+            { field: 'field_value', title: '条件字段', width: 100, align: 'center', hidden: true },
+            { field: 'field_name', title: '条件', width: 100, align: 'center' },
+            { field: 'symbol', title: '判断符号', width: 60, align: 'center'},
+            { field: 'value', title: '值', width: 120, align: 'center' },
+            { field: 'tip', title: '操作', width: 60, align: 'center' }
+        ]],
+        onClickCell: function(index, field, value){
+            if(field == "symbol" || field == "value"){
+                toEdit(index, field, value);
+            }
+            else{
+                endEdit("t3", editRow);
+            }
+        },
+        onAfterEdit: function(index, row, changes){
+            editRow = undefined;
+        }
+    });
+
+    $('#t4').datagrid({
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        dragSelection: true,
+        columns: [[
+            { field: 'field_field', title: '字段名称', width: 100, align: 'center', hidden: true },
+            { field: 'field_value', title: '条件字段', width: 100, align: 'center', hidden: true },
+            { field: 'field_name', title: '条件', width: 100, align: 'center' },
+            { field: 'order', title: '顺序', width: 100, align: 'center', formatter: formatOder },
+            { field: 'tip', title: '操作', width: 60, align: 'center' }
+        ]],
+        onClickCell: function(index, field, value){
+            if(field == "order"){
+                toT4Edit(index, field, value);
+            }
+            else{
+                endEdit("t4", editT4Row);
+            }
+        },
+        onAfterEdit: function(index, row, changes){
+            editT4Row = undefined;
+        }
+    });
+
+    setBtnDraggable();
+
+    $('#where_table').droppable({
+        accept:'#where_field>.drag_btn',
+        onDragEnter:function(e,source){
+            $(source).draggable('options').cursor='auto';
+        },
+        onDragLeave:function(e,source){
+            $(source).draggable('options').cursor='move';
+        },
+        onDrop:function(e,source){
+            var sourceId = $(source).attr("id");
+            var id = sourceId.replace("where_","");
+            if(STRICT.indexOf(id) > -1){
+                addWhereCondition(sourceId, {"symbol": "=", "value": "严格"});
+            }
+            else{
+                addWhereCondition(sourceId);
+            }
+        }
+    });
+
+    $('#order_table').droppable({
+        accept:'#order_field>.drag_btn',
+        onDragEnter:function(e,source){
+            $(source).draggable('options').cursor='auto';
+        },
+        onDragLeave:function(e,source){
+            $(source).draggable('options').cursor='move';
+        },
+        onDrop:function(e,source){
+            var sourceId = $(source).attr("id");
+            addOrderCondition(sourceId);
+        }
+    });
+}
+
+function formatOder(value, row, index){
+    var field = row.field_field;
+    var list = ORDER_OBJ[field].orderList;
+    for(var i = 0; i < list.length; i++){
+        if(list[i].value == value){
+            value = list[i].name;
+            break;
+        }
+    }
+    return value;
+}
+
+//添加拖动按钮
+function addDragBtn(id, list, type){
+    var html = "";
+    list.each(function(i, item){
+        html += `<a id="${type}_${item.field}" href="#" class="easyui-linkbutton drag_btn">${item.name}</a>`;
+    });
+    $("#" + id).html(html);
+    $.parser.parse($("#" + id)); 
+}
+
+function toEdit(index, field, value){
+    endEdit("t3", editRow);
+
+    var row = $('#t3').datagrid("getRows")[index];
+    if (editRow == undefined) {
+        var optSymbol = $('#t3').datagrid("getColumnOption", "symbol");
+        optSymbol.editor = {};
+        optSymbol.editor = {
+            type: 'combobox',
+            options:{
+                panelHeight: 'auto',
+                valueField: "name",
+                textField: "name",
+                data: CONDITION_LIST
+            }
+        };
+
+        var opt = $('#t3').datagrid("getColumnOption", "value");
+        if(row.field_field == "loctype"){
+            opt.editor = {
+                type: row.field_type + 'box',
+                options:{
+                    editable:true,
+                    multiple:true,
+                    panelHeight:'auto',
+                    textField:'name',
+                    valueField:'value',
+                    data: LOC_LIST
+                }
+            };
+        }
+        else if(row.field_field == "invqty"){
+            opt.editor = {
+                type: row.field_type + 'box',
+                options:{
+                    editable:true,
+                    panelHeight:'auto',
+                    textField:'name',
+                    valueField:'name',
+                    data: [{"name": "订单量"}]
+                }
+            };
+        }
+        else if(STRICT.indexOf(row.field_field) > -1){
+            opt.editor = {
+                type: row.field_type + 'box',
+                options:{
+                    editable:true,
+                    panelHeight:'auto',
+                    textField:'name',
+                    valueField:'name',
+                    data: [{"name": "严格"}]
+                }
+            };
+            optSymbol.editor = {};
+            optSymbol.editor = {
+                type: 'combobox',
+                options:{
+                    panelHeight: 'auto',
+                    valueField: "name",
+                    textField: "name",
+                    data: [{"name": "="}]
+                }
+            };
+        }
+        else{
+            opt.editor = {};
+            opt.editor = {
+                type: row.field_type + 'box',
+                options:{
+                    editable:true
+                }
+            };
+        }
+        
+        $('#t3').datagrid("beginEdit", index);
+        $('#t3').datagrid({
+            onBeforeDrag: function(row){
+                if (editRow != undefined) {
+                    return false;
+                }
+            }
+        });
+        editRow = index;
+    }
+}
+
+function toT4Edit(index, field, value){
+    endEdit("t4", editT4Row);
+
+    var row = $('#t4').datagrid("getRows")[index];
+    if (editT4Row == undefined) {
+        var opt = $('#t4').datagrid("getColumnOption", "order");
+        opt.editor = {};
+        opt.editor = {
+            type: 'combobox',
+            options:{
+                panelHeight: 'auto',
+                valueField: "value",
+                textField: "name",
+                data: ORDER_OBJ[row.field_field].orderList
+            }
+        };
+
+        $('#t4').datagrid("beginEdit", index);
+        $('#t4').datagrid({
+            onBeforeDrag: function(row){
+                if (editT4Row != undefined) {
+                    return false;
+                }
+            }
+        });
+        editT4Row = index;
+    }
+}
+
+function endEdit(id, index){
+    $('#' + id).datagrid("endEdit", index);
+}
+
+function addWhereCondition(id, row){
+    endEdit("t3", editRow);
+    var symbol = "", value = "";
+    if(row){
+        if(row.symbol) symbol = row.symbol;
+        if(row.value) value = row.value;
+    }
+    
+    for(var i = 0; i < WHERE_FIELD.length; i++){
+        var field = WHERE_FIELD[i];
+        if(id == "where_" + field.field){
+            $('#' + id).remove();
+            $('#t3').datagrid('appendRow',{
+                field_type: field.type,
+                field_field: field.field,
+                field_name: field.name,
+                field_value: field.value,
+                symbol: symbol,
+                value: value,
+                tip: `<a href="javascript:void(0)" onclick="deleteRow('t3','where','${field.field}','${field.name}')">删除</a>`
+            });
+            $('#t3').datagrid('enableDnd');
+            break;
+        }
+    }
+}
+
+function addOrderCondition(id, row){
+    endEdit("t4", editT4Row);
+    var value = "升序";
+    if(row && row.value){
+        value = row.value;
+    }
+
+    for(var i = 0; i < ORDER_FIELD.length; i++){
+        var field = ORDER_FIELD[i];
+        if(id == "order_" + field.field){
+            $('#' + id).remove();
+            $('#t4').datagrid('appendRow',{
+                field_field: field.field,
+                field_name: field.name,
+                field_value: field.value,
+                order: value,
+                tip: `<a href="javascript:void(0)" onclick="deleteRow('t4','order','${field.field}','${field.name}')">删除</a>`
+            });
+            $('#t4').datagrid('enableDnd');
+            break;
+        }
+    }
+}
+
+function deleteRow(table, type, value, name){
+    endEdit(table, editRow);
+    var html = `<a id="${type}_${value}" href="#" class="easyui-linkbutton drag_btn">${name}</a>`;
+    $("#" + type + "_field").append(html);
+    var rows = $('#' + table).datagrid("getRows");
+    var index;
+    for(var i = 0; i < rows.length; i++){
+        if(rows[i].field_field == value){
+            index = i;
+            break;
+        }
+    }
+    $('#' + table).datagrid('deleteRow',index);
+    var idStr = "#" + type + "_" + value;
+    $.parser.parse($(idStr).parent()); 
+    setBtnDraggable();
+}
+
+function setBtnDraggable(){
+    $('.drag_btn').draggable({
+        revert:true,
+        proxy:'clone',
+        onStartDrag:function(){
+            $(this).draggable('proxy').css('z-index',1000);
+        }
+    });
+}
+
+function saveSubRule(){
+    endEdit("t3", editRow);
+    endEdit("t4", editT4Row);
+
+    var isCover = true;
+
+    $("#save_btn").linkbutton("disable");
+    
+    var params = getFormData("fm2");
+    var flag = $("#fm2").form('validate');
+    if(flag){
+        if(!params.line_num){
+            isCover = false;
+            params.line_num = getNewLineNum();
+        }
+
+        var rowWhere = $('#t3').datagrid("getRows");
+        var rowOrder = $('#t4').datagrid("getRows");
+        var from_type = params.from_type ? "(" +params.from_type+ ")" : "";
+        var sql = params.line_num + " from " +from_type+ " " + params.from;
+        for(var i = 0; i < rowWhere.length; i++){
+            var item = rowWhere[i];
+            if(!item.symbol || item.value == ""){
+                $("#save_btn").linkbutton("enable");
+                $.messager.alert({ title: '提示', msg: '请检查条件填写是否完整'});
+                return;
+            }
+            if(i == 0){
+                sql += " where ";
+            }
+            else{
+                sql += " and ";
+            }
+
+            sql += item.field_value + " ";
+            if(item.value != "严格"){//严格无判断符号
+                sql += item.symbol + " ";
+            }
+
+            if(item.field_field == "createdate" || item.field_field == "expiredate"){
+                var daySymbol = "";
+                if(item.value >= 0){
+                    daySymbol = "+";
+                }
+                item.value = "{sysdate" + daySymbol + item.value +  "}";
+            }
+            if(item.symbol == "in"){
+                sql += "( " + item.value + " )";
+            }
+            else{
+                sql += item.value;
+            }
+        }
+
+        var orderList = [];
+        rowOrder.each(function(j, val){
+            orderList.push(val.field_value + " " + val.order);
+        });
+        if(rowOrder.length > 0){
+            sql += " order by " + orderList.join(",");
+        }
+
+        sql += " into " + params.into;
+        if(PICK_SHOW_TYPE == "sub"){
+            addSubPickRule(sql, isCover);
+        }
+        else{
+            addAllPickRule(sql);
+        }
+        saveRule();
+    }
+    else{
+        $.messager.alert({ title: '提示', msg: '请检查必填字段是否为空'});
+    }
+    $("#save_btn").linkbutton("enable");
+}
+
+function addSubPickRule(sql, isCover){
+    var lineNum = parseFloat(sql);
+    sql = sql.substr(sql.indexOf(lineNum) + (lineNum + "").length);
+    sql = sql.trim();
+    var id = "rule_" + lineNum;
+    if(!isCover){
+        var html =  "<tr id='tr_" + id + "'>" +
+                        "<td class='label'>" + lineNum + "</td>" +
+                        "<td class='sub_rule'>" +
+                            "<textarea name='" + id + "' id='" + id + "' required/></textarea>" + 
+                        "</td>" +   
+                        "<td class='sub_rule_btn'>" + 
+                            `<a id="update${id}"" href="#" class="ion ion-md-create sub_btn" onclick=updateSubRule("${id}")></a>` +
+                            `<a id="delete${id}"" href="#" class="ion ion-md-close sub_btn" onclick=deleteSubRule("${id}")></a>` +
+                        "</td>" +  
+                        
+                    "</tr>";
+        $("#tb4").append(html);
+    }
+    $.parser.parse($("#tr_" + id)); 
+    $("#" + id).val(sql);
+    clearPickRuleEditor();
+}
+
+function addAllPickRule(sql){
+    var content = getPickRules();
+    content += sql + " ;";
+    $("#rule_content").val(content);
+}
+
+function addSubNormalRule(content){
+    var html =  "<tr>" +
+                    "<td class='sub_normal_rule'>" +
+                        "<textarea name='rule_content' id='rule_content'/></textarea>" + 
+                    "</td>" + 
+                "</tr>";
+    $("#tb4").append(html);
+    $("#rule_content").val(content);
+}
+
+function clearPickRuleEditor(){
+    editRow = undefined, editT4Row = undefined;
+    $("#line_num").val("");
+    $("#from,#into").combobox("clear");
+    $('#t3').datagrid("loadData",[]);
+    $('#t4').datagrid("loadData",[]);
+    $("#where_field").empty();
+    $("#order_field").empty();
+    addDragBtn("where_field", WHERE_FIELD, "where");
+    addDragBtn("order_field", ORDER_FIELD, "order");
+    setBtnDraggable();
+}
+
+function getSubRules(){
+    var ret = $("#fm3").serializeArray();
+    ret.each(function(i, item){
+        var lineNum = item.name.substr(5);
+        item.value = lineNum + " " + item.value;
+        item.lineNum = lineNum;
+    });
+    return ret;
+}
+
+function getNewLineNum(){
+    var newLineNum = 0;
+    if(PICK_SHOW_TYPE == "sub"){
+        var subRules = getSubRules();
+        subRules.each(function(i, item){
+            var num = parseFloat(item.lineNum);
+            if(num > newLineNum){
+                newLineNum = num;
+            }
+        });
+    }
+    else{
+        var content = getPickRules();
+        var subRules = content.split(";").sort(sortRules);
+        subRules.each(function(i, item){
+            if(item){
+                var num = parseFloat(item);
+                if(num > newLineNum){
+                    newLineNum = num;
+                }
+            }
+        });
+    }
+    
+    newLineNum = newLineNum + 1;
+    return newLineNum;
+}
+
+function deleteSubRule(id){
+    $.messager.confirm('提示', '您确定删除该子规则并保存吗?', function(r){
+        if (r){
+            $("#tr_" + id).remove();
+            saveRule();
+        }
+    });
+}
+
+function updateSubRule(id){
+    clearPickRuleEditor();
+    var rules = getSubRules();
+    for(var i = 0; i < rules.length; i++){
+        if(rules[i].name == id){
+            var ruleObj = analyzeSubRule(rules[i].value);
+            setSubRule(ruleObj);
+            break;
+        }
+    }
+}
+
+function analyzeSubRule(rule){
+    var obj = {
+        "lineNum": 0,
+        "from_type": "",
+        "from": "",
+        "where": [],
+        "order": [],
+        "into": ""
+    };
+    var fromIndex = rule.indexOf(" from ");
+    var whereIndex = rule.indexOf(" where ");
+    var orderIndex = rule.indexOf(" order by ");
+    var intoIndex = rule.indexOf(" into ");
+
+    obj.lineNum = rule.substr(0,fromIndex).trim();
+    var fromEnd = whereIndex > -1 ? whereIndex : orderIndex > -1 ? orderIndex : intoIndex;
+
+    var fromStr = rule.substr(fromIndex, fromEnd - fromIndex).trim();
+    var fromArray = fromStr.split(" ");
+    if( fromArray.length == 2 ) {
+        obj.from_type = "";
+        obj.from = fromArray[1].trim();
+    } 
+    else if( fromArray.length == 3 ) {
+        obj.from_type = fromArray[1].replace("(","").replace(")","").trim();
+        obj.from = fromArray[2].trim();
+    }
+    obj.into = rule.substr(intoIndex + 6).trim();
+    
+    if(whereIndex > -1){
+        var whereEnd = orderIndex > -1 ? orderIndex : intoIndex;
+        var whereStr = rule.substr(whereIndex + 7, whereEnd - whereIndex - 7).trim();
+        var whereArray = whereStr.split(" and ");
+        var where = [];
+        whereArray.each(function(i, w){
+            if(w.indexOf("严格") > -1){
+                w = w.replace("严格","= 严格");
+            }
+            var whereObj = {};
+            var firstSpaceIdx = w.indexOf(" ");
+            whereObj.field = w.substr(0,firstSpaceIdx);
+            var wSymbolStr = w.substr(firstSpaceIdx + 1);
+            var secondSpaceIdx = wSymbolStr.indexOf(" ");
+            whereObj.symbol = wSymbolStr.substr(0,secondSpaceIdx);
+            whereObj.value = wSymbolStr.substr(secondSpaceIdx + 1).trim();
+            if(whereObj.symbol == "in"){
+                whereObj.value = whereObj.value.replace("(","").replace(")","").trim();
+            }
+            if(whereObj.field == WHERE_OBJ["createdate"].value || whereObj.field == WHERE_OBJ["expiredate"].value){
+                whereObj.value = whereObj.value.replace("{sysdate","").replace("}","").replace("+","");
+            }
+            where.push(whereObj);
+        });
+        obj.where = where;
+    }
+
+    if(orderIndex > -1){
+        var orderStr = rule.substr(orderIndex + 10, intoIndex - orderIndex - 10).trim();
+        var orderArray = orderStr.split(",");
+        var order = [];
+        orderArray.each(function(j, o){
+            var orderObj = {};
+            var orderfirstIdx = o.indexOf(" ");
+            orderObj.field = o.substr(0,orderfirstIdx).trim();
+            orderObj.value = o.substr(orderfirstIdx).trim();
+            order.push(orderObj);
+        });
+        obj.order = order;
+    }
+
+    return obj;
+}
+
+function setSubRule(obj){
+    $("#line_num").val(obj.lineNum);
+    $("#from").combobox("setValue", obj.from);
+    $("#into").combobox("setValue", obj.into);
+
+    radioCheck("from_type", "from_" + obj.from_type);
+    var where = obj.where;
+    where.each(function(i, w){
+        addWhereCondition("where_" + WHERE_OBJ[w.field].field, w);
+    });
+
+    var order = obj.order;
+    order.each(function(j, o){
+        addOrderCondition("order_" + ORDER_OBJ[o.field].field, o);
+    });
+}
+
+function radioCheck(name, id){
+    var obj = document.getElementsByName(name);
+    for(var i = 0; i < obj.length; i++){
+        if(obj[i].id == id){
+            obj[i].checked = true;
+        }
+        else{
+            obj[i].checked = false;
+        }
+    }
+}
+
+function getChangeRadio(){
+    return $("input[type='radio'][name='change_type']:checked").val();
+}
+
+function bindChangeRadio(){
+    $("input[type='radio'][name='change_type']").click(function(){
+        var pickType = getChangeRadio();
+        if(PICK_SHOW_TYPE != pickType){
+            var content = getPickRules();
+            clearPickRuleEditor();
+            PICK_SHOW_TYPE = pickType;
+            setPickRules(content);
+        }
+    });
+}
+
+function getPickRules(){
+    var subRules = "";
+    if(PICK_SHOW_TYPE == "sub"){
+        var rules = getSubRules();
+        rules.each(function(i, item){
+            subRules += item.value + " ;";
+        });
+    }
+    else{
+        subRules = $("#rule_content").val();
+    }
+    return subRules;
+}
+
+function setPickRules(content){
+    $("#tb4").empty();
+    if(PICK_SHOW_TYPE == "sub"){
+        $("#fm3").css("height", "auto");
+        var ruleList = (content||'').split(";").sort(sortRules);
+        ruleList.each(function(i, item){
+            if(item) {
+                try {
+                    analyzeSubRule(item);
+                    addSubPickRule(item, false);
+                }
+                catch(err){
+                    $.messager.show({ title: '提示', msg: '规则格式存在错误,仅支持全部显示！'});
+                    console.log(err);
+
+                    PICK_SHOW_TYPE = "all";
+                    radioCheck("change_type", "change_all");
+                    setPickRules(content);
+
+                    return false;
+                }
+            }
+        });
+    }
+    else{
+        $("#fm3").css("height","100%");
+        addSubNormalRule(content);
+    }
+}
+
+
+</script>
+
+</head>
+<body>
+
+<div id="main" class="easyui-layout" fit="true">
+    <div data-options="region:'west',split:true,collapsible:false" border="false" style="width:42%;">
+        <div class="easyui-layout" fit="true">
+            <div data-options="region:'center',split:true" border="false" style="height:45%;" title="我的策略规则">
+                <table id="t1" border="false" ></table>
+            </div>
+            <div data-options="region:'south',split:true,collapsible:false" border="false" style="height:55%;" title="常用规则池">
+                <table id="t2" border="false" ></table>
+            </div>
+        </div>
+    </div>
+    <div data-options="region:'center',split:true,collapsible:false" border="false" style="width:58%;">
+        <div id="l1" class="easyui-layout" fit="true">
+            <div data-options="region:'center',split:true,collapsible:false" border="false" style="height:35%" title="规则内容">
+                <div id="pick_change">
+                    <input id="change_sub" type="radio" name="change_type" value="sub" checked><label for="change_sub">逐条显示</label>
+                    <input id="change_all" type="radio" name="change_type" value="all"><label for="change_all">全部显示</label>
+                </div>
+                <div id="fm3_content">
+                    <form id="fm3">
+                        <table id="t5">
+                            <tbody id="tb4"></tbody>
+                        </table>
+                    </form>
+                </div>
+            </div>
+            <div id="d2" data-options="region:'south',split:true,hideCollapsedContent:false" border="false" style="height:65%" title="拣货规则设计器">
+                <form id="fm2">
+                    <input id="line_num" name="line_num" type="hidden"/>
+                    <table id="t2">
+                        <tr>
+                            <td class="label">从:</td>         
+                            <td>
+                                <input id="from" name="from" class="easyui-combobox"/>
+                                <span id='from_'>
+                                    <input id="from_move" type="radio" name="from_type" value="" checked><label for="from_move">剪切</label>
+                                    <input id="from_copy" type="radio" name="from_type" value="copy"><label for="from_copy">复制</label>
+                                </span>
+                            </td>              
+                        </tr>
+                        <tr>
+                            <td class="label">条件:</td>
+                            <td id="where_field"></td>           
+                        </tr>
+                        <tr>
+                            <td class="label"></td>         
+                            <td>
+                                <div id="where_table">
+                                    <table id="t3" border="true" style="height:100%;"></table>
+                                </div>
+                            </td>              
+                        </tr>
+                        <tr>
+                            <td class="label">优先级:</td>
+                            <td id="order_field"></td>              
+                        </tr>
+                        <tr>
+                            <td class="label"></td>         
+                            <td class="order">
+                                <div id="order_table">
+                                    <table id="t4" border="true" style="height:100%;"></table>
+                                </div>
+                                <div id="order_tip">(拖拽条件进入表格，顺序越靠前，优先级越高，拖动行改变顺序，单击行字段进行编辑。)</div>
+                            </td>              
+                        </tr>
+                        <tr>
+                            <td class="label">到:</td>
+                            <td>
+                                <input id="into" name="into" class="easyui-combobox"/>
+                                <a id="save_btn" href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'ion ion-ios-save'" onclick='saveSubRule()'>保存子规则</a>
+                                <a id="clear_btn" href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'ion ion-ios-refresh'" onclick='clearPickRuleEditor()'>清空</a>
+                            </td>              
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="dlg1" class="easyui-dialog" style="width:auto;height:auto;" closed="true" buttons="#dlg1-buttons">
+    <form id="fm1" method="post" novalidate>
+        <input name="id" id="id" type="hidden">
+        <table class="l">
+            <tr>
+                <td class="label">类 型：</td>
+                <td>
+                    <input id="type" name="type" class="easyui-combobox" style="width: 100px;"/>
+                </td>
+                <td class="label" rowspan="7">规则内容：</td>
+                <td rowspan="7">
+                    <input id="content" name="content" class="easyui-textbox" style="width:520px; height:320px;"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="label">编 码：</td>
+                <td>
+                    <input id="code" name="code" class="easyui-textbox"/>
+                </td>   
+            </tr>
+            <tr>
+                <td class="label">名 称：</td>
+                <td>
+                    <input id="name" name="name" class="easyui-textbox"/>
+                </td>      
+            </tr>
+            <tr>
+                <td class="label">状 态：</td>
+                <td>
+                    <input id="status" name="status" class="easyui-combobox" style="width: 60px;"/>
+                </td>            
+            </tr>
+            <tr>
+                <td class="label" rowspan="2">备 注：</td>
+                <td rowspan="2">
+                    <input id="remark" name="remark" class="easyui-textbox" style="height:80px;"/>
+                </td>      
+            </tr>
+            <tr><td></td><td></td></tr>
+            <tr><td></td><td></td></tr>
+        </table>
+    </form>
+</div>
+<div id="dlg1-buttons">
+    <a id="s1" href="#" class="easyui-linkbutton" iconCls="ion ion-md-checkmark" onclick="save()">保存</a>
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-md-close" onclick="closeDialog('fm1','dlg1')">取消</a>
+</div>
+
+<script type="text/javascript">
+    
+function getSysRules(){
+    var params = {};
+    tssJS.get('/tss/api/bi/sql/sysRules', {}, function(data){
+        showSysRuleTable(data);
+    });
+}
+
+function showSysRuleTable(data){
+    var FIELDS_1 = [
+        { field: 'type', title: '类型', width: 80, align: 'center', formatter: formatType },
+        { field: 'code', title: '编码', width: 90, align: 'center'},
+        { field: 'name', title: '名称', width: 150, align: 'center'},
+        { field: 'remark', title: '备注', width: 180, align: 'center'},
+        {field: "opts", title: "操作", width: 80, align: 'center', styler: linkStyler}
+    ];
+
+    data.each((i, item) => {
+        item.opts = '<a href="javascript:void(0)">复制</a>';
+    })
+
+    $('#t2').datagrid({
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        columns: [FIELDS_1],
+        data: data,
+        toolbar: [
+            '-', { text: '刷新', iconCls: 'ion ion-ios-refresh', handler: getSysRules}
+        ],
+        onClickCell: function(index, field, value) {
+            if(field == 'opts') {
+                copyRule(index);
+            }           
+        },
+        onClickRow: function(index,row){
+            showRow(row, true);
+        }
+    });
+}
+
+function copyRule(index) {
+    var row = $('#t2').datagrid("getRows")[index];
+    createRule();
+
+    var content = (row.content||'').replace(/\;/g, ';\r');
+
+    $('#type').combobox("setValue", row.type);
+    $('#status').combobox("setValue", row.status);
+    $("#name").textbox("setValue", row.name);
+    $("#code").textbox("setValue", row.code);
+    $('#content').textbox("setValue", content);
+}
+
+</script>
+
+</body>
+</html>

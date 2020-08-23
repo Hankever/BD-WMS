@@ -1,0 +1,161 @@
+/* =Mixins
+-----------------------------------------------------------------------------*/
+.text2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.text1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
+}
+.text3 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
+  white-space: nowrap;
+}
+/* =Reset
+-----------------------------------------------------------------------------*/
+html {
+  box-sizing: border-box;
+}
+body {
+  font-family: Arial, sans-serif, "Microsoft Yahei";
+  font-size: 12px;
+}
+
+/* 启用自定义滚动条，并设置容器属性 */
+*::-webkit-scrollbar {
+  /* 这里的宽是指竖向滚动条的宽，高是指横向滚动条的高*/      
+  width: 8px; height: 8px; background: #ccc; 
+}
+/* 滚动条凹槽，还可以设置边框属性。此处属性也可以直接在容器中设置 */
+*::-webkit-scrollbar-track-piece {
+  background-color: #fff;
+}
+/* 滚动条 */
+*::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background: linear-gradient(#ccc, #bbb); 
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
+img {
+  box-sizing: content-box;
+}
+* {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  font-size: 100%;
+  background: transparent;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: 100%;
+}
+ul,
+ol {
+  list-style: none;
+}
+a {
+  text-decoration: none;
+}
+a:active,
+a:hover {
+  outline: 0;
+}
+a:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
+audio:not([controls]) {
+  display: none;
+  height: 0;
+}
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+button,
+input,
+select,
+textarea {
+  margin: 0;
+}
+textarea {
+  overflow: auto;
+  vertical-align: top;
+  resize: vertical;
+}
+button {
+  width: auto;
+  overflow: visible;
+}
+input[type="reset"],
+input[type="submit"],
+input[type="file"],
+input[type="radio"],
+input[type="checkbox"],
+select,
+button {
+  cursor: pointer;
+}
+button:active,
+button:focus {
+  outline: none;
+}
+input::-moz-focus-inner,
+button::-moz-focus-inner {
+  border: 0;
+  padding: 0;
+}
+input[type="radio"],
+input[type="checkbox"] {
+  font-size: 110%;
+  position: relative;
+  margin-right: 3px;
+  padding: 0;
+}
+hr {
+  display: block;
+  box-sizing: content-box;
+  height: 1px;
+  border: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+video,
+audio,
+embed,
+object {
+  max-width: 100%;
+}
+img,
+video,
+embed,
+object {
+  height: auto;
+}
+embed,
+object {
+  height: 100%;
+}
+.clearfix {
+  display: table;
+  zoom: 1;
+}
+.clearfix:after {
+  content: " ";
+  display: block;
+  clear: both;
+}

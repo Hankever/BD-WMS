@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?><Response><RecordAttach>
+<grid>
+	<declare sequence="true">
+		<column caption="ID" name="id" mode="number" display="none"/>
+		<column caption="类型" name="type" mode="string" values="1|2" texts="图片|文档" width="30px"/>
+		<column caption="文件名" name="name" mode="string" width="80px"/>
+		<column caption="下载地址" name="url" mode="string" width="200px" display="none"/>
+		<column caption="查看" name="_url" mode="string" width="30px"/>
+		<column caption="删除" name="delOpt" mode="string" width="30px"/>
+		<column caption="上传人" name="uploadUser" mode="string" width="40px"/>
+		<column caption="上传日期" name="uploadDate" mode="string" width="80px"/>
+	</declare>
+	<data>
+	<row id="1" type="2" name="123.txt" url="/auth/xdata/attach/download/1" _url="&lt;a href='/auth/xdata/attach/download/1' target='_blank'&gt;查看&lt;/a&gt;" delOpt="&lt;a href='javascript:void(0)' onclick='delAttach(1)'&gt;删除&lt;/a&gt;" uploadUser="" uploadDate="2015-07-22 18:33:56"/>
+	<row id="2" type="1" name="卜贝.jpg" url="/auth/xdata/attach/download/212" _url="&lt;a href='/auth/xdata/attach/download/2' target='_blank'&gt;查看&lt;/a&gt;" delOpt="&lt;a href='javascript:void(0)' onclick='delAttach(1)'&gt;删除&lt;/a&gt;" uploadUser="" uploadDate="2015-07-22 18:33:56"/>
+	</data></grid></RecordAttach></Response>

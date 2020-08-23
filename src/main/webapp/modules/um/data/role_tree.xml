@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<RoleGroupTree>
+		<actionSet>
+			<treeNode id="-6" name="全部" _open="true">
+        <treeNode id="111" name="角色组1" icon="images/role_group_0.gif" disabled="0" isGroup="1">
+          <treeNode id="168" name="角色一"  icon="images/role_0.gif" isGroup="0"/>
+          <treeNode id="169" name="角色1.2" icon="images/role_1.gif" disabled="1" isGroup="0"/>
+        </treeNode>
+        <treeNode id="112" name="角色组2" icon="images/role_group_0.gif" disabled="0" isGroup="1"/>
+        <treeNode id="113" name="角色组3" icon="images/role_group_1.gif" disabled="1" isGroup="1"/>
+      </treeNode>
+		</actionSet>
+	</RoleGroupTree>
+</Response>

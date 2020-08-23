@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta name="viewport" content="width=device-width">
+<meta charset="UTF-8">
+<TITLE> 404 -- You lost </TITLE>
+<!-- 资源不可见（不存在或没有权限），自动跳转登陆页 -->
+
+<style>
+	html { height: 100%; }
+	body { height: 100%; margin: 0; color: #000; }
+	#L404 { margin: 0 auto; }
+</style>
+
+<script type="text/javascript">
+
+    setTimeout( function() {
+    	if(window.parent && window.parent != window.self) {
+    		window.parent.location.href = "404.html";
+    	} else {
+    		window.location.href = "login.html";
+    	}
+    }, 
+    0.5*1000 );
+
+</script>
+
+</HEAD>
+
+<BODY>
+<!-- 	
+	<img id="L404" src="images/404.jpg"  usemap="#map1" />
+
+	<map id="map1" name="map1">
+		<area shape="index"  coords="490,348,592,390" href="login.html" target="_self" alt="index"/>
+		<area shape="logout" coords="592,348,710,390" href="login.html" target="_self" alt="logout" />
+		<area shape="close"  coords="710,348,820,390" href="#" onclick="window.close();" alt="close" />
+	</map> 
+ -->
+</BODY>
+
+</HTML>

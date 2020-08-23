@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xform>
+	<declare>	
+		<column name="id"     caption="数据表ID"  mode="number" editable="false"/>
+		<column name="name"   caption="数据表名称" maxLength="30" empty="false"/>
+		<column name="datasource" caption="数据（源）库" mode="combo" empty="false"/>
+		<column name="table"  caption="数据库表" maxLength="100" empty="false"/>
+		<column name="define" caption="表字段定义" maxLength="10000" empty="false"/>
+		<column name="customizePage" caption="自定义录入页" maxLength="100"/>
+		<column name="customizeJS" caption="录入表单控制" maxLength="10000"/>
+		<column name="customizeTJ" caption="数据过滤条件" maxLength="1000"/>
+		<column name="customizeGrid" caption="全局JS" maxLength="4000"/>
+		<column name="workflow" caption="流程控制定义" maxLength="4000"/>
+		<column name="remark" caption="数据表简介" maxLength="2000"/>
+		<column name="needLog"  caption="记录更新日志" mode="combo" values="0|1" texts="否|是"/>
+		<column name="needFile" caption="是否上传文件" mode="combo" values="0|1" texts="否|是"/>
+		<column name="batchImp" caption="允许批量导入" mode="combo" values="0|1" texts="否|是"/>
+	</declare>
+	<layout>
+		<TR>
+			<TD width="80"><label binding="name"/></TD>
+			<TD width="280"><input binding="name" style="width:200px;"/></TD>
+			<TD width="80"><label binding="id"/></TD>
+			<TD width="250"><input binding="id" style="width:60px;"/></TD>
+			<TD width="100"><label binding="needLog"/></TD>
+			<TD><input binding="needLog"/></TD>
+		</TR>
+		<TR>
+			<TD width="80"><label binding="datasource"/></TD>
+			<TD>
+				<input binding="datasource" style="width:150px; margin-right:10px;"/>
+				<a onclick="manageDS()" >管理数据源</a>
+			</TD>
+			<TD width="80"><label binding="table"/></TD>
+			<TD><input binding="table" style="width:180px;"/></TD>
+			<TD width="100"><label binding="needFile"/></TD>
+			<TD><input binding="needFile"/></TD>
+		</TR>
+		<TR>		
+			<TD><label binding="customizePage"/></TD>
+			<TD colspan="3">
+				<input binding="customizePage" style="width:250px; margin-right:10px;"/>
+				<a onclick="selectTL(true)"  style="margin-right:10px;">选择页面</a>
+				<a onclick="uploadTL()" >上传页面</a>
+			</TD>
+			<TD><label binding="batchImp"/></TD>
+			<TD><input binding="batchImp"/></TD>
+		</TR>
+		<TR>
+			<TD valign="top"><label binding="remark"/></TD>
+			<TD colspan="5"><textarea binding="remark" style="height:50px; width:95%;"/></TD>
+		</TR>
+		
+		<TR>
+			<TD colspan="6" id="tabmenu"> 
+		        <ul>
+		            <li onclick="tab(6)" class="selected"> 表字段定义 </li>
+		            <li onclick="tab(7)"> 审批流程设计 </li>
+		            <li onclick="tab(8)"> 表单控制脚本 </li>
+		            <li onclick="tab(9)"> 页面控制脚本 </li>
+		            <li onclick="tab(10)"> 数据过滤条件 </li>
+		        </ul>
+			</TD>
+		</TR>
+		<TR>
+			<TD colspan="6">
+				<textarea binding="define" class="fullscreenable"/>
+				<a onclick="configDefine()"  style="margin: 4px 0 0 2%;">配 置</a>
+				<a onclick="preview()"  style="margin:4px 10px 0 10px;">预 览</a>
+				<p style="display: inline-block; height:18px;">
+					<a href="http://www.boubei.com/doc/tss/manual/tss-record.html?id=#rc1_3" target="_blank">《详细说明》</a>
+					<a href="http://www.boubei.com/doc/tss/demo1/index.html?id=#p1_2" target="_blank" style="margin-left:12px;">《如何快速导入Excel》</a>
+				</p>
+			</TD>
+		</TR>
+		<TR>
+			<TD colspan="6">
+				<textarea binding="workflow" class="halfscreenable"/>
+				<div id="designerForm"> 
+					<iframe scrolling="hidden" frameborder="0" style="width:100%;height:100%;"> </iframe> 
+				</div>
+				<p style="height:18px;">
+					注：此处可定义各种审批流程控制，含审批、抄送、转审等。
+				</p>
+			</TD>
+		</TR>
+		<TR>
+			<TD colspan="6">
+				<textarea binding="customizeJS" class="fullscreenable"/>
+				<p>
+					注：此处填写的脚本将在新增或修改数据时，录入表单被打开后自动执行，本脚本只限于控制录入表单元素。如需控制表单以外的元素，请在【页面控制脚本】里填写。
+					<a href="http://www.boubei.com/doc/tss/manual/tss-record.html?id=#rc1_5" target="_blank">详细说明</a>
+				</p>
+			</TD>
+		</TR>
+		<TR>
+			<TD colspan="6">
+				<textarea binding="customizeGrid" class="fullscreenable"/>
+				<p>
+					注：此处填写的脚本将在数据表被打开后自动执行，可在此定义一些作用于本录入页的全局属性或方法。
+					<a href="http://www.boubei.com/doc/tss/manual/tss-record.html?id=#rc1_6" target="_blank">详细说明</a>
+				</p>
+			</TD>
+		</TR>
+		<TR>
+			<TD colspan="6">
+				<textarea binding="customizeTJ" class="fullscreenable"/>
+				<p>
+					注：此处可依据登录用户的组织、角色等信息，定制数据过滤条件。
+					<a href="http://www.boubei.com/doc/tss/manual/tss-record.html?id=#rc1_7" target="_blank">详细说明</a>
+				</p>
+			</TD>
+		</TR>
+	</layout>
+	<data><row><createTime><![CDATA[2015-04-08 00:00:00.0]]></createTime><define><![CDATA[[
+  {'label':'分公司','code':'org','nullable':'false','jsonUrl':'../../data/json/CompanyNameList','onchange':'getNextLevelOption(^center^, 399, ^param1^)'},
+  {'label':'分拨中心','code':'center','options':{'codes':'','names':''}},
+  {'label':'考核内容','code':'content','height':'72','width':'300'},
+  {'label':'完成情况','code':'wcqk','options':{'codes':'优秀|良好|及格','names':'优秀|良好|及格'},'width':'100'},
+  {'label':'自我评分','code':'score','type':'number','checkReg':'^[0-9]\\d{0,1}$','errorMsg':'请输入0到99之间的数字','width':'100'},
+  {'label':'日期','code':'day','type':'date','nullable':'false','defaultValue':'today-0'}
+]]]></define><updateTime><![CDATA[2015-04-12 00:00:00.0]]></updateTime><seqNo><![CDATA[1]]></seqNo><remark><![CDATA[录入表示例
+'jsonUrl':'../../service/orgs','onchange':'getNextLevelOption(^center^, ^../../service/centers^, ^param1^)']]></remark><creatorId><![CDATA[-1]]></creatorId><updatorName><![CDATA[Admin]]></updatorName><customizeJS><![CDATA[alert(123);]]></customizeJS><table><![CDATA[x_tbl_jx]]></table><type><![CDATA[1]]></type><levelNo><![CDATA[3]]></levelNo><updatorId><![CDATA[-1]]></updatorId><lockVersion><![CDATA[16]]></lockVersion><id><![CDATA[1]]></id><parentId><![CDATA[9]]></parentId><creatorName><![CDATA[Admin]]></creatorName><decode><![CDATA[000010000100001]]></decode><name><![CDATA[绩效考核--MySQL]]></name><datasource><![CDATA[connpool-btr-mysql]]></datasource></row></data>
+</xform></SourceInfo></Response>

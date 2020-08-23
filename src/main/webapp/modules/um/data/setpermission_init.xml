@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<SearchPermissionFrom>
+		<xform>
+			<declare>
+				<column name="applicationId" caption="应用系统" mode="combo" values="1|2" texts="TSS|DMS" empty="false" onChange="getResourceTypes"/>
+				<column name="resourceType" caption="资源类型" mode="combo" empty="false"/>
+				<column name="permissionRank" caption="授权级别" mode="combo" values="1|2|3" texts="普通|可授权|可授权并传递" empty="false"/>
+                <column name="roleId" caption="ID"/>
+                <column name="isRole2Resource" caption="是否角色对资源"/>
+			</declare>
+			<layout>
+				<TR>
+					<TD><label binding="applicationId"/></TD>
+					<TD><input binding="applicationId"/></TD>
+					
+					<TD><label binding="resourceType"/></TD>
+					<TD><input binding="resourceType"/></TD>
+					
+					<TD><label binding="permissionRank"/></TD>
+					<TD><input binding="permissionRank"/></TD>
+					
+					<TD><a href="javascript:void(0)" class="tssbutton small blue" id="page3BtSearch">查询</a></TD>
+				</TR>
+			</layout>
+			<data>
+				<row>
+                  <roleId><![CDATA[1]]></roleId>
+                </row>
+			</data>
+		</xform>
+	</SearchPermissionFrom>
+</Response>

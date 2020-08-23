@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Response>
+  <RecordData> 
+    <grid>
+      <declare sequence="true" header="checkbox">
+        <column name="org" mode="string" caption="分公司"/>
+        <column name="center" mode="string" caption="分拨中心"/>
+        <column name="content" mode="string" caption="考核内容"/>
+        <column name="wcqk" mode="string" caption="完成情况"/>
+        <column name="score" mode="string" caption="自我评分"/>
+        <column name="day" mode="string" caption="日期"/>
+        <column name="createtime" mode="string" caption="创建时间"/>
+        <column name="creator" mode="string" caption="创建人"/>
+        <column name="updatetime" mode="string" caption="最后更新时间"/>
+        <column name="updator" mode="string" caption="最后更新人"/>
+        <column name="version" mode="string" caption="修改次数"/>
+        <column name="id" display="none"/>
+      </declare>
+      <data>
+        <row org="重庆分公司" center="重庆分拨" content="温泉认为" wcqk="良好" score="66.0" day="2015-04-12" createtime="2015-05-05 14:09:07.0" creator="BL03268" updatetime="2015-05-05 14:15:58.0" updator="Admin" version="2" id="7"/>
+        <row org="云南分公司" center="昆明分拨" content="" wcqk="良好" score="12.0" day="2015-04-08" createtime="2015-04-08 14:27:33.0" creator="BL04446" updatetime="2015-05-05 14:15:40.0" updator="Admin" version="1" id="2"/>
+        <row org="湖北分公司" center="武昌分拨" content="1111 222 333" wcqk="良好" score="88.0" day="2015-04-08" createtime="2015-04-10 20:10:24.0" creator="Admin" updatetime="2015-04-10 20:10:27.0" updator="Admin" version="1" id="1"/>
+      </data>
+    </grid>
+  </RecordData>
+  <PageInfo>
+    <pagelist totalpages="1" totalrecords="3" currentpage="1" pagesize="50" firstpage="1" prepage="0" nextpage="0" lastpage="1" pagerecords="3"/>
+  </PageInfo>
+</Response>

@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>入库作业</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.data.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="wms.js"></script>
+
+<script type="text/javascript">
+
+SELECTED_WH = tssJS.Query.get("wh_id") || SELECTED_WH;
+
+var _time1 = tssJS.Query.get("date1"), _time2 = tssJS.Query.get("date2"), ownerId = tssJS.Query.get("owner_id");
+
+function onshow() {
+    // queryAsn();
+}
+
+function isSupplier() {
+    return userRoleNames.contains(role_supplier);
+}
+
+var globalV = {}, 
+    dg1, dg2, dg3, dg4,
+    dg2_data, dg1_selected;
+
+var FIELDS_1 = [
+    {field: "asnno", title: "入库单号"},
+    {field: "asnday", title: "下单日期", width:"6%", formatter: dateNoHour},
+    {field: "type", title: "入库类型", width:"5%"},   
+    {field: "supplier", title: "供(退)货方"},
+    {field: "owner_id", title: "货主", formatter:ownerid2name, hidden: hide_ow},
+    {field: "qty", title: "数量", width:"5%"},
+    {field: "skus", title: "品项数", width:"5%"},
+    {field: "money", title: "金额合计", width:"6%", hidden: hide_money, align: "right"},
+    {field: "status", title: "状态", formatter: statusFormatter, width:"9%"},
+    {field: "worker", title: "入库员", width:"6%", formatter: loginName2userName, styler: linkStyler},
+    {field: "unloader", title: "卸货员", width:"5%", formatter: loginName2userName, styler: linkStyler},
+    {field: "remark", title: "备注", width:"12%"},
+    {field: "inbound_date", title: "入库日期", width:"6%", formatter: dateNoHour},
+    {field: "udf1", title: "udf1"},
+    {field: "udf2", title: "udf2"},
+    {field: "udf3", title: "udf3"},
+    {field: "udf4", title: "udf4"},
+    {field: "tag", title: "标记", width:"5%"}
+];
+fixFields(FIELDS_1, 'wms_asn');
+
+var FIELDS_2 = [
+    {field: "sku_id", title: "货品ID", hidden: true},
+    {field: "skuname", title: "货品", width: '12%', sortable: true, align: "left"},
+    {field: "skucode", title: "货品编码", width: '7%', align: "left", sortable: true},
+    {field: "category", title: "大类", width:'5%'},
+    {field: "guige", title: "规格", width:'6%'},
+    {field: "uom", title: "单位", width:'4%'},
+    {field: "qty", title: "入库单数量", editor: {type: "numberbox", options: qty_precision}, width:'6%'},
+    {field: "qty_actual", title: "已入数量", width:'6%', styler: qtyStyler},
+    {field: "qty_this", title: "本次入库量", width:'6%', hidden: true},
+    {field: "loccode", title: "入库库位"},
+
+    {field: "invstatus", editor: "textbox"},
+    {field: "createdate", editor: "datebox"},
+    {field: "expiredate", editor: "datebox"},
+    {field: "lotatt01", editor: "textbox"},
+    {field: "lotatt02", editor: "textbox", editor: {type:'numberbox'}},
+    {field: "qty_uom", title: qty_uom_label, width:'4%', hidden: !show_qty_uom, editor: {type:'numberbox'}},
+    {field: "lotatt03", editor: "textbox"},
+    {field: "lotatt04", editor: "textbox"},
+
+    {field: "price", title: "单价(元)", hidden: hide_money, align: "right", width:'5%', editor: {type:'numberbox', options: {precision:3, min:0} }},
+    {field: "money", title: "金额(元)", hidden: hide_money, align: "right", width:'5%', editor: {type:'numberbox', options: {precision:2, min:0}} },
+    {field: "opts", title: "操作", width:'5%', styler: linkStyler}
+];
+fixLotatts(FIELDS_2);
+fixFields(FIELDS_2, "wms_sku");
+
+$.each(FIELDS_1, function(i, field) {
+    field.align = field.align||"center";
+    field.width = field.width||"7%";
+});
+$.each(FIELDS_2, function(i, field) {
+    field.align = field.align||"center";
+    field.width = field.width||"6%";
+});
+
+function qtyStyler(value, row, index) { 
+    if( row.qty_actual == row.qty ) {
+        return 'background-color: #eee;'; 
+    } 
+    if( row.qty_actual > row.qty ) {
+        return 'background-color: red;'; 
+    } 
+}
+
+var all_btns = '#btn1,#btn2,#btn3,#btn6,#btn7,#btn10,#btn21,#btn22,#btn23,#btn24,#btn25'; 
+var enable_btns = {'新建':'#btn1,#btn2,#btn3,#btn21,#btn22,#btn23,#btn10',
+                   '取消':'#btn1,#btn3,#btn10',
+                   '部分入库':'#btn6,#btn7,#btn23',
+                   '已完成':'#btn6,#btn7',
+                   '入库取消':'#btn21,#btn22,#btn23,#btn10,#btn7'
+                   };
+
+var asntype  = FIELDS['wms_asntype'], 
+    suppliers= FIELDS['wms_asnsupplier'],
+    udfs = [ FIELDS['wms_asnudf1'], FIELDS['wms_asnudf2'], FIELDS['wms_asnudf3'], FIELDS['wms_asnudf4'] ];
+var asn_types = (asntype && asntype.options) ? asntype.editor.options.data : 
+                                                [{text: '成品入库'}, {text: '调拨入库'}, {text: '采购入库'}, {text: '退货入库'}];
+
+var REPORT = {
+    'region_province': '/tss/data/json/provinceList',
+    'region_city': '/tss/data/json/cityList',
+    'region_district': '/tss/data/json/districtList'
+};
+
+$(function() {
+    initContext(drawTable)
+
+    $('#type, #query_type, #u_type').combobox({
+        data: asn_types,
+        textField: 'text',
+        valueField: 'text',
+        panelHeight: 'auto'
+    })
+    $('#query_status').combobox({
+        url: '/tss/param/json/combo/AsnStatus?KV=true&valField=text',
+        method: 'get',
+        textField:'value',
+        valueField:'text',
+        panelHeight:'auto'
+    })
+
+    tssJS.get('/tss/xdata/json/wms_sku?fields=distinct category', {category: 'is not null'}, function(r) {
+        $('#_category').combobox({
+            data: r,
+            textField:'category',
+            valueField:'category',
+            panelHeight:'120px'
+        })
+    } );
+    tssJS.get('/tss/xdata/json/wms_sku?fields=distinct brand', {brand: 'is not null'}, function(r) {
+        $('#_brand').combobox({
+            data: r,
+            textField:'brand',
+            valueField:'brand',
+            panelHeight:'120px'
+        })
+    } );
+
+    if( isSupplier() ) {
+        $('#supplier').combobox({
+            data: [ {name: userName} ],
+            textField: 'name',
+            valueField: 'name',
+            panelHeight: '250px'
+        });
+    }
+    else {
+        tssJS.getJSON(CUSTOMER.QUERY, {type: "供货方"}, function(data) {
+            if(data.length) {
+                $('#supplier, #query_supplier').combobox({
+                    data: data,
+                    textField: 'name',
+                    valueField: 'name',
+                    panelHeight: '250px'
+                })
+            }
+            else if( suppliers && suppliers.options ) {
+                $('#supplier, #query_supplier').combobox({
+                    data: suppliers.editor.options.data,
+                    textField: 'text',
+                    valueField: 'text',
+                    panelHeight: '250px'
+                })
+            }
+        });
+    }
+
+    dialogShowUdf(udfs);
+
+    dg2 = $('#t2').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        remoteSort: false,
+        showFooter: true,
+        toolbar: [    
+            { text: '1.添加货品', iconCls:"ion ion-ios-add-circle-outline", handler: addItems, disabled: true, id: "btn21"},
+            '-', { text: '2.保存货品清单', iconCls: 'ion ion-ios-save', handler: saveItems, disabled: true, id: "btn22"},
+            '-', { text: '货品条码打印', iconCls: 'ion ion-ios-print', handler: printSkus},
+            '-', { text: '3.开始入库', iconCls: 'ion ion-ios-shuffle', handler: beginReceive, disabled: true, id: "btn23"},
+            '-', { text: '自动填充', iconCls: 'ion ion-ios-keypad', handler: setQtyThis,disabled: true,id:"btn25"},
+            '-', { text: '4.确认入库', iconCls: 'ion ion-ios-checkmark-circle-outline', handler: inbound, disabled: true, id: "btn24"}
+        ],
+        onClickCell: function(index, field, value) {
+            if(field == 'opts') {
+                removeItem(index);
+            }           
+        },
+        onAfterEdit: function(index,field, changes) {
+            var row = dg2.datagrid('getRows')[index];
+            if( changes.qty || changes.price ) {
+                var qty   = parseFloat(changes.qty||row.qty||0), 
+                    price = parseFloat(changes.price||row.price||0);
+
+                row.money = (qty * price).toFixed(2);
+                dg2.datagrid('refreshRow', index);
+
+                fixOrderMoney();
+            }
+            if( changes.money ) {
+                fixOrderMoney();
+            }
+
+            if(changes.qty_uom && row.lotatt02) { 
+                row.qty = parseInt(changes.qty_uom) * parseInt(row.lotatt02);
+            }
+            if(row.qty_uom && changes.lotatt02) { 
+                row.qty = parseInt(row.qty_uom) * parseInt(changes.lotatt02);
+            }
+            if(row.qty != NaN) dg2.datagrid('refreshRow', index);
+        },
+        columns: [FIELDS_2],
+        data: []
+    });
+
+    dg2.datagrid('enableCellEditing');
+});
+
+
+function drawTable(selectedWh){
+    prepareWHs(function() {
+        prepareSKUs(function(){
+            prepareOwners(function(){  
+                $('#owner_id, #query_owner_id, #_owner_id').combobox({
+                    data: OWNER_D,
+                    textField: 'name',
+                    valueField: 'id',
+                    panelHeight: '150px'
+
+                });
+
+                SELECTED_WH = selectedWh;
+                initOtherWhs();
+                         
+                regionCombox();
+
+                queryAsn(true);
+            })
+        });
+    
+        prepareLOCs();
+    })
+}
+
+var WAREHOUSE_E;
+function initOtherWhs() {
+    tssJS.get("/tss/api/bi/warehouseList", {}, function(data) {
+        WAREHOUSE_E = [];
+        data.rows.each(function(i, wh) {
+            if(wh.id != SELECTED_WH) {
+                WAREHOUSE_E.push(wh)
+            }
+            WAREHOUSE_I[wh.id] = wh;
+        });
+
+        $('#inv_wh_id').combobox({
+            data: WAREHOUSE_E,
+            textField: 'name',
+            valueField: 'id',
+            panelHeight: '150px'
+        })
+    });      
+}
+
+function regionCombox() {
+    $('#province').combobox({
+        url: REPORT.region_province,
+        editable:false,
+        panelHeight:'200',
+        valueField:'value',
+        textField:'text',
+        onChange: function(newValue, oldValue){
+            if(newValue){
+                $('#city').combobox({
+                    url: REPORT.region_city,
+                    queryParams: {"param1": newValue},
+                    editable:false,
+                    panelHeight:'200',
+                    valueField:'value',
+                    textField:'text',
+                    onChange: function(newValue, oldValue){
+                        if(newValue){
+                            $('#district').combobox({
+                                url: REPORT.region_district,
+                                queryParams: {"param1": newValue},
+                                editable:false,
+                                panelHeight:'200',
+                                valueField:'value',
+                                textField:'text'
+                            });
+                        }
+                    }
+                });
+            }
+        }
+    });
+
+    $('#city').combobox({
+        editable:false
+    });
+
+    $('#district').combobox({
+        editable:false
+    });
+}
+
+function queryAsn(firstQuery) {
+    if( firstQuery ) {
+        dg1_selected = null;
+    }
+
+    dg1 = $('#t1').datagrid({
+        url: ASN.QUERY,
+        queryParams: getParams(),
+        fit: true,
+        fitColumns: true,
+        pagination: true,
+        rownumbers: true,
+        pageSize : 50,
+        pageList:[50, 100, 200],
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        showFooter: true,
+        toolbar: [    
+            { text: '查找', iconCls: 'ion ion-ios-search', handler: search},
+            '-', { text: '刷新', iconCls: 'ion ion-ios-refresh', handler: queryAsn },
+            '-', { text: '新建入库单', iconCls: 'ion ion-ios-add-circle-outline', handler: add},
+            '-', { id: "impbtn"},
+            '-', { text: '修改', iconCls: 'ion ion-md-create', handler: edit, disabled: true, id: "btn1"},
+            '-', { text: '取消', iconCls: 'ion ion-ios-close-circle-outline', handler: cancel, disabled: true, id: "btn2"},           
+            '-', { text: '删除', iconCls: 'ion ion-ios-trash', handler: _remove, disabled: true, id: "btn3"},
+            '-', { text: '打印', iconCls: 'ion ion-ios-print', handler: _print, id: "btn4"}, 
+            '-', { text: '合并打印', iconCls: 'ion ion-md-more', handler: _printTogether, id: "btn5"},
+            '-', { text: '入库取消', iconCls: 'ion ion-ios-return-left', handler: cancelInbound, disabled: true, id: "btn6"}, 
+            '-', { text: '关闭单据', iconCls: 'ion ion-ios-close-circle-outline', handler: closeAsn, disabled: true, id: "btn7"}, 
+            '-', { text: '作业日志', iconCls: 'ion ion-ios-list', handler: function() { showOpLog(); }, id: "btn8"},
+            '-', { text: '添加备注', iconCls: 'ion ion-md-create', handler: function() { remark(); }, id: "btn9"},
+            '-', { text: '指派作业人员', iconCls: 'ion ion-ios-person', handler: assign, id: "btn10"}    
+
+        ],
+        columns: [FIELDS_1],
+        onLoadSuccess: function(data) {
+            if(data.total) {
+                setTimeout(function() {
+                    dg1.datagrid("selectRow", dg1_selected || 0);
+                }, 500);   
+            }
+            else{
+                dg2.datagrid({data:[]})
+            }
+            return data;
+        },
+        /* onClickRow 事件无法用JS去触发，故此优先用onSelect事件 */
+        onSelect: function(index, row) {
+            var opable = false;
+            var eb = enable_btns[row.status] || '';
+            if(eb.indexOf('btn21') > -1){
+                opable = true;
+                FIELDS_2.each(function(i, item){
+                    if(item.editor){
+                        dg2.datagrid('addEditor', {field: item.field, editor: item.editor})
+                    }
+                })
+            }
+
+            queryItems( row['asnno'], row['id'], opable );
+            dg1_selected = index;
+            CURRENT_OWNER = row.owner_id;
+
+            $(all_btns).linkbutton("disable");
+            $(eb).linkbutton("enable");
+        },
+        onClickCell: function(index, field, value) {
+            var row = $('#t1').datagrid('getRows')[index];
+            if( row.status == '新建' || row.status == '入库取消' ) {
+                if( field == 'worker' || field == 'unloader' ) {
+                    assign(index, field);
+                }
+            }
+            if(field == 'tag' && row.qty && row.type == '调拨入库' && row.tag != '调拨中') {
+                dg1_selected = index;
+                applyTransfer();
+            }           
+        },
+        loadFilter: function(data){
+            var _qty = 0, _skus = 0, _money = 0;
+            data.rows.each((i, item)=>{
+                if(item.qty && item.type == '调拨入库' && item.tag != '调拨中') {
+                    item.tag = '<a href="javascript:void(0)" style="text-decoration: underline;">调拨申请</a>';
+                }
+                _qty += item.qty;
+                _skus += item.skus;
+                _money += item.money;
+            })
+
+            data.footer = [ 
+                {
+                    "asnno": "本页合计", 
+                    "qty": round(_qty, 2), 
+                    "skus": _skus, 
+                    "money": round(_money,2)
+                } 
+            ];
+            return data;
+        }
+    });
+
+    if(firstQuery) {
+        appendTL( function() {
+            $("#impbtn").menubutton( { text: "导入", iconCls: 'ion-ios-share-alt', menu: "#impbtns" } );
+        } );
+    } else {
+        $("#impbtn").menubutton( { text: "导入", iconCls: 'ion-ios-share-alt', menu: "#impbtns" } );
+    }
+
+    if( isSupplier() ) {
+        setTimeout( function() {
+            tssJS('#btn6,#btn7,#btn8,#btn10,#btn23,#btn24,#btn25').remove();
+        }, 1000 );
+
+        // 隐藏 入库员、卸货员、入库库位等列
+        dg2.datagrid("hideColumn", "loccode");
+        dg1.datagrid("hideColumn", "worker");
+        dg1.datagrid("hideColumn", "unloader");
+    }
+}
+
+function saveAsn() {
+    if( suppliers.nullable === 'false' ) {
+         if( !$('#supplier').combobox('getValue') ) {
+            return $.messager.alert('校验提示', '供货方不能为空，请选择');
+         }
+    }
+    if( asntype.nullable === 'false' ) {
+         if( !$('#type').combobox('getValue') ) {
+            return $.messager.alert('校验提示', '入库类型不能为空，请选择');
+         }
+    }
+    var owner_id = $('#owner_id').combobox('getValue');
+    if( !owner_id ) {
+        return $.messager.alert('校验提示', '货主不能为空，请选择');
+    }
+
+    var asnno = $('#asnno').textbox("getValue");
+    if( asnno ) {
+        doSaveAsn(owner_id);
+    }
+    else {
+        $.getJSON(SERVICE.doc_code, {"ownerId": owner_id, "type": "1"}, function(r) {
+            $('#asnno').textbox("setValue", r);
+            doSaveAsn(owner_id);
+        });
+    }
+
+    isSupplier() && tssJS('#btn23,#btn24,#btn25').remove();
+}
+
+function doSaveAsn(owner_id) {
+    var isCreate = !$("#dlg input[name='id']").val();
+    save(asnTable, null, { callback: function() {
+            $('#t1').datagrid('reload');
+            CURRENT_OWNER = owner_id;
+            isCreate && addItems();
+        }
+    });
+}
+
+function remark() {
+    var row = dg1.datagrid("getRows")[dg1_selected];
+    if( !row ) {
+        return $.messager.show({ title: '提示',  msg: '请点击选中要备注的出库单' });
+    }
+
+    $('#dlg4').dialog( {"modal": true} ).dialog('open');
+    $('#fm4').form('load', row);
+}
+function saveRemark() {
+    var row = dg1.datagrid("getRows")[dg1_selected];
+    var fm_data = $("#fm4").serializeArray(), data = {};
+    fm_data.each(function(i, item) {
+        data[item.name] = item.value;
+    })
+    JQ.post(ASN.UPDATE + row.id, data, function(result) {
+        closeDialog('fm4', 'dlg4')
+        queryAsn();
+    });
+}
+
+function assign(index, field) {
+    var row = $('#t1').datagrid('getSelected');
+    if( index >= 0 ) {
+        row = $('#t1').datagrid('getRows')[index];
+    }
+
+    if( row.status != '新建' && row.status != '取消' && row.status != '入库取消' ) {
+        return $.messager.alert('提示', "只有新建或取消的入库单，才能指派作业人员");
+    }
+    
+    chooseWorker( row[field] );
+}
+
+function saveWorker() {
+    var row = $('#t1').datagrid('getSelected');
+    var params_ = {}; 
+    params_.id = row.id;
+    params_.worker = getChoosedWorkers();
+
+    // if( params_.worker === row.worker) return;
+
+    JQ.post(SERVICE.asn_assign, params_, function(res) {
+        $.messager.show({ title: '提示', msg: '指派完成'});
+
+        row.worker = params_.worker;
+        row.status = "新建";
+        $('#t1').datagrid('refreshRow', dg1_selected);
+        $('#t1').datagrid('selectRow', dg1_selected);
+        params_.type = '入库工单';
+        sendMsg(row, params_);
+    })
+}
+
+function saveUnloader() {
+    var row = $('#t1').datagrid('getSelected');
+    var params_ = {}; 
+    params_.id = row.id;
+    params_.worker = getChoosedWorkers();
+    params_.type = "XH";
+
+    console.log(params_)
+
+    JQ.post(SERVICE.asn_assign, params_, function(res) {
+        $.messager.show({ title: '提示', msg: '指派完成'});
+
+        row.unloader = params_.worker;
+        row.status = "新建";
+        $('#t1').datagrid('refreshRow', dg1_selected);
+        params_.type = '入库卸货工单';
+        sendMsg(row, params_);
+    })
+}
+
+// 发送收货工单小程序（WMS）通知
+function sendMsg(row, params_) {
+    var data = {
+        first: { value: '您有一个新的任务提醒' },
+        keyword1: { value: params_.type || '入库工单' },
+        keyword2: { value: row.asnno },
+        keyword3: { value: subDateS(now, 0) },
+        remark: { value: userCode2userName(userHas[3]) + '指派给您一个新的' +params_.type+ '，点击进入小程序查看' }
+    };
+    var params = {
+        appid: gzh_app_id, // 公众号ID
+        phone: params_.worker, // 接收方phone
+        template_id: gzh_msg_id[0],  // 模版ID
+        miniprogram: miniprogram, // 跳转小程序参数
+        data: data // 模版内容
+    }
+
+    sendGZHMsg(params);
+}
+
+function search() {
+    var time1 = $('#time1').datebox("getValue") || _time1 || subDateS(now, TIME_SPAN),
+        time2 = $('#time2').datebox("getValue") || _time2 || subDateS(now, -1);
+
+    $('#time1').datebox('setValue', time1);
+    $('#time2').datebox('setValue', time2);
+    $('#dlg1').dialog( {"modal": true} ).dialog('open');
+}
+function beginQuery() {
+    $('#dlg1').dialog('close');
+    queryAsn();
+}
+
+function getParams(){
+    var params = {
+            warehouse_id: SELECTED_WH,
+            asnno: $('#query_asnno').val(),
+            type : $('#query_type').combobox('getValue'),
+            status: $('#query_status').combobox('getValue'),
+            owner_id: $("#query_owner_id").combobox('getValue') || ownerId,
+            remark: $("#query_remark").val(),
+            supplier: $("#query_supplier").val()   // 因text和value一致，无需用combobox('getValue')获取
+        };
+
+    if( !params.asnno ) {
+        var time1 = $('#time1').datebox("getValue") || _time1 || subDateS(now, TIME_SPAN),
+        time2 = $('#time2').datebox("getValue") || _time2 || subDateS(now, -1);
+        params.asnday = "[" + [time1, time2].join(",") + "]";
+    }
+
+    filterParams(params);
+    return params;
+}
+
+function add() {
+    dg1.datagrid('clearSelections'); 
+    dg2.datagrid({data:[]})
+    dg1_selected = '';
+    openDialog('新增入库单', true);
+
+    $('#status').val('新建');
+    $('#warehouse_id').val(SELECTED_WH);
+    $('#asnday').datebox('setValue', cday);
+    $('#type').combobox('setValue', asn_types[0].text);
+    if( OWNER_D.length == 1 ) {
+        $('#owner_id').combobox('setValue', OWNER_D[0].id);
+    }
+    if (isSupplier()) {
+        $('#supplier').combobox('setValue', userName);
+        $('#supplier').combobox('readonly');
+    }
+
+    $('#btn21').linkbutton("disable");
+    $('#btn22').linkbutton("disable");
+
+    filterForm(false);
+}
+
+function filterForm(readonly) {
+    $('#asnno').textbox("readonly",readonly);
+}
+
+function edit() {
+    var row = getSelectedAsn();
+    if (row) {
+        if (row.status != '新建' && row.status != '取消' ) {
+            return $.messager.show({ title: '提示', msg: '入库单已不是新建或取消状态，不能修改。'});
+        }
+        openDialog('修改入库单');
+        $('#fm').form('load', row);
+        filterForm(true);
+    } 
+    else {
+        $.messager.show({ title: '提示', msg: '请先点击要选择的【入库单行】。'});
+    }
+}
+
+function _remove(){
+    var row = getSelectedAsn();
+    row && $.messager.confirm('删除确认','您确定要删除此入库单吗？',function(data){
+        data && JQ.post(SERVICE.asn_delete, {id: row.id}, function(data) {
+            if(data.errorMsg) {
+                return $.messager.alert('出错了', data.errorMsg)
+            }
+            queryAsn();
+        });
+    })
+}
+
+function cancel() {
+    tssJS.prompt("请输入取消的原因", "取消入库单原因", function(reason) {
+        if(!reason) {
+            return tssJS.alert('提示', "取消失败，请填写取消入库单的原因");
+        }
+        var row = getSelectedAsn();
+        var remark = row.remark ? row.remark + ' 取消原因:': '';
+        changeStatus(row, remark + reason);
+    }, "");
+}
+
+function changeStatus( row, remark ) {
+    row && $.messager.confirm('取消','请确认是否取消选中数据？', function(flag) {
+        flag && JQ.post(SERVICE.asn_cancel, {id: row.id, remark: remark}, function(result){
+            $.messager.show({ title: '提示',  msg: '取消成功！' });
+            queryAsn();
+        })
+    })
+}
+
+function inbound() {
+    var row = getSelectedAsn();
+    if( !row ) return;
+
+    for(var i=0; i < 1000; i++) {
+        $('#t2').datagrid("endEdit", i);
+    }
+
+    $('#btn23').linkbutton('enable');
+    $('#btn24,#btn25').linkbutton('disable'); 
+
+    var rows = $('#t2').datagrid('getRows');
+    var if_save = true;
+    var items = [];
+    $.each(rows, function(i, row) {
+        if(!row.id){
+            $.messager.alert('提示', '新添加的货品请先保存货品清单后再入库');
+            $('#btn22').linkbutton('enable');
+            FIELDS_2.each(function(i,item){
+                if(item.editor){
+                    dg2.datagrid('addEditor', {field: item.field, editor: item.editor})
+                }
+            })
+            if_save = false;
+            return false;
+        }
+        row.qty_this = (row.qty_this || 0) * 1
+        // 检查已收数量与本次入库量之和是否大于数量
+        if( row.qty_this < 0 ) {
+            $.messager.alert('提示', '第' + (i+1) + '行的本次入库量小于0，请正确填写');
+            if_save = false;
+            return false;
+        }
+        if( row.qty_this > 0 ) {
+            if( (row.qty_this + parseFloat(row.qty_actual || 0) > row.qty) && !can_beyond_asn ) {
+                $.messager.alert('提示', '第' + (i+1) + '行：本次入库量 + 已收数量 > 入库单数量，系统不支持超收');
+                if_save = false;
+                return false;
+            }
+
+            var _item = {id: row.id, qty_this: row.qty_this, loccode: row.loccode};
+            LOTATT_CODES.each(function(i, lot){
+                if( row[lot] ) {
+                    _item[lot] = row[lot];
+                }
+            });
+            items.push(_item);
+        }
+    });
+
+    if(if_save){
+        $.messager.confirm('确认入库','您确定要对此入库单进行入库确认吗?',function(flag){
+            flag && JQ.post(SERVICE.asn_inbound, {id:row.id, items:JSON.stringify(items)}, function(result) {
+                dg2.datagrid('removeEditor','qty_this')
+                queryAsn()
+            })
+        })
+    }
+}
+
+function addItems() {
+    $('#_owner_id').combobox("setValue", CURRENT_OWNER);
+    querySKUs(true);
+
+    $('#dlg2').dialog( {"modal": true} ).dialog('open');
+}
+function removeItem(index) {
+    var row = dg2.datagrid('getRows')[index];
+    if( row.id ) {
+        tssJS.confirm("您确定要删除这条货品明细吗", "确定删除", 
+            function() {
+                $.ajax({
+                    url: AITEMS.DELETE + row.id,
+                    type: 'DELETE',
+                    success: function(result) {
+                        dg2.datagrid('deleteRow', index);
+                        fixOrderMoney();
+                        fixSkus();
+
+                        var asn = dg1.datagrid("getRows")[dg1_selected];
+                        JQ.post(ASN.UPDATE + asn.id, {"money": asn.money, "qty": asn.qty, "skus": asn.skus}, function(r) { });
+                    }
+                });
+            },
+            function() { /* 取消 */ }
+        );
+    } 
+    else {
+        dg2.datagrid('deleteRow', index);
+        fixOrderMoney();
+        fixSkus()
+    }    
+}
+
+function queryItems(asnno, asn_id, opable) {
+    var params = {};
+    params.asn_id = asn_id;
+ 
+    tssJS.getJSON( AITEMS.QUERY, params, function(data) {
+        if(!data.length){
+            $('#btn22,#btn23').linkbutton("disable")
+        }
+        showItems(data, opable); 
+    });
+
+    tssJS("#x1").text("【" + asnno + "】");
+}
+
+function showItems(data, opable) {
+    var _qty = 0, _qty_actual = 0, _qty_uom = 0, _money = 0;
+    data.each(function(i, item) {
+        item.opts = '<a href="javascript:void(0)" style="text-decoration: underline;">删 除</a>';
+        var sku = SKU_M[item.sku_id];
+        item.skuname = sku.name;
+        item.skucode = sku.code;
+        item.barcode = sku.barcode;
+        item.brand = sku.brand;
+        item.supplier = sku.supplier;
+        item.category = sku.category;
+        item.guige = sku.guige;
+        item.price = item.price || sku.price2 || sku.price || sku.price0;
+        item.uom = sku.uom;
+        item.guige = sku.guige;
+        item.shelflife = sku.shelflife;
+        item.owner_id = sku.owner_id;
+
+        if( item.lotatt02 ) {
+            var uom = parseInt(item.lotatt02); 
+            if( uom != NaN ) {
+                item.qty_uom = round(item.qty / uom, 2);
+                _qty_uom += item.qty_uom;
+            }
+        }
+
+        _qty += item.qty;
+        _qty_actual += item.qty_actual;
+        _money += item.money || 0;
+    });
+
+    var footer = [ {"skuname": "合计", "qty": round(_qty, 2), "qty_actual": round(_qty_actual, 2), "qty_uom": _qty_uom, "money": round(_money, 2) } ];
+
+    dg2.datagrid("loadData", {rows: data, footer: footer} );
+    dg2.datagrid("hideColumn", "qty_this");
+
+    if( !opable ) {
+        dg2.datagrid("hideColumn", "opts");
+    } else {
+        dg2.datagrid("showColumn", "opts");
+        dg2.datagrid('gotoCell', {
+            index: 0,
+            field: 'qty'
+        });
+    }
+
+    dg2_data = data;
+}
+
+function _print() {
+    globalV.data  = dg2_data;
+    globalV.asn = dg1.datagrid("getRows")[dg1_selected];
+    tssJS.openIframePanel("panel-1", " - 入库单打印", 800, 480, "asn_print.html");
+}
+
+/* 合并打印订单，要求供货商一致 */
+function _printTogether() {
+    var rows = dg1.datagrid("getRows");
+    if( rows.length == 0 ) {
+        return $.messager.show({ title: '提示', msg: '请查询筛选要打印的订单行'});
+    }
+
+    globalV.asn = rows[0];
+
+    var asnIDs = [];
+    rows.each(function(i, row) {
+        if( (row.supplier) !== (globalV.asn.supplier) ) {
+            $.messager.show({ title: '提示', msg: '只有相同供货商的订单才允许合并打印，请在查询条件里先按供货商过滤'});
+            asnIDs = [];
+            return false;
+        }
+        
+        asnIDs.push(row.id);
+    });
+
+    asnIDs.length && $.getJSON(AITEMS.QUERY, {asn_id: asnIDs.join()}, function(items) {
+        items.each(function(i, item) {
+            var sku = SKU_M[item.sku_id];
+            item.skuname = sku.name;
+            item.skucode = sku.code;
+            item.barcode = sku.barcode;
+            item.price = item.price || sku.price2 || sku.price || sku.price0;   
+        });
+        globalV.data  = items;
+        tssJS.openIframePanel("panel-1", " - 入库单合并打印", 800, 480, "asn_print.html");
+    });
+}
+
+// 保存入库单明细 及 入库单总金额
+function saveItems() {    
+    for(var i=0; i < 1000; i++) {
+        $('#t2').datagrid("endEdit", i);
+    }
+
+    var result = [], asn = dg1.datagrid("getRows")[dg1_selected], money = 0, qty = 0, skus = 0;
+    result.push("id,asn_id,sku_id,qty,money,price,createdate,expiredate,invstatus,lotatt01,lotatt02,lotatt03,lotatt04");
+
+    var rows = $('#t2').datagrid('getRows');
+    var sku_ids = [];
+    $.each(rows, function(i, row) {
+        if( parseFloat(row.qty||0) <= 0 ) {
+            $.messager.alert('填写错误提示', "第" +(i+1)+ "行【入库单数量】要求正整数");
+            return false
+        }
+        if( row.owner_id && row.owner_id != asn.owner_id ) {
+            $.messager.alert('错误提示', "第" +(i+1)+ "行货品不属于当前入库单对应的货主");
+            return false
+        }
+
+        // 检查必要字段是否都已填写
+        var obj = [row.id, asn.id, row.sku_id,
+             row.qty, row.money, row.price, row.createdate,row.expiredate,row.invstatus,row.lotatt01,row.lotatt02,row.lotatt03,row.lotatt04];
+        result.push( obj.join(",") );
+
+        money += parseFloat(row.money||0);
+        qty += parseFloat(row.qty||0);
+        if(!sku_ids.contains(row.sku_id)){
+            skus++
+        }
+        sku_ids.push(row.sku_id)
+    });
+    money = round(money, 2);
+    qty = round(qty, 2);
+
+    if(result.length == 1 || result.length < rows.length+1) return;
+
+    $('#btn22').linkbutton("disable");
+    JQ.post( AITEMS.CUD, {"csv": result.join("\n")}, function(data) {
+        if(data.created || data.updated) {
+            $.messager.show({ title: '提示',  msg: '清单保存成功！' });
+
+            queryItems(asn.asnno, asn.id, true);
+
+            asn.money = money;
+            asn.skus = skus;
+            if(asn.type == '调拨入库') {
+                asn.tag = '<a href="javascript:void(0)" style="text-decoration: underline;">调拨申请</a>';
+            }
+            dg1.datagrid('refreshRow', dg1_selected);
+            dg1.datagrid("selectRow", dg1_selected); // 模拟 onSelect，触发onSelect事件以更新按钮状态
+            
+            JQ.post(ASN.UPDATE + asn.id, {"money": money, "qty": qty, "skus": skus}, function(r) {
+                $('#btn22').linkbutton("enable");
+            });
+        }
+    });   
+}
+
+function cancelInbound(){
+    var row = getSelectedAsn();
+    row && $.messager.confirm('入库取消','请确认是否取消已入库的数据？', function(flag) {
+        flag && JQ.post(SERVICE.asn_cancel_inbound, {id: row.id}, function(result){
+            $.messager.show({ title: '提示',  msg: '取消入库成功！' });
+            queryAsn();
+        })
+    })
+}
+
+function closeAsn(){
+    var row = getSelectedAsn();
+    row && $.messager.confirm('关闭确认','您确定要关闭此入库单吗？关闭后无法再做任何操作.', function(flag) {
+        flag && JQ.post(SERVICE.asn_close, {id: row.id}, function(result) {  
+            $.messager.show({ title: '提示',  msg: '入库单已关闭完成！' });
+            queryAsn()
+        })
+    })
+}
+
+function getSelectedAsn(){
+    return dg1.datagrid("getRows")[dg1_selected] || getSelectedRow("t1");
+}
+
+function addSku2T2(){
+    $('#btn22').linkbutton('enable')
+    selectSKUs(dg2, fixSkus);
+
+    dg2.datagrid('gotoCell', {
+        index: 0,
+        field: 'qty'
+    });
+}
+
+function beginReceive(){
+    $('#btn21,#btn22').linkbutton('disable');
+    $('#btn24,#btn25').linkbutton('enable'); // #btn5,
+    
+    // 入库时允许修改批次
+    if (checkin_with_lot) {
+        dg2.datagrid('removeEditor','qty');
+        dg2.datagrid('removeEditor','qty_uom');
+        dg2.datagrid('removeEditor','price');
+        dg2.datagrid('removeEditor','money');
+    }
+    else {
+        FIELDS_2.each(function(i, item) {
+            if( item.editor ) {
+                dg2.datagrid('removeEditor', item.field);
+            } 
+        })
+    }
+
+    dg2.datagrid('addEditor', {field:'loccode', editor: {type:'combobox', options: {data:LOC_D, textField:'code', valueField:'code'}} });
+    dg2.datagrid('addEditor', {field:'qty_this', editor: {type: "numberbox", options: qty_precision}});
+    dg2.datagrid("showColumn", "qty_this");
+    dg2.datagrid('gotoCell', { index: 0, field: 'qty_this' });
+}
+
+function setQtyThis(){
+    var rows = dg2.datagrid('getRows');
+    rows.each(function(i, item) {
+        var delta = parseFloat(item.qty || 0) - parseFloat(item.qty_actual||0);
+        dg2.datagrid('updateRow', {
+            index: i,
+            row: {
+                qty_this: delta <= 0 ? null : delta,
+            }
+        });
+    })
+}
+
+function fixSkus(){
+    var rows = dg2.datagrid('getRows');
+    var sku = 0,sku_ids = [];
+    $.each(rows, function(i, row) {
+        if(!sku_ids.contains(row.sku_id)){
+            sku++
+        }
+        sku_ids.push(row.sku_id)
+    });
+    var row = dg1.datagrid('getSelected');
+    row['skus'] = sku;
+    dg1.datagrid('refreshRow', dg1_selected);
+}
+
+function statusFormatter(value, row, index) {
+    if( (value == '新建' || value == '部分入库') && !isSupplier() ) {
+        var hasQty = !!row.qty;
+        return value  + '&emsp;'+ `<a href="javascript:void(0)" onclick="asnCheckIn('` + row.asnno + `', ` +hasQty+ `)">入库</a>`;
+    }
+    else if(['入库取消', '取消'].includes(value)) {
+        return value  + '&emsp;'+ `<a href="#" onclick="assign(` + index + `)">重新入库</a>`;
+    } 
+    else {
+        return value;
+    }
+}
+
+function asnCheckIn(asnno, hasQty) {
+    var url = '/tss/pages/wms/' +(hasQty ? "asn_checkin" : "asn_checkin_ni")+ '.html?asnno=' + asnno, 
+        name = '入库' + (hasQty ? "（按单验货）" : "（无单）");
+
+    parent.$('#tabs').tabs('close', name);
+    setTimeout( function() {
+        addTab('url', name, url);
+    }, 500);
+}
+
+function addrIdentify(){
+    if(window.event && window.event.keyCode == 13){
+        var addr = $("#identifyArea").val();
+        if(addr){
+            $.post('/tss/addr/splitNamePhoneAddress', {"addr": addr}, function(result){
+                if(result.result){
+                    var row = {
+                        contact: result.name,
+                        mobile: result.phone,
+                        province: result.province,
+                        city: result.city,
+                        district: result.district,
+                        address: result.street_no
+                    };
+                    $('#fm3').form('load', row);
+                }
+                if(result.errorMsg){
+                    $.messager.alert({ title: '提示', msg: result.errorMsg});
+                }
+            });
+        }
+    }
+}
+
+function applyTransfer() {
+    $('#dlg3').dialog( {"modal": true} ).dialog('open');
+    $('#fm3').form('load', WAREHOUSE_I[SELECTED_WH]);
+    whTreeGrid();
+}
+
+function whTreeGrid() {
+    var row = getSelectedAsn();
+    tssJS.getJSON( AITEMS.QUERY, {asn_id: row.id}, function(data) {
+        var params = {
+                wh_id: WAREHOUSE_E.map(e => e.id).join(','),
+                owner_id: row.owner_id,
+                sku_id: data.map(e => e.sku_id).join(','),
+                fields: 'wh_id,sku_id,sum(qty) qty',
+                groupby: 'wh_id,sku_id',
+                sortField: 'wh_id,sku_id'
+            };
+        filterParams(params);
+
+        var FIELDS_INV = [
+                {field: "wh_name", title: "仓库", align: 'left'},
+                {field: "sku_id", title: "货品", formatter:skuid2name},
+                {field: "qty", title: "数量"}
+            ];
+        initColumn(FIELDS_INV, '30%');
+
+        tssJS.post(INV.QUERY, params, function(res) {
+            // var _data = [
+            //     {id: 2, wh_id: 269, qty: 300, wh_name: "杭州门市部", state: "open", children: [
+            //         {wh_id: 269, sku_id: 32115, qty: 200, wh_name: "杭州门市部"}
+            //     ]},
+            //     // {wh_id: 269, sku_id: 32115, qty: 200, wh_name: "杭州门市部", _parentId: 2},
+            //     // {wh_id: 269, sku_id: 33602, qty: 100, wh_name: "杭州门市部", _parentId: 2}
+            // ];
+            $('#_warehouse_id').combotreegrid({
+                data: getInvTree(res),
+                panelWidth: 500,
+                idField: 'wh_id',  
+                treeField: 'wh_name',
+                columns: [FIELDS_INV]
+            })
+        })
+    });
+}
+
+function getInvTree(data) {
+    var whIds = [], map = {};
+    data.each(function(i,item) {
+        var wh_id = item.wh_id;
+        item.wh_name = WAREHOUSE_I[wh_id].name;
+
+        if(!whIds.includes(wh_id)) {
+            whIds.push(wh_id);
+        }
+        if(!map[wh_id]) {
+            map[wh_id] = [];
+        }
+        map[wh_id].push(item);
+    })
+
+    var whData = [];
+    whIds.each(function(i,id) {
+        var list = map[id];
+        qty = eval(list.map(e => e.qty).join('+'));
+        whData.push({id: i + 1, wh_id: id, qty: qty + '', wh_name: WAREHOUSE_I[id].name});
+    })
+    whData = whData.sort(sortStr('qty', 'desc'));
+
+    var f_data = {total: 0, rows: []};
+    whData.each(function(i,wh) {
+        if(i > 0) wh.state = 'closed';
+        // f_data.rows.push(wh);
+        wh.children = [];
+        map[wh.wh_id].each(function(i,item) {
+            wh.children.push(item);
+        })
+        f_data.rows.push(wh);
+    })
+    f_data.total = f_data.rows.length;
+
+    return f_data;
+}
+
+function submitApply() {
+    var row = getSelectedAsn();
+    var flag = $("#fm3").form('validate');
+    if (flag) {
+        var fm_data = $("#fm3").serializeArray(), wh_data = {};
+        fm_data.each(function(i, item) {
+            if(wh_data[item.name]){
+                wh_data[item.name]+=','+item.value;
+            }
+            else{
+                wh_data[item.name] = item.value;
+            }
+        })
+        var params = wh_data;
+        params.asnId = row.id;
+        params.whId = $('#_warehouse_id').combogrid('getValue');
+
+        JQ.post(SERVICE.oorder_by_asn, params, function(res) {
+            closeDialog('fm3', 'dlg3');
+            $.messager.show({ title: '提示',  msg: '提交成功！' });
+            queryAsn();
+        })
+    } 
+    else {
+        $.messager.alert('提示', "必填项（红线输入框）不能为空，请填写完成后再保存");
+        $saveBtn.linkbutton("enable");
+    }
+}
+
+var globalV = {};
+function printSkus() {
+    var l1 = [], l2 = [], l3 = [], l4 = [], l5 = [], total = 0;
+
+    var errItems = [];
+    dg2_data.each(function(i, item) {
+        var _lot = [];
+        LOTATT_CODES.each(function(i, lot){
+            if( item[lot] ) {
+                _lot.push( item[lot] );
+            }
+        });
+        if( _lot.length ) {
+            _lot = "<br>批次：" + _lot.join('，');
+        } else {
+            _lot = "<br>下单日期：" + cday;
+        }
+
+        if( !item.barcode ) {
+            errItems.push(i+1);
+        }
+
+        l1.push(item.barcode);
+        l2.push(item.skuname);
+        l3.push(item.guige);
+        l4.push( (item.uom||"") + _lot);
+        var print_num = item.lotatt02 ? Math.min(item.qty / parseInt(item.lotatt02), 100) : 1;  // 没有装箱量，只打一张
+        l5.push( print_num );
+        total += print_num;
+    });
+
+    if( errItems.length ) {
+        return $.messager.alert('异常提示', '第【' +errItems.join()+ '】行明细对应的货品条码没有维护，请维护后再打印');
+    }
+
+    globalV.codes = l1.join(',');
+    globalV.names = l2.join(',|');
+    globalV.udf1s = l3.join(',');
+    globalV.udf2s = l4.join(',');
+    globalV.qtys  = l5.join(',');
+    globalV.origin = "ASN";
+    tssJS.openIframePanel("P12", '-入库单货品条码打印', 1000, 600, '/tss/pages/base/barcode_print.html?yejiao=true'); // ?width=60&height=40&fontSize=15
+}
+
+</script>
+
+</head>
+<body>
+<div id="init"></div>
+
+<div id="main" class="easyui-layout" fit="true">
+    <div id="dataContainer" data-options="region:'center'" border="false">
+        <table id="t1" border="false"></table>
+    </div>
+    <div data-options="region:'south',split:true" style="height:52%" border="false" title="订单明细"> <!-- title="<span id='x1'></span>入库单明细" -->
+        <table id="t2" border="false"></table>
+    </div>
+</div>
+
+<div id="dlg" class="easyui-dialog" style="width:536px;" closed="true" buttons="#dlg-buttons">
+    <form id="fm" method="post" novalidate>
+        <input name="id" type="hidden"/>
+        <input id="status" name="status" type="hidden"/>
+        <input id="warehouse_id" name="warehouse_id" type="hidden"/>
+        <table class="l">
+            <tr>
+                <td class="label">入库单号:</td>
+                <td>
+                    <input name="asnno" id="asnno" class="easyui-textbox" prompt="不填则自动生成单号" />
+                </td>
+                <td class="label">下单日期:</td>
+                <td>
+                    <input name="asnday" id="asnday" class="easyui-datebox" required="true"/>
+                </td>               
+            </tr>
+            <tr>
+                <td class="label">入库类型:</td>
+                <td>
+                    <input name="type" id="type" class="easyui-combobox" required="true"/>
+                </td>
+                <td class="label">供货方:</td>
+                <td>
+                    <input name="supplier" id="supplier" class="easyui-textbox" prompt="填写供（退）货方"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="label">货主:</td>
+                <td>
+                    <input name="owner_id" id="owner_id" class="easyui-combobox" required="true"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="label">备注:</td>
+                <td colspan="3">
+                    <textarea name="remark" id="remark" cols="62" rows="3"></textarea>
+                </td>
+            </tr>
+            <tr>
+                <td class="label" id="label_udf1">自定义1:</td>
+                <td>
+                    <input name="udf1" id="udf1"/>
+                </td>
+                <td class="label" id="label_udf2">自定义2:</td>
+                <td>
+                    <input name="udf2" id="udf2"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="label" id="label_udf3">自定义3:</td>
+                <td>
+                    <input name="udf3" id="udf3"/>
+                </td>
+                <td class="label" id="label_udf4">自定义4:</td>
+                <td>
+                    <input name="udf4" id="udf4"/>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<div id="dlg-buttons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle-outline" onclick="saveAsn()">保 存</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-close-circle-outline" onclick="closeDialog()">取 消</a>
+</div>
+
+<div id="dlg1" class="easyui-dialog" title="查询入库单" closed="true" buttons="#dlg1-buttons">
+    <table class="l">
+        <tr>
+            <td class="label">入库单号:</td>
+            <td><input id="query_asnno" class="easyui-textbox" style="width:250px"/></td>            
+        </tr>
+        <tr>
+            <td class="label">入库类型:</td>
+            <td><input id="query_type" class="easyui-combobox" style="width:125px"/></td>              
+        </tr>
+        <tr>
+            <td class="label">货主:</td>
+            <td><input id="query_owner_id" class="easyui-textbox" style="width:250px"/></td>              
+        </tr>
+        <tr>
+            <td class="label">供货商:</td>
+            <td><input id="query_supplier" class="easyui-textbox" style="width:250px"/></td>              
+        </tr>
+        <tr>
+            <td class="label">状态:</td>
+            <td><input id="query_status" class="easyui-combobox" style="width:125px"/></td>              
+        </tr>
+        <tr>
+            <td class="label">备注:</td>
+            <td><input id="query_remark" class="easyui-textbox" style="width:250px"/></td>              
+        </tr>
+        <tr>
+            <td class="label">下单日期:</td>
+            <td>
+                <input id="time1" class="easyui-datebox"/> -->
+                <input id="time2" class="easyui-datebox"/>
+            </td>              
+        </tr>
+    </table>
+</div>
+<div id="dlg1-buttons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-search" onclick="beginQuery()">查 询</a>
+</div>
+
+<div id="dlg2" class="easyui-dialog" title="选择入库货品" style="width:1080px;height:540px;padding: 0" closed="true" buttons="#dlg2-buttons">
+    <div id="main" class="easyui-layout" fit="true">
+        <div class="queryContainer" data-options="region:'north'" border="false" style="display:none">
+            <label>编码:</label><input id="_skucode" class="easyui-textbox" style="width:70px"/>
+            <label>名称:</label><input id="_skuname" class="easyui-textbox" style="width:70px"/>
+            <label>条码:</label><input id="_barcode" class="easyui-textbox" style="width:80px"/>
+            <label>大类:</label><input id="_category" class="easyui-textbox" style="width:70px"/>
+            <label>货主:</label><input id="_owner_id" class="easyui-textbox" style="width:90px"/>
+            <label>品牌:</label><input id="_brand" class="easyui-textbox" style="width:70px"/>
+            <label>自定义1:</label><input id="_udf1" class="easyui-textbox" style="width:80px"/>
+
+            <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'ion ion-ios-search'" onclick="querySKUs(true)">查 询</a>
+        </div>
+        <div id="dataContainer" data-options="region:'center'" border="false" title="货品列表">
+            <table id="t3" border="false"></table>
+        </div>
+    </div>
+</div>
+<div id="dlg2-buttons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-add-circle-outline" onclick="addSku2T2()" style="width: 180px">添加到入库单</a>
+</div>
+
+<div id="dlg3" title="调拨申请" class="easyui-dialog" style="width:auto;height:auto;" closed="true" buttons="#dlg3-buttons">
+    <form id="fm3" method="post" novalidate>
+        <table class="l">
+            <tr>
+                <td class="label">从仓库:</td>
+                <td>
+                    <input id="_warehouse_id" class="easyui-combotreegrid"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="label">联系人:</td>
+                <td>
+                    <input name="contact" id="contact" class="easyui-textbox" required="true"/>
+                </td>
+                <td class="label">联系电话:</td>
+                <td>
+                    <input name="mobile" id="mobile" class="easyui-textbox" required="true"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="label">收货省:</td>
+                <td>
+                    <input name="province" id="province" class="easyui-combobox" style="width:171px;" required="true"/>
+                </td>
+                <td class="label">收货市:</td>
+                <td>
+                    <input name="city" id="city" class="easyui-combobox" style="width:171px;" required="true"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="label">收货区:</td>
+                <td>
+                    <input name="district" id="district" class="easyui-combobox" style="width:171px;" required="true"/>
+                </td>
+                <td class="label">收货邮编:</td>
+                <td>
+                    <input name="postcode" id="postcode" class="easyui-textbox"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="label">收货地址:</td>
+                <td colspan="3">
+                    <input name="address" id="address" class="easyui-textbox" style="width:425px;" required="true"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="label">地址识别:</td>
+                <td colspan="3">
+                    <textarea id="identifyArea" cols="60" rows="3" style="width:425px;" placeholder="粘贴【姓名、电话、地址】至此处，回车自动识别" onkeydown="addrIdentify()"></textarea>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<div id="dlg3-buttons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-md-checkmark" onclick="submitApply()">提 交</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="iion ion-md-close" onclick="closeDialog('fm3','dlg3')">取 消</a>
+</div>
+
+
+<div id="dlg4" class="easyui-dialog" title="备注" style="width: 500px;" closed="true" buttons="#dlg4-buttons">
+    <form id="fm4" method="post" novalidate>
+        <table class="l">
+            <tr>
+                <td class="label">下单日期:</td>
+                <td>
+                    <input name="asnday" id="u_asnday" class="easyui-datebox" required="true"/>
+                </td>               
+                <td class="label">入库类型:</td>
+                <td>
+                    <input name="type" id="u_type" class="easyui-combobox"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="label">入库单号:</td>
+                <td>
+                    <input name="asnno" id="u_asnno" class="easyui-textbox" required="true" style="width:130px;" />
+                </td>               
+                <td class="label">供货方:</td>
+                <td>
+                    <input name="supplier" id="u_supplier" class="easyui-textbox" style="width:130px;"/>
+                </td>
+            </tr>
+             <tr>
+                <td class="label">入库日期:</td>
+                <td colspan="">
+                    <input name="inbound_date" id="u_inbound_date" class="easyui-datebox" />
+                </td>               
+            </tr>
+            <tr>
+                <td class="label">备注:</td>
+                <td colspan="3">
+                    <textarea name="remark" id="u_remark" cols="62" rows="5"></textarea>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<div id="dlg4-buttons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle-outline" onclick="saveRemark()">保 存</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-close-circle-outline" onclick="closeDialog('fm4', 'dlg4')">取 消</a>
+</div>
+
+<div id="dlg_worker" class="easyui-dialog" closed="true" buttons="#dlg_worker-buttons" style="width: 300px; height: 400px">
+    <form id="fm_worker" method="post" novalidate>
+        <input name='worker' id='worker' border="false" required/>   
+    </form>
+</div>
+<div id="dlg_worker-buttons">
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle-outline" onclick="saveWorker()">指派入库员</a>
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle-outline" onclick="saveUnloader()">指派卸货员</a>
+</div>
+
+<!-- --------------------------------------------------------  批量Excel导入 ----------------------------------------------------- -->
+<script type="text/javascript">
+
+var tl_record = "wms_asn_import";
+var progressCode =  "ASN-IMPORT-" + $.now();
+
+function importExcel(owner, headerTL) {
+    if( !owner ) {
+        if(OWNER_D.length == 1) {
+            owner = OWNER_D[0].id;
+        }
+        else {
+            $("#fm_owner").css("padding", "10px");
+
+            _HEADER_TL = headerTL;
+            chooseOwner();
+        }
+    }
+
+    var url = "/tss/auth/file/upload?afterUploadClass=com.boudata.wms._edi.ImportAsn";
+    url += "&recordId=" + tl_record;
+    url += "&warehouse=" + SELECTED_WH;
+    url += "&owner=" + owner;
+    url += "&pgCode=" + progressCode;
+
+    if(headerTL) {
+        url += "&headerTL=" + encodeURI(headerTL);
+    }
+    
+    callCount = 0;
+    var importDiv = createImportDiv(url, function() {
+        startProgress(progressCode);
+    });
+    tssJS(importDiv).show();
+}
+
+</script>
+
+<iframe id="downloadFrame" style="display:none"></iframe>
+
+<div id="dlg_owner" class="easyui-dialog" closed="true" buttons="#dlg_owner-buttons" style="width: 300px; height: 400px">
+    <form id="fm_owner" method="post" novalidate>
+        <input name='owner' id='owner' border="false" required/>   
+    </form>
+</div>
+<div id="dlg_owner-buttons">
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle-outline" onclick="chooseOW()">确 定</a>
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-close-circle-outline" onclick="closeDialog('fm_owner', 'dlg_owner')">取 消</a>
+</div>
+<div id="impbtns">
+    <div data-options="iconCls:'ion-ios-cloud-download'" onclick="downloadImpTL(tl_record)">Excel模板下载</div>
+    <div data-options="iconCls:'ion-ios-cloud-upload'" onclick="importExcel()">Excel导入</div>
+    <div data-options="iconCls:'ion-ios-hammer'" onclick="customizeTL(tl_record, '入库单导入模板')">自定义导入模板</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,114 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>卜数WMS-导航页</title>
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+
+<style type="text/css">
+	html, body { height: 100%; text-align:center; overflow: hidden; }
+	body {
+		background: url('images/wms_module.png')  center no-repeat; background-size: 70%;
+	}
+
+	#tabs{
+		position: absolute;
+		left:30px;
+		bottom:10px;
+	}
+	#tabs span{
+		display: inline-block;
+		padding:5px;
+		font-size:18px;
+		border:1px solid #eee;
+		border-radius: 5px;
+		margin-right:10px;
+	}
+	#tabs span:hover{
+		cursor: pointer;
+	}
+	.qr_code { position: absolute; bottom: 10px; right: 60px; }
+	.qr_code img {  width: 168px; height: 168px; }
+	.qr_code > div { font-weight: bold; font-size: 14px; color: #666; text-align: center; }
+
+</style>
+
+</head>
+<body>
+
+<div id="tabs">
+    <span id="wms_config" class="ion ion-ios-folder" style="display:none;" onclick="config()"> WMS系统配置 </span>
+    <span id="staff" class="ion ion-ios-person" style="display:none;" onclick="goStaffInfo()"> 员工管理 </span>
+    <span id="myResource" class="ion ion-ios-paper" style="display:none;" onclick="myReports()"> 报表中心 </span>
+    <span id="myAccount" class="ion ion-ios-wallet" style="display:none;" onclick="openMyAccount()"> 我的账户 </span>
+</div>
+
+<div class="qr_code">
+	<img src="/tss/wx/api/acode2?appId=wx6f5e8e3f5b6b45d8&domain=G1&belong=wms_test"> <!-- 默认自注册只能到体验域 -->
+	<div>扫一扫打开小程序</div>
+</div>
+
+<script type="text/javascript">
+
+var report_portlet_url = "../modules/dm/report_portlet.html?leftBar=true&id=",
+	record_portlet_url = "../modules/dm/recorder.html?id=";
+
+
+setTimeout( init, 1000);
+
+var nodes = [], menus = {};
+var userRoles = tssJS.Cookie.decode("userHas")[11];
+var level_num = -15;
+
+function init() {
+	if(parent.parent.globalValiable.list.length){
+		if(parent.parent.globalValiable.list[0][2] == level_num){
+			$('#myResource').text(' 业务中心').attr("onclick", "myResources()");
+			level_num = 9;
+		}
+	}
+	$('#myResource').css('display','inline-block')
+
+	$.getJSON("/tss/auth/rc/all/json", function(data) {
+		data.each(function(i,item){
+			menus[item[1]] = item[0]
+		})
+
+		if( menus['员工管理'] ){
+			$('#staff').css('display','inline-block')
+		}
+		if( userRoles.contains('仓储经理') || userRoles.contains('仓库主管') ||userRoles.contains('$域管理员') ) {
+			$('#wms_config').css('display','inline-block');
+			$.get("/tss/auth/account", {}, function(data){
+				data.id && $('#myAccount').css('display','inline-block')
+			})	
+		}
+	});
+}
+
+function goStaffInfo(){
+	parent.addTab('员工管理', record_portlet_url + 99);
+}
+function myReports(){
+	parent.parent.openLevelOne(level_num);
+}
+function myResources() {
+	parent.parent.openLevelOne(level_num);
+}
+
+function openMyAccount(){
+	parent.addTab('我的账户', '/tss/more/pay/account.html');
+}
+
+function config() {
+	parent.addTab('系统配置', '/tss/pages/wms/wms_config.html');
+}
+
+</script>
+
+</body>

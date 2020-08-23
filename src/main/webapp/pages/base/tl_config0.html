@@ -1,0 +1,415 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Excel导入模板定义</title>
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script type="text/javascript" src="../../tools/jquery/jquery-1.11.1.min.js"></script>
+
+<style>
+
+html, body {
+	min-height: 100%; margin: 0; padding: 0;
+}
+.container {
+	margin: 0px 80px;
+}
+.container ul, .container ol {
+	width: 220px;
+    padding: 10px 15px;
+    min-height: 400px;
+    margin: 5px 20px;
+	display: block;
+	float: left;
+    border-radius: 5px;
+    border: 1px solid #95B8E7;
+}
+.container ul li, .container ol li{
+    display: block;
+    float: left;
+    width: 180px;
+    line-height: 28px;
+    border-radius: 4px;
+	list-style: none;
+    background-color: #EED2EE;
+    margin-bottom: 6px;
+    text-align: center;
+    color: #555;
+}
+#c3 { width: 280px; }
+#c3 li { width: 120px; margin-left: 1px; }
+
+.container header {
+	padding: 5px 20px 0;
+}
+.container header label {
+	display: inline-block;
+	width: 240px; font-size: 14px;
+	text-align: center;
+}
+
+#detail {
+	margin: 10px 20px; font-size: 14px;
+}
+#detail label { color: #666; margin-left: 10px; width: 80px; display: inline-block; text-align: right; }
+#detail input { height: 30px; width: 200px; }
+
+#tl_list { margin: 10px 0; }
+#tl_list li {
+	display: inline-block;
+    width: 128px;
+    line-height: 30px;
+    border-radius: 4px;
+	list-style: none;
+    background-color: #049cdb;
+    margin: 10px;
+    text-align: center;
+    color: #fff;
+}
+#tl_list li:hover { color: blue; cursor:pointer; }
+#bts { margin: 10px 260px 20px; }
+#bts button { margin-left: 30px; }
+
+</style>
+
+<script type="text/javascript">
+
+var drag = {
+
+    class_name : null,  //允许放置的容器
+	permitDrag : false,	//是否允许移动标识
+
+	_x : 0,             //节点x坐标
+    _y : 0,			    //节点y坐标
+    _left : 0,          //光标与节点坐标的距离
+    _top : 0,           //光标与节点坐标的距离
+
+    old_elm : null,     //拖拽原节点
+    tmp_elm : null,     //跟随光标移动的临时节点
+    new_elm : null,     //拖拽完成后添加的新节点
+
+    //初始化
+    init : function (className){
+
+        drag.class_name = className;
+
+        $('.' + drag.class_name).on('mousedown', 'ul li', function(event){
+            drag.permitDrag = true;
+            drag.old_elm = $(this);
+            drag.mousedown(event);
+            return false;
+        });
+
+        $(document).mousemove(function(event){
+            if(!drag.permitDrag) return false;
+            drag.mousemove(event);
+            return false;
+        });
+
+        $(document).mouseup(function(event){
+            if(!drag.permitDrag) return false;
+            drag.permitDrag = false;
+            drag.mouseup(event);
+            return false;
+        });
+
+    },
+
+	//按下鼠标 执行的操作
+	mousedown : function (event){
+        drag.tmp_elm = $(drag.old_elm).clone();
+
+        drag._x = $(drag.old_elm).offset().left;
+        drag._y = $(drag.old_elm).offset().top;
+
+        var e = event || window.event;
+        drag._left = e.pageX - drag._x;
+        drag._top = e.pageY - drag._y;
+
+        $(drag.tmp_elm).css({
+            'position' : 'absolute',
+            'background-color' : '#FF8C69',
+            'left' : drag._x,
+            'top' : drag._y,
+        });
+
+        // 4.添加临时节点
+        tmp = $(drag.old_elm).parent().append(drag.tmp_elm);
+        drag.tmp_elm = $(tmp).find(drag.tmp_elm);
+        $(drag.tmp_elm).css('cursor', 'move');
+	},
+
+	//移动鼠标 执行的操作
+	mousemove : function (event){
+        //2.计算坐标
+        var e = event || window.event;
+        var x = e.pageX - drag._left;
+        var y = e.pageY - drag._top;
+        var maxL = $(document).width() - $(drag.old_elm).outerWidth();
+        var maxT = $(document).height() - $(drag.old_elm).outerHeight();
+        //不允许超出浏览器范围
+        x = x < 0 ? 0: x;
+        x = x > maxL ? maxL: x;
+        y = y < 0 ? 0: y;
+        y = y > maxT ? maxT: y;
+
+        //3.修改克隆节点的坐标
+        $(drag.tmp_elm).css({
+            'left' : x,
+            'top' : y,
+        });
+
+        // 判断当前容器是否允许放置节点
+        $.each($('.' + drag.class_name + ' ul'), function(index, value){
+
+            //获取容器的坐标范围 (区域)
+            var box_x = $(value).offset().left;     //容器左上角x坐标
+            var box_y = $(value).offset().top;      //容器左上角y坐标
+            var box_width = $(value).outerWidth();  //容器宽
+            var box_height = $(value).outerHeight();//容器高
+            
+            // 给可以放置的容器加背景色
+            if(e.pageX > box_x && e.pageX < box_x-0+box_width && e.pageY > box_y && e.pageY < box_y-0+box_height) {
+
+                // 判断是否不在原来的容器下（使用坐标进行判断：x、y任意一个坐标不等于原坐标，则表示不是原来的容器）
+                var offset = drag.old_elm.parent().offset();
+                if($(value).offset().left !== offset.left || $(value).offset().top !== offset.top){
+                    $(value).css('background-color', '#FFEFD5');
+                }
+            } 
+            else {
+                $(value).css('background-color', '#FFFFF0');  // 恢复容器原背景色
+            }
+
+        });
+
+	},
+
+    //放开鼠标 执行的操作
+    mouseup : function (event){
+
+        $(drag.tmp_elm).remove();
+
+        var e = event || window.event;
+
+        $.each($('.' + drag.class_name + ' ul'), function(index, value){
+
+            var box_x = $(value).offset().left;     //容器左上角x坐标
+            var box_y = $(value).offset().top;      //容器左上角y坐标
+            var box_width = $(value).outerWidth();  //容器宽
+            var box_height = $(value).outerHeight();//容器高
+            
+            if(e.pageX > box_x && e.pageX < box_x-0+box_width && e.pageY > box_y && e.pageY < box_y-0+box_height){
+            	var offset = drag.old_elm.parent().offset();
+                if($(value).offset().left !== offset.left || $(value).offset().top !== offset.top){
+                    tmp = $(drag.old_elm).clone();
+                    var newObj = $(value).append(tmp);
+                    $(drag.old_elm).remove();
+                    drag.new_elm = $(newObj).find(tmp);
+                }
+            }
+            $(value).css('background-color', '#FFFFF0');
+        });
+    },
+};
+
+</script>
+
+</head>
+<body>
+
+<div id="detail">
+	<ul id = "tl_list">
+		<!-- <li>模板一</li><li>模板二</li><li>模板三</li> -->
+	</ul>
+	<input type="hidden" id="id">
+	<input type="hidden" id="tldef">
+	<label>模板名称：</label><input type="" id="tlname"> 
+	<label>启用：</label> <input name="status" id="status" type="checkbox" checked style="vertical-align:middle; margin-top:0; width: 20px; height:22px"> 
+	<label style="margin-left: 50px; display: none;">所属客户：</label><input type="hidden" id="customer" placeholder="客户ID">
+	<br><br>
+	<label>Excel表头：</label><textarea id="excel_th" cols="111" rows="3" placeholder="复制当前Excel数据的表头行到此输入框，如：入库单号	下单日期	货品	货品编码	订单数量	生产日期	过期日期	批号	包装量	单价	金额	备注， 如果某列导入的是一个固定值xxx，则用{xxx}表示" oninput="initC3()"></textarea>
+</div>
+<div id="bts">
+	<button class="tssbuttom medium blue" onclick="saveTL(true)" id="b1">新增模板</button>
+	<button class="tssbuttom medium blue" onclick="saveTL()" id="b2" style="display: none;">修改模板</button>
+	<button class="tssbuttom medium blue" onclick="reset(true)">清空字段对应</button>
+</div>
+<div class="container">
+	<header>
+		<label>标准模板表头</label>
+		<label>对应字段</label>
+		<label>Excel表头字段</label>
+	</header>
+	
+	<ol id="c1"></ol>
+	<ul id="c2"></ul>
+	<ul id="c3"></ul>
+</div>
+
+<script type="text/javascript">
+
+// http://localhost:9000/tss/pages/base/tl_config.html?imp_rc_table=wms_asn_import
+
+var default_th  = tssJS.Query.get("default_th");
+var imp_rc_table = tssJS.Query.get("imp_rc_table");
+var tl_type = tssJS.Query.get("tl_type") || imp_rc_table;
+
+if( default_th ) {
+	initC1()
+} 
+else {
+	tssJS.get("/tss/xdata/define/" + imp_rc_table, {}, function(result) {
+		var cols = result[0];
+		default_th = [];
+		cols.each( function(i, col) {
+            if( col.type !== 'hidden' ) {
+                default_th.push( col.label );
+            }
+		} );
+
+		default_th = default_th.join(" ");
+		initC1();
+	});
+}
+function initC1() {
+	tssJS("#c1").html("");
+
+	var cols = default_th.replace(/\t|，|,/g, " ").split(" ");
+	cols.each( function(i, col) {
+		var li = tssJS.createElement("li");
+		tssJS(li).text(col);
+		tssJS("#c1").appendChild(li);
+	} )
+}
+
+var c2_list = [];
+function initC2(tldef) {
+	tssJS("#c2").html("");
+	c2_list = [];
+
+	var cols = (tldef||"").split(",");
+	cols.each( function(i, col) {
+		if( !col.trim() ) return false;
+
+		col = col.split(":")[1].replace("{}", "{空}");
+		c2_list.push(col);
+
+		var li = tssJS.createElement("li");
+		tssJS(li).text( col );
+		tssJS("#c2").appendChild(li);
+
+		// 从c3清除 col
+		var lis3 = tssJS("#c3").find("li");
+		lis3.each(function(i, li) {
+			if( tssJS(li).text() == col) {
+				tssJS(li).remove();
+				return false;
+			}
+		})
+	} );
+}
+
+function initC3() {
+	var cols = ( tssJS("#excel_th").value() ||'').replace(/\t|，|,/g, " ").split(" ");
+
+	cols.push("{空}");cols.push("{空}");cols.push("{空}");cols.push("{空}");cols.push("{空}");
+	cols.push("{空}");cols.push("{空}");cols.push("{空}");cols.push("{空}");cols.push("{空}");
+
+	tssJS("#c3").html("");
+	cols.each( function(i, col) {
+		if( (!col.trim() || c2_list.contains(col)) && col !== '{空}' ) return true;
+
+		var li = tssJS.createElement("li");
+		tssJS(li).text(col);
+		tssJS("#c3").appendChild(li);
+	} )
+}
+
+function reset( clear ) {
+	initC2( clear ? "" : tssJS("#tldef").value() );
+	initC3();
+}
+
+function editTL(tl_id) {
+	tssJS.get("/tss/xdata/json/dm_record_imptl", {id: tl_id}, function(data) {
+    	var item = data[0];
+    	tssJS("#id").value(item.id);
+    	tssJS("#tlname").value(item.tlname);
+    	tssJS("#excel_th").value(item.origin_header);
+    	tssJS("#customer").value(item.customer);
+    	tssJS("#tldef").value(item.tldef);
+    	tssJS("#status")[0].checked = item.status === 1;
+
+    	initC3();
+    	initC2(item.tldef);
+
+    	$("#b1").hide();
+    	$("#b2").show();
+    });
+}
+
+function saveTL(create) {
+	var id = tssJS("#id").value();
+	var params = {};
+	params.type = tl_type;
+	params.tlname = tssJS("#tlname").value();
+	params.origin_header = tssJS("#excel_th").value();
+	params.customer = tssJS("#customer").value();
+	params.status = tssJS("#status")[0].checked ? 1 : 0;
+
+	if(!params.tlname) {
+		return tssJS.alert("请输入模板名称");
+	}
+
+	var lis1 = tssJS("#c1").find("li"),
+		lis2 = tssJS("#c2").find("li");
+	if( lis1.length != lis2.length ) {
+		return tssJS.alert("对应字段需要和标准模板一一对应");
+	}
+
+	params.tldef = [];
+	lis1.each(function(i, li) {
+		params.tldef.push( tssJS(li).text() + ":" + tssJS(lis2[i]).text().replace("{空}", "{}") );
+	})
+	params.tldef = params.tldef.join(",");
+
+	$.post("/tss/xdata/dm_record_imptl" + (id && !create ? "/"+id : ""), params, function(result) {
+		tssJS.alert("保存成功，请刷新页面后再按新配置的模板进行数据导入");
+    	init();
+    });
+}
+
+tssJS("#excel_th").blur( initC3 );
+
+$(function() {
+
+    drag.init('container');
+
+    init();
+});
+
+function init() {
+    // 如需支持全局模板（Admin创建，对所有域开放，则需要把此处录入表查询换成特定的数据服务）
+	tssJS.get("/tss/xdata/json/dm_record_imptl", {type: tl_type}, function(data) {
+		tssJS("#tl_list").html("");
+    	data.each( function(i, item) {
+    		var li = tssJS.createElement("li");
+			tssJS(li).text( item.tlname ).attr("onclick", "editTL(" +item.id+ ")" );
+			tssJS("#tl_list").appendChild(li);
+
+			if(item.status !== 1) {
+				tssJS(li).css("background-color", "#bbb");
+			}
+    	} );
+
+    	tssJS("#c2, #c3").height( tssJS("#c1")[0].clientHeight );
+    });
+}
+
+</script>
+</body>
+</html>

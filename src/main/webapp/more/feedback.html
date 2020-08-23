@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>用户反馈一览</title>
+<link rel="shortcut icon" href="images/tss.ico">
+<link rel="Bookmark" href="images/tss.ico">
+
+<link rel="stylesheet" href="../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../tools/tssJS/fonts/icons.css">
+<link href="../tools/tssJS/components/css/image-browser.css" rel="stylesheet">
+
+<script src="../tools/tssJS/tssJS.js"></script>
+<script src="../tools/tssJS/tssJS.ajax.js"></script>
+<script src="../tools/portlet.js"></script>
+
+<style>
+
+html, body { height: 100%; }
+
+.container { background-color: #fff; margin-bottom: 10px; border-bottom: 1px dashed #cacaca; color: #555; }
+.container .icon {
+  height: 30px; width: 50px; padding-left: 25px; font-size: 14px; color: #049cdb !important;
+} 
+
+.data-list { line-height: 20px; } 
+.data-list-ul>li { 
+    border-bottom: 1px dashed #cacaca;
+    padding: 10px 12px; width: 50%; float: left; height: 240px; overflow: hidden;
+}
+.data-list-ul>li:nth-child(odd) { 
+    border-right:1px dashed #cacaca; 
+}
+
+.fb-summay, .fb-result { font-size: 15px; }
+.fb-summay { height: 120px; }
+.fb-result { padding: 10px 0 0 0; color: steelblue; }
+.fb-summay textarea { border: 0; width: 100%; min-height: 50px; padding: 0; }
+.fb-summay p, .fb-result p { text-indent: 0px; }
+.fb-author, .fb-processor { 
+    font-size:14px; margin-bottom:5px;  text-align: right;
+}
+.author { margin-right: 20px; }
+
+.ext li { float: left; margin-right: 15px; line-height: 25px; }
+
+#pageInfo { width: 100%; padding: 10px 20px 0 0; text-align: right; }
+
+body>li.template {
+  display: none; 
+}
+ 
+</style>
+
+<script type="text/javascript">
+
+function query(page, status) {
+    var url = '/tss/xdata/json/x_feedback';
+    var params = { "rows": 200, "page": page||1};
+    params.state = status || '新建,正在解决,未解决';
+    params.showAttach = "true";
+
+    $.getJSON( url, params, function(data) {
+
+        $(".data-list-ul").html("");
+        data.rows.each(function(i, item) {
+          var li = $("body>li.template")[0].cloneNode(true);
+          li.id = "l" + item.id;
+          $(".fb-summay>textarea", li).value( "【" + (item.pname||'')+ "，" + (item.module||'') + "】：" + item.content);
+          $(".fb-summay .fb-author .author", li).html( (item.commiter||"") + "【" + item.creatorName + "】");
+          $(".fb-summay .fb-author time", li).html( item.createtime.split(" ")[0] );
+
+          $(".fb-result>p", li).html( "【" + item.state  + "】：" + (item.processing || "") );
+          $(".fb-result .author", li).html( item.processor || item.updator || "未处理" );
+          $(".fb-processor time", li).html( item.updatetime || "" );
+
+          $("ul.data-list-ul").appendChild(li);
+          $(".fixing", li).click(function(){
+            window.open(encodeURI('/tss/modules/dm/recorder.html?rcname=系统使用反馈&itemId=' + item.id));
+          });
+          $(".close", li).click(function(){
+            tssJS.ajax({
+                url : "/tss/xdata/x_feedback/" + item.id,
+                params : {"state": "关闭"},
+                headers : { "noAlert": true },
+                waiting : true, 
+                ondata : function() { 
+                    query(1, '新建,未解决,又出现了');
+                }
+            });
+          });
+
+          tssJS.getJSON("/tss/xdata/x_feedback/" + item.id, {}, function(item) {
+              var attachList = item.attachList;
+              if(attachList.length) {
+                  var pic_ul = $.createElement("ul", "ext");
+                  var li = $.createElement("li", "header");
+                  $(li).html( "附件列表：" );
+                  $(pic_ul).appendChild(li);
+
+                  attachList.each(function(i, t){
+                      var li = $.createElement("li");
+                      var filename = t.name.length <= 32 ? t.name : t.fileName;
+                      var html = "<a href='" +t.downloadUrl+ "' target='_self'>" +filename+ "</a>";
+                      $(li).html( html ).click( function() {
+                          ImageBrowser.showOnClick(this.parentNode.parentNode);
+                      } );
+                      $(pic_ul).appendChild(li);
+                  });
+                  tssJS("#l" + item.id + " .picDiv").appendChild(pic_ul);
+              }
+          }, 'GET');
+
+        });
+      });
+}
+
+$(function(){
+    query(1);
+});
+
+</script>
+
+</head>
+
+<body>
+
+<div style="padding: 6px 12px;">
+  <button class="tssbutton orange medium" onclick="query(1, '新建,未解决,又出现了')">待处理</button>
+  <button class="tssbutton white medium" onclick="query(1, '正在解决')">正在解决</button>
+  <button class="tssbutton white medium" onclick="query(1, '已解决')">已解决</button>
+  <button class="tssbutton white medium" onclick="query(1, '关闭')">已关闭</button>
+  <button class="tssbutton white medium" onclick="query(1, '没能重现,非异常')">没能重现</button>
+</div>
+
+<div class="data-list container">
+ <ul class="data-list-ul"></ul>
+</div>
+
+<li class='template'>
+  <div class="fb-summay">
+      <textarea readonly="true"></textarea>
+      <div class="picDiv" style="padding-top: 8px;"></div>
+      <br>
+      <div class="fb-author">
+        <span class="author"></span>
+        <time></time>
+      </div>
+  </div>
+  <div class="fb-result">
+    <p></p>
+    <div class="fb-processor">
+        <span data-icon="E" class="icon"></span>
+        <span class="author"></span>
+        <time></time>
+        <button class="tssbutton white small fixing">开始处理</button>
+        <button class="tssbutton white small close">关 闭</button>
+      </div>
+  </div>
+</li>
+
+</body>
+<script src="../tools/tssJS/components/js/ImageBrowser.min.js"></script>
+
+</html>

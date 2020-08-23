@@ -1,0 +1,316 @@
+<!DOCTYPE HTML>
+<HTML xmlns:WorkSpace xmlns:Tree xmlns:Grid>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>站内消息/待办事项</title>
+
+<link href="../../tools/tssJS/css/boubei.css" rel="stylesheet">
+<link href="../../tools/tssJS/fonts/icons.css" rel="stylesheet" >
+<link href="../../css/css.css" rel="stylesheet">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssUtils.js"></script>
+
+<style type="text/css">
+
+.unread { color: red; cursor: pointer; }
+#gridContainer td[title="未读"] { color: red; }
+#alert_box .message { max-height: 500px; }
+
+.white { color: #333; height: 16px; border: 1px solid #999; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1); }
+.white:hover { background-color: inherit; border-left: 1px solid #000; border-right: 1px solid #000; background-color: #eee;  }
+#gridTitle .small { background: inherit; margin: 0px 1px; border-top: 0px; border-bottom: 0px; }
+#gridTitle .small:hover { background-color: #eee; }
+
+.icon-search {
+  font-size: 14px;
+  width: 16px;
+  display: inline-block;
+  margin: 0 20px 0 5px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.icon-search:hover {
+  color: blue;
+  font-size: 15px;
+}
+
+</style>
+
+<SCRIPT type="text/javascript">
+<!--  
+    /* XMLHTTP请求地址汇总 */
+    URL_MSG_LIST   = AUTH_PATH + "message/list/";
+
+	if(IS_TEST) {
+		URL_MSG_LIST = "data/message_list.xml?";
+	}
+	
+    /* 页面初始化 */
+    function init() {
+		closePalette();
+		openPalette = null;
+
+		loadGridData(); 
+
+		/* Grid菜单初始化  */
+		var item1 = {
+			label:"查看",
+			callback: function() {
+				showMsgInfo(false);
+			},
+			icon:"icon icon-search"
+		};
+		var item2 = {
+			label:"删除",
+			callback: function() {
+				deleteMsg();
+			},
+			icon:"icon icon-x"
+		}
+		var item3 = {
+			label:"回复",
+			callback: function() {
+				replyMsg();
+			},
+			icon:"icon icon-comment"
+		}
+
+		var menu = new $.Menu();
+		menu.addItem(item1);
+		menu.addItem(item2);
+		menu.addItem(item3);
+		$1("grid").contextmenu = menu;
+    }
+
+    /* grid加载数据  */
+    function loadGridData(page) {
+		$.showGrid(URL_MSG_LIST, "MsgList", showMsgInfo, "grid", page||"1", params);
+    }
+
+    var params = {};
+    function search() {
+    	var key = $("#searchKey").value();
+    	var field = $("#searchField").value() || "title";
+		if(key) {
+			params = {}; // 先清空老的条件
+			params[field] = key;
+			loadGridData();
+		}
+	}
+
+    /* 显示详细信息 */
+    function showMsgInfo(id) {		
+		var rowID = id || $.G("grid").getColumnValue("id");  
+		viewMessage(rowID, function(msg) {
+			msg && $.alert(msg.content.replace(/\n/g, "<br>"), msg.title);
+		});
+    }
+
+    function deleteMsg(id) {
+    	id = id || $.G("grid").getColumnValue("id"); 
+
+    	$.confirm("您确定要删除该信息吗？", "删除确认", function(){
+	        $.ajax({
+				url: AUTH_PATH + "message/" + id,
+				method: "DELETE"
+			});
+
+			$.G("grid").deleteSelectedRow();
+	    }); 	
+	}
+
+	function viewMessage(id, callback) {
+		$.ajax({
+			url: AUTH_PATH + "message/" + id,
+			method: "GET",
+			type : "json",
+			ondata: function() {
+				var message = this.getResponseJSON();
+				callback && callback(message);
+			}
+		});
+	}
+
+	function replyMsg(id, receiver, title) {
+		id = id || $.G("grid").getColumnValue("id"); 
+		receiver = receiver || $.G("grid").getColumnValue("senderId"); 
+		title = title || $.G("grid").getColumnValue("_title"); 
+
+		$.prompt("请输入你的回信内容", "站内信回复", function(result){
+			sendMessage(receiver, "答复：" + title, result);
+	    }); 
+	}
+
+	function batchView(ids) {
+		ids = ids || $.G("grid").getCheckedRows();
+	    if(!ids) return alert("你没有选中任何记录，请勾选后再进行批量操作。");
+
+	    $.ajax({
+	        url: AUTH_PATH + "message/batch/" + ids,
+			type : "json",
+	        ondata: function() { 
+	            loadGridData( $1("GridPageList").value ); // 更新Grid
+	        }
+	    });
+	}
+
+	function batchDelete(ids) {
+		ids = ids || $.G("grid").getCheckedRows();
+	    if(!ids)  return alert("你没有选中任何记录，请勾选后再进行批量操作。");
+
+	    $.confirm("您确定要执行删除吗？", "删除确认", function(){
+			$.ajax({
+		        url: AUTH_PATH + "message/" + ids,
+		        method: "DELETE",
+				type : "json",
+		        ondata: function() { 
+		            loadGridData( $1("GridPageList").value ); // 更新Grid
+		        }
+		    });
+	    }); 	
+	}
+
+	function sendNewMsg() {
+        popupForm("message.xml", "Message", {}, function(params) {
+        	var users  = (params.user||'').split(",");
+        	var groups = (params.group||'').split(",");
+        	var roles  = (params.role||'').split(",");
+
+        	var receiver = [];
+        	users.each(function(i, u) {
+        		u && receiver.push(u);
+        	});
+        	groups.each(function(i, g) {
+        		g && receiver.push(u + "@tssGroup");
+        	});
+        	roles.each(function(i, r) {
+        		r && receiver.push(r + "@tssRole" + (userDomain ? "@"+userDomain : ""));
+        	});
+        	
+        	if( receiver.length == 0) {
+        		tssJS("#user").notice("收件人不能为空");
+        		return false;
+        	}
+        	if( !params.title || !params.content) {
+        		tssJS("#title").notice("标题和内容不能为空");
+        		return false;
+        	}
+        	
+        	sendMessage(receiver.join(","), params.title, params.content, params.category||'提醒', params.level||'低', outBox);
+
+        }, "发送消息", initSendForm);
+	}
+
+	function initSendForm(xform) {
+    	$.get("/tss/api/users", {}, function(data) {
+			var userCodes = [], userNames = [];
+	 		$.each(data, function(key, val) {
+				userCodes.push( key );
+				userNames.push( val );
+			});
+			xform.updateField("user", [
+                    {"name": "mode", "value": "combotree"}, 
+                    {"name": "multiple", "value": "true"},
+                    {"name": "texts", "value": userNames.join("|")},
+                    {"name": "values", "value": userCodes.join("|")}
+                 ])
+		});
+
+		$.get("/tss/auth/service/domaingroups", {}, function(data) {
+			var groupIds = [], groups = [];
+	 		$.each(data, function(i, g) {
+				groupIds.push( g.id );
+				groups.push( g.text );
+			});
+			xform.updateField("group", [
+                    {"name": "mode", "value": "combotree"}, 
+                    {"name": "multiple", "value": "true"},
+                    {"name": "texts", "value": groups.join("|")},
+                    {"name": "values", "value": groupIds.join("|")}
+                 ])
+		});
+
+    	$.get("/tss/auth/service/roles", {}, function(data) {
+    		var roleIds = [], roles = [];
+			data.each(function(i, r) {
+				if( r[0] > 0) {
+					roleIds.push( r[0] );
+					roles.push( r[1] );
+				}
+			});
+			xform.updateField("role", [
+                    {"name": "mode", "value": "combotree"}, 
+                    {"name": "multiple", "value": "true"},
+                    {"name": "texts", "value": roles.join("|")},
+                    {"name": "values", "value": roleIds.join("|")}
+                 ])
+		});
+    }
+
+	function outBox() {
+		params.senderId = userHas[2];
+		loadGridData();
+	}
+
+	function inBox() {
+		params.senderId = null;
+		loadGridData();
+	}
+
+    window.onload = init;
+
+//-->
+</SCRIPT>
+
+</head>
+
+<body>
+
+<!-- 版面 开始 -->
+<table class="panel" >
+  <tr class="header"> <td/><td/><td/><td/> </tr>
+  <tr class="body"> 
+	<td/>
+	<!-- 左栏 开始 -->
+	<td id="palette">
+	</td>
+	<!-- 左栏 结束 -->
+	<td class="groove">
+	  <table>
+		<tr>
+			<td id="gridTitle">
+			  <span class="icon"></span>消息列表<span class="buttonBox" id="gridToolBar"></span>&nbsp;
+			  <span style="margin-left: 20px;">
+			  	<input id="searchKey" style="width:150px; height: 16px;"/>
+			  	<select id="searchField" style="top:0px;">
+			  		<option value="title" selected>标题</option>
+			  		<option value="sender">发送人</option>
+			  		<option value="content">内容</option>
+			  	</select>
+			  	<span class="icon-search" onclick="search()" title="搜 索"></span>
+			  </span>
+			  	<button class="tssbutton small white" onclick="inBox()"><span class="icon-list-ordered"></span>收件箱</button>
+			  	<button class="tssbutton small white" onclick="outBox()"><span class="icon-list-ordered"></span>发件箱</button>
+			  	<button class="tssbutton small white" onclick="sendNewMsg()"><span class="icon-comment-discussion"></span>发送消息</button>
+			  	<button class="tssbutton small white" onclick="batchView()">批量已阅</button>
+			  	<button class="tssbutton small white" onclick="batchView('view_all')">全部已阅</button>
+			  	<button class="tssbutton small white" onclick="batchDelete()"><span class="icon-x"></span>批量删除</button>
+			  	<button class="tssbutton small white" onclick="batchDelete('del_all')"><span class="icon-trashcan"></span>清空站内信</button>
+			  </span>
+			</td>
+		</tr>
+		<tr>
+			<td id="gridContainer"><Grid id="grid"></Grid></td>
+		</tr>
+	  </table>
+	</td>
+	<td/>
+  </tr>
+  <tr class="footer"> <td/><td/><td/><td/> </tr>
+</table>
+<!-- 版面 结束 -->
+
+</body>
+</html>

@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<web-app version="3.0" xmlns="http://java.sun.com/xml/ns/javaee"  
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
+    xsi:schemaLocation="http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
+
+	<display-name>TSS</display-name>
+	
+	<context-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>
+			classpath*:META-INF/*spring*.xml
+		</param-value>
+	</context-param>
+ 
+	<listener>
+		<listener-class>com.boubei.tss.framework.web.listener.TSSContextLoaderListener</listener-class>
+	</listener>
+
+	<filter>  
+	    <filter-name>characterEncodingFilter</filter-name>  
+	    <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>  
+	    <init-param>  
+	        <param-name>encoding</param-name>  
+	        <param-value>UTF-8</param-value>  
+	    </init-param>  
+	    <init-param>  
+	        <param-name>forceEncoding</param-name>  
+	        <param-value>true</param-value>  
+	    </init-param>  
+	</filter>  
+	<filter-mapping>  
+	    <filter-name>characterEncodingFilter</filter-name>  
+	    <url-pattern>/*</url-pattern>  
+	</filter-mapping>
+	
+<!-- 使用注释@WebFilter配置的Filter执行顺序在不同的操作系统、条件（jar包、普通目录）不一致 -->
+	<filter>  
+	    <filter-name>Filter0Security</filter-name>  
+	    <filter-class>com.boubei.tss.framework.web.filter.Filter0Security</filter-class>   
+	</filter>  
+	<filter-mapping>
+	    <filter-name>Filter0Security</filter-name>
+	    <url-pattern>/*</url-pattern>
+	</filter-mapping>
+	
+	<filter>  
+	    <filter-name>Filter1Encoding</filter-name>  
+	    <filter-class>com.boubei.tss.framework.web.filter.Filter1Encoding</filter-class> 
+	    <init-param>  
+	        <param-name>encoding</param-name>  
+	        <param-value>UTF-8</param-value>  
+	    </init-param>  
+	</filter> 
+	<filter-mapping>
+	    <filter-name>Filter1Encoding</filter-name>
+	    <url-pattern>/*</url-pattern>
+	</filter-mapping>
+	
+	<filter>  
+	    <filter-name>Filter2CatchException</filter-name>  
+	    <filter-class>com.boubei.tss.framework.web.filter.Filter2CatchException</filter-class>   
+	</filter> 
+	<filter-mapping>
+	    <filter-name>Filter2CatchException</filter-name>
+	    <url-pattern>/*</url-pattern>
+	</filter-mapping>
+	
+	<filter>  
+	    <filter-name>Filter3Context</filter-name>  
+	    <filter-class>com.boubei.tss.framework.web.filter.Filter3Context</filter-class>   
+	    <init-param>  
+	        <param-name>ignorePaths</param-name>  
+	        <param-value>/remote/OnlineUserService,js,htm,html,jpg,png,gif,ico,css,xml,swf</param-value>  
+	    </init-param>
+	</filter> 
+	<filter-mapping>
+	    <filter-name>Filter3Context</filter-name>
+	    <url-pattern>/*</url-pattern>
+	</filter-mapping>
+	
+	<filter>  
+	    <filter-name>Filter4AutoLogin</filter-name>  
+	    <filter-class>com.boubei.tss.framework.web.filter.Filter4AutoLogin</filter-class> 
+	    <init-param>  
+	        <param-name>ignorePaths</param-name>  
+	        <param-value>login.in,logout.in</param-value>  
+	    </init-param>  
+	</filter> 
+	<filter-mapping>
+	    <filter-name>Filter4AutoLogin</filter-name>
+	    <url-pattern>/auth/*</url-pattern>
+	</filter-mapping>
+	<filter-mapping>
+	    <filter-name>Filter4AutoLogin</filter-name>
+	    <url-pattern>*.portal</url-pattern>
+	</filter-mapping>
+	
+	<filter>  
+	    <filter-name>Filter5HttpProxy</filter-name>  
+	    <filter-class>com.boubei.tss.framework.web.filter.Filter5HttpProxy</filter-class>   
+	</filter> 
+	<filter-mapping>
+	    <filter-name>Filter5HttpProxy</filter-name>
+	    <url-pattern>/*</url-pattern>
+	</filter-mapping>
+	
+	<filter>  
+	    <filter-name>Filter6XmlHttpDecode</filter-name>  
+	    <filter-class>com.boubei.tss.framework.web.filter.Filter6XmlHttpDecode</filter-class>   
+	</filter> 
+	<filter-mapping>
+	    <filter-name>Filter6XmlHttpDecode</filter-name>
+	    <url-pattern>/*</url-pattern>
+	</filter-mapping>
+	
+	<filter>  
+	    <filter-name>Filter7AccessingCheck</filter-name>  
+	    <filter-class>com.boubei.tss.framework.web.filter.Filter7AccessingCheck</filter-class>   
+	</filter> 
+	<filter-mapping>
+	    <filter-name>Filter7AccessingCheck</filter-name>
+	    <url-pattern>*.htm</url-pattern>
+	</filter-mapping>
+	<filter-mapping>
+	    <filter-name>Filter7AccessingCheck</filter-name>
+	    <url-pattern>*.html</url-pattern>
+	</filter-mapping>
+
+	<filter>  
+	    <filter-name>Filter8APITokenCheck</filter-name>  
+	    <filter-class>com.boubei.tss.framework.web.filter.Filter8APITokenCheck</filter-class> 
+	</filter> 
+	<filter-mapping>
+	    <filter-name>Filter8APITokenCheck</filter-name>
+	    <url-pattern>/wms/edi/*</url-pattern>
+	    <url-pattern>/wms/api/*</url-pattern>
+	    <url-pattern>/oms/api/*</url-pattern>
+	    <url-pattern>/fms/api/*</url-pattern>
+	    <url-pattern>/wx/api/*</url-pattern>
+	    <url-pattern>/img/api/*</url-pattern>
+	    <url-pattern>/api/*</url-pattern>
+	</filter-mapping>
+	
+	<filter>  
+	    <filter-name>Filter11CheckCode</filter-name>  
+	    <filter-class>com.boubei.tssx.web.Filter11CheckCode</filter-class>   
+	</filter> 
+	<filter-mapping>
+	    <filter-name>Filter11CheckCode</filter-name>
+	    <url-pattern>/*</url-pattern>
+	</filter-mapping>
+	
+	<servlet>
+		<servlet-name>spring-mvc</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+		<init-param>
+			<param-name>contextConfigLocation</param-name>
+			<param-value>classpath:META-INF/spring-mvc.xml</param-value>
+		</init-param>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>spring-mvc</servlet-name>
+		<url-pattern>/</url-pattern>
+	</servlet-mapping>
+	
+	<welcome-file-list>
+		<welcome-file>login.html</welcome-file>
+	</welcome-file-list>
+	<error-page>
+		<error-code>404</error-code>
+		<location>/_404.html</location>
+	</error-page>
+</web-app>

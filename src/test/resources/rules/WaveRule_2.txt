@@ -1,0 +1,62 @@
+<rule>    
+	<properties>
+		<property id="sqlx">
+			select oi.id 
+		    from wms_order oh, wms_order_item oi, TBL_TEMP_ t
+		    where oh.id = oi.order_id and oh.id = t.id
+		</property>
+	</properties>
+	
+    <step index="1" rule="pk-rule_3" partAllocate="N" desc="单品项提总">
+		<sql>
+			<![CDATA[
+		    	${sqlx} and oh.skus = 1 and oh.qty > 10
+		    ]]>
+		</sql>
+    </step>
+
+    <step index="2" rule="pk-rule_2" partAllocate="N" desc="单品项普通">
+		<sql>
+			${sqlx} and oh.skus = 1
+		</sql>
+		<exclude>step1.OIs</exclude>
+    </step>
+    
+    <step index="3" rule="pk-rule1" partAllocate="N" desc="多品项">
+    	<sql>
+    		<![CDATA[
+    			${sqlx} and oh.skus > 1
+    		]]>
+		</sql>
+    </step>
+
+    <step index="4" rule="pk-rule1" partAllocate="N" desc="多品项">
+    	<insertTemp>step3.remainOHs</insertTemp>
+    	<sql>
+    		<![CDATA[
+				${sqlx} and oh.qty > 10
+			]]>	
+		</sql>
+    </step>
+
+    <step index="5" partAllocate="N">
+		<include>step1.remainOIs, step2.remainOIs, step3.remainOIs, step4.remainOIs</include>
+    </step>
+    
+    <subwave name="SW1">
+    	<include>step1</include>
+    </subwave>
+    <subwave name="SW2">
+    	<include>step2</include>
+    </subwave>
+    <subwave name="SW3">
+    	<include>step3</include>
+    </subwave>
+    <subwave name="SW4">
+    	<include>step4</include>
+    </subwave>
+    <subwave name="SW5">
+    	<include>step5</include>
+    </subwave>
+
+</rule>

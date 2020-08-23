@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<link rel="shortcut icon" href="images/wms_logo.png">
+<link rel="Bookmark" href="images/wms_logo.png">
+<link rel="stylesheet" href="tools/tssJS/css/reset.css">
+
+<title>卜数WMS 登录</title>
+</head>
+<style type="text/css">
+
+html, body{ width: 100%; height: 100%; overflow: hidden;}
+#header{ width: 100%; height: 48px; }
+#logo { width: 50%; padding: 12px 0 0 50px; display: inline-block; }
+.links { width: 48%; display: inline-block; text-align: right; padding-right: 3%; } 
+.links a { padding-right: 40px; text-decoration: none; font-size: 14px; }
+a:link    { color: #999; }	
+a:hover   { color: #666; }
+a[id] { font-size: 13px; color: #ccc; position: absolute; padding-top: 5px; }
+#a1 { left: 24px; }
+
+.section { background: url(pages/wms/images/wms_bg.png) left no-repeat; background-size: contain; background-color: rgba(135,206,235, 0.5); } 
+
+#login_box {
+  position: fixed; right: 6%; top: 22%;
+  width: 366px; height: 54%;  min-height: 470px;
+  outline: 0;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, .95); 
+  text-align: center;  
+}
+#login_box h2 { height: 50px; padding-top: 18px; color: #666; font-weight: 100; font-size: 20px; }
+.input-wrapper input { border: 0;  width: 100%; line-height: 24px; height: 48px;  font-size: 14px; }
+.input-wrapper { width: 312px; margin: 12px 0 0 24px; height: 48px; border: none; border-bottom: 1px solid rgba(54, 148, 250, 0.1); }
+
+#switch { width: 50px; height: 40px; position: absolute; right: 0px; margin: 10px 20px; opacity: .3;  } 
+h3.tip { padding: 10px 10px 0 10px; color: red; font-size: 13px; }
+.bz { margin-top: 12px; color: #999; font-size: 12px; font-weight: 100; }
+.bz a { color: red; }
+div.bottonBox>button:hover { background-color: rgba(54, 148, 250); }
+div.bottonBox>button { 
+    width: 312px; height: 34px; margin-top: 40px; border-radius: 3px; 
+    background-color: rgba(54, 148, 250, .8); color: #fff; cursor: pointer;
+    font-size: 1.3em; letter-spacing: 3px;
+}
+.copyright { background:#333; color:#ccc;  line-height:45px; text-align:center; }
+.copyright a { color:#ccc;display:inline-block;text-decoration:none;height:20px;line-height:20px; }
+
+#wxscancode { width: 220px; margin-left: -50px; display: inline-block; }
+#xcxcode { width: 180px; height: 144px; vertical-align: top; display: inline-block; padding-top: 12px; }
+
+</style>
+
+<script type="text/javascript">
+    
+var host = location.host, 
+    protocol = location.protocol;
+if( (host.indexOf("boudata.com") >= 0 || host.indexOf("efafa.vip") >= 0) && protocol == "http:" ) {
+    location.href = "https://" + host + location.pathname;
+}
+
+(function() {
+    var scriptNode = document.createElement("script");
+    scriptNode.src = "https://s96.cnzz.com/z_stat.php?id=1275365067&web_id=1275365067"
+    scriptNode.async = false;
+    document.getElementsByTagName('head')[0].appendChild(scriptNode);
+}());
+
+</script>
+
+<body>
+	<div id="header">
+		<div id="logo">
+			<img src="pages/wms/images/wms.png" style="margin-right:8px; height:30px;">
+		</div>
+		<div class="links">
+			<a href="https://www.boudata.com/video/list.html?sys=wms" target="_blank">视频学习</a>
+            <a href="https://boubei-file.oss-cn-hangzhou.aliyuncs.com/wms_manual.pdf" target="_blank">操作手册</a>
+			<a href="more/pay/index.html" target="_blank">注册购买</a>
+            <a href="https://www.boudata.com/WMS.html" target="_blank">更多介绍</a>
+			<a href="https://www.boudata.com" target="_blank">联系我们</a>
+		</div>
+	</div>
+	<div class="section">
+		<div id="login_box">
+			<h2>欢迎登录</h2>
+			<div class="input-wrapper">
+			  <input type="text" id="loginName" placeholder="请输入账号" autocomplete="on"> 
+			</div>
+			<div class="input-wrapper">
+			  <img id="switch" onclick="hidePasswd('switch','password')" src="images/visible_y.png" title="显示密码"> 
+			  <input type="password" id="password" placeholder="请输入密码"> 
+			</div>
+            <div>
+              <a href="javascript:void(0)" onclick="forget()" id="a1">忘记密码?</a>
+              <!-- <a href="javascript:void(0)" onclick="preRegister()" id="a2">没有账号，注册一个</a> -->
+            </div>
+			<div class="bottonBox">
+			  <button id="bt_login">登录系统</button>
+			</div>
+			<h3 class="bz">*推荐使用【 <a href="http://boubei-file.oss-cn-hangzhou.aliyuncs.com/chrome71_win64.exe" target="_blank">Chrome浏览器</a>】访问，以获得更流畅体验</h3>
+			<h3 class="tip">支持微信扫码登录</h3>
+            <div>
+                <div id="wxscancode"></div>
+                <div id="xcxcode">
+                    <img src="/tss/wx/api/acode2?appId=wx6f5e8e3f5b6b45d8" style="width:144px;height:144px;">
+                </div>
+            </div>
+		</div>
+	</div>
+	<div class="copyright">
+        <a target="_blank" href="http://www.beian.gov.cn"><img src="http://www.beian.gov.cn/file/ghs.png" style="float:left;"/><p style="float:left;height:20px;line-height:20px;margin: 0px 0px 0px 5px; color:white;">浙公网安备 33010402000389号 &nbsp;&nbsp; 浙ICP备15030284号&nbsp;&nbsp;  2018-2028 &nbsp;&nbsp;卜数科技 版权所有</p></a>
+     </div>
+</body>
+
+<script src="tools/tssJS/tssJS.js"></script>
+<script src="tools/tssJS/tssJS.ajax.js"></script>
+<script src="tools/common/md5.js"></script>
+<script src="tools/es_checker.js"></script>
+<script src="https://res.wx.qq.com/connect/zh_CN/htmledition/js/wxLogin.js"></script>
+
+
+<script type="text/javascript">
+$(".section").height(document.body.clientHeight - 80);
+window.history.forward(1);  // 产生一个“前进”的动作，以抵消浏览器后退功能
+
+
+// 嵌入微信扫码登录
+var host = "https://wms.boudata.com";
+if( location.origin == host ) {
+    var appID = "wx773bbcc8cfc29cea";
+    new WxLogin({
+        self_redirect: false,
+        id: "wxscancode", 
+        appid: appID, 
+        scope: "snsapi_login", 
+        redirect_uri: encodeURIComponent(host + "/tss/scanlogin.in?appid=" + appID),
+        state: new Date().getTime(),
+        style: "white",
+        href: encodeURIComponent(host + "/tss/css/wx.css")
+    });
+
+    if( tssJS.Query.get("tag") == 'wxscanfail') {
+        $(".tip").html('请先登录【卜数WMS】小程序，或用密码登录后【绑定微信】');
+    }
+}
+else {
+    $("#wxscancode").hide();
+    $(".tip").text("");
+}
+
+// 默认进来先做一次登出
+$.ajax({
+    url : "/tss/logout.in",
+    method : "GET"
+});
+
+function goLogin() {
+	$(".tip").text("");
+
+	var $el = $("#loginName");
+	if( $el.value() ) {
+	  $1("loginName").onblur();
+	  $("#password").focus();
+	} else {
+	  $el.focus()
+	}
+}
+
+function hidePasswd(switchEL, pwdEL) {  
+	var switchImg = $1(switchEL);  
+	var passwdEL = $1(pwdEL);  
+	if (passwdEL.type == "password") {  
+	  passwdEL.type = "text";  
+	  switchImg.src = "images/visible_n.png";  
+	  switchImg.title = "隐藏密码";
+	} else {  
+	  passwdEL.type = "password";  
+	  switchImg.src = "images/visible_y.png";  
+	  switchImg.title = "显示密码";
+	}  
+}  
+
+URL_CHECK_USER = "/tss/getLoginInfo.in";
+var indexPage  = "bi.html";    /* 登录成功后跳转到的页面 */
+
+$.alert = function(msg) {
+	$(".tip").html(msg);
+}
+
+setTimeout( function() {
+    if(window.parent && window.parent != window.self) {
+        window.parent.location.href = location.href;
+    }
+}, 300 );
+
+function gotoIndex(loginName) {
+    if(window.parent && window.parent != window.self) {
+        window.parent.location.href = indexPage;
+    } else {
+        window.location.href = indexPage;
+    }
+}
+
+function forget() {
+    location.href = "modules/um/_forget.html";
+}
+
+$(function() {     
+     init();
+});
+
+var timer;
+function init() {
+    var accountEl = $1("loginName"), passwdEl  = $1("password");
+    accountEl.onfocus = function() {  passwdEl.disabled = true; }
+    accountEl.value = $.Cookie.getValue("iUser") || "";
+    accountEl.focus();
+
+    $("#bt_login").click ( function() {
+        doLogin(accountEl, passwdEl);
+    } );
+
+    $.Event.addEvent(document, "keydown", function(ev) {
+        if(13 == ev.keyCode) { // enter
+            $.Event.cancel(ev);
+            $("#bt_login").focus();
+
+            setTimeout(function() {
+                doLogin(accountEl, passwdEl);
+            }, 10);
+        }
+    });
+
+    accountEl.onblur = function() { 
+        timer = setTimeout(function(){
+            var value = $(accountEl).value();
+            if( !value )  return $(accountEl).focus();
+            
+            $.ajax({
+                url: URL_CHECK_USER,
+                params: {"loginName": value},
+                waiting: true,
+                onexcption: function() {
+                    accountEl.focus();
+                },
+                onresult: function(){
+                    accountEl.identifier = this.getNodeValue("identifier");
+                    accountEl.randomKey  = this.getNodeValue("randomKey");
+                    
+                    passwdEl.disabled = false;
+                    passwdEl.focus();
+                    $(".tip").text("");
+                }
+            });
+
+        }, 200);
+    }
+}
+
+var chrome_url = "http://boubei-file.oss-cn-hangzhou.aliyuncs.com/chrome71_win64.exe";
+
+var isMac = /macintosh|mac os x/i.test( navigator.userAgent.toLowerCase() );
+if( isMac ) {
+    chrome_url = "http://boubei-file.oss-cn-hangzhou.aliyuncs.com/googlechrome.dmg";
+    $(".bz>a").attr("href", chrome_url);
+}
+
+var doLogin = function(accountEl, passwdEl) {
+    if( tssJS.supportES6 === 'no' || (!tssJS.isChrome && !tssJS.isSafari)) { //  控制只能 chrome 登录系统
+        $(".tip").html('当前浏览器版本较旧，点击【 <a href="' +chrome_url+ '" target="_blank">Chrome谷歌浏览器</a> 或 <a href="https://www.google.cn/intl/zh-CN_ALL/chrome/" target="_blank">Chrome官网</a>】下载，以获得更流畅体验！');
+        return;
+    }
+    // 检测是否支持Cookie
+    if( !window.navigator.cookieEnabled ) {
+        $(".tip").html('当前浏览器禁用Cookie，无法登陆系统，点击【 <a href="' +chrome_url+ '" target="_blank">Chrome谷歌浏览器</a> 或 <a href="https://www.google.cn/intl/zh-CN_ALL/chrome/" target="_blank">Chrome官网</a>】下载，以获得更流畅体验！');
+        return;
+    }
+
+    var identifier = accountEl.identifier;
+    var randomKey  = accountEl.randomKey;   
+    var loginName  = accountEl.value;
+    var password   = passwdEl.value;
+    
+    if( !loginName ) {
+        return $(accountEl).focus();
+    } 
+    else if( !password ) {
+        return $(passwdEl).focus();
+    }
+    else if( !identifier ) {
+        return $.alert("系统无法登录，服务器异常，请刷新或稍后再尝试");
+    }
+
+    $.ajax({
+        url: "/tss/auth/login.do",
+        waiting: true,
+        headers : {
+            "loginName": $.encode(loginName.trim(), randomKey), 
+            "password":  $.encode(password.trim(), randomKey), 
+            "identifier": identifier
+        },
+        params: { 
+          "_password": hex_md5(password)
+        },
+        onexception: function(errorMsg) {
+            if( (errorMsg.msg||"").indexOf("账号或密码错误") >= 0 && (errorMsg.msg||"").indexOf(loginName) < 0 ) {
+                location.href = 'login.html'; // 登录页面长期未刷新，验证随机数失效
+            } else {
+                passwdEl.focus();
+            }
+        },
+        onsuccess: function() {
+            $.Cookie.setValue("iUser", loginName);
+            gotoIndex(loginName);   
+        }
+    });
+}
+
+</script>
+</html>

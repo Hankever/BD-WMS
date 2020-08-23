@@ -1,0 +1,22 @@
+<rule>
+
+    <step index="1" rule="pk-rule1">
+    	<include>ALL.OIs</include>
+    </step>
+    
+    <subwave name="DanPX">
+     	<sql>
+       	  select pkd.id
+          from wms_order so, wms_order_item oi, wms_operation_item pkd
+          where so.id = oi.order_id and oi.id = pkd.orderItem_id 
+          	and pkd.id in (select id from TBL_TEMP_) 
+          	and so.skus = 1
+        </sql>
+    </subwave>
+	
+	<subwave name="DuoPX">
+    	<include>ALL.PKDs</include>
+    	<exclude>DanPX.PKDs</exclude>
+    </subwave>
+
+</rule>

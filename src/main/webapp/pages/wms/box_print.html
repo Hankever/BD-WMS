@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>封箱单打印</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/common/JsBarcode.all.min.js"></script>
+
+<STYLE type="text/css">
+
+table { border-collapse: collapse; border-spacing: 0; table-layout:fixed; }
+img { margin-top: 2px; width: 150px; height: 50px; }
+
+.bitable { width: 100%; height: auto; }
+.bitable tr { height: 18pt; }
+.bitable td { text-align: center; vertical-align: middle; border-bottom: 1px dashed #ccc; }
+.bitable thead {
+  background: linear-gradient(#f9f9f9 0px, #efefef 100%) repeat-x;
+}
+.bitable tbody { background-color: #fff; }
+.bitable tbody td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
+  white-space: nowrap;
+  height: 28px;
+}
+
+#t1 thead tr:nth-child(1) { height: 1px; }
+#t1 thead tr th:nth-child(odd)  { width: 70px; }
+/*#t1 thead tr th:nth-child(6) { width: 160px; }*/
+#t1 tbody tr td:nth-child(odd)  { text-align: right; }
+
+
+#t1 h2 { height: 50pt; padding-top: 10pt; display: inline-block; }
+#t1 h2 span { font-size: 12pt; letter-spacing: 3px; }
+
+#d1 { margin-top: 6pt; }
+body>.template { display: none; }
+
+/* 清单隔离线 */
+.template tbody tr>td { border-bottom: 1px dashed #ccc; }
+
+td, th { font-size: 6pt; }
+@media print {
+	#b1 { display: none; } 
+	td, th { font-size: 6pt; }
+	#d1>table  { page-break-after: always; }
+	#d1>table:last-child  { page-break-after: avoid; }
+}
+
+#b1 { font-size: 15px; padding: 5px 15px; }
+		 
+</STYLE>
+
+<script type="text/javascript">
+
+$(function(){
+	$("#t1 h2>span").text(document.title);
+	document.title = ".";
+	
+	showOuterData();
+});
+
+// 显示外部传入的数据
+var globalV, params;
+function showOuterData() {
+	globalV = window.parent.globalV;
+	if(globalV && globalV.data) {
+		params = globalV.params || {};
+		show(globalV.data);
+	}
+}
+
+function show(data) {
+	$("#b1").click( function() {
+		preview();
+		tssJS.post("/tss/api/log", {table: "打印日志", code: "箱码", content: globalV.box.boxno + " : " + data.length});
+	 });
+
+	var box = globalV.box;
+	$("#t1 tbody tr:nth-child(2) td:nth-child(2)").html( '<img id="boxno" />' );
+	$("#t1 tbody tr:nth-child(2) td:nth-child(4)").html( '<img id="orderno" />' );
+	$("#t1 tbody tr:nth-child(2) td:nth-child(6)").text( new Date().format("yyyy-MM-dd hh:mm") );
+	$("#remark").text( box.remark ).css("text-align", "left").css("padding-left", "20px");
+
+	JsBarcode("#boxno", box.boxno, {
+		height: "40px",
+      	fontSize: 20,
+      	font: "Sans-serif"
+    });
+    JsBarcode("#orderno", box.boxno.split('-')[0], {
+		height: "40px",
+      	fontSize: 20,
+      	font: "Sans-serif"
+    });
+
+	var tos = [];
+	var table;
+	data.each(function(i, item) {
+		for(var key in item){
+			item[key] = item[key] || ''
+		}
+		if( i == 0 ) {
+			table = $("body>.template")[0].cloneNode(true);
+			$("#d1").appendChild(table);
+		}
+
+		var barcode = item["barcode"] || item.skucode;
+		var skuDesc = item.skuname + " " + (item.guige||'');
+		if( item.uom ) {
+			skuDesc += "(" +item.uom+ ")";
+		}
+
+		var index = 0;
+		var lotatts = [];
+		item.invstatus && lotatts.push(item.invstatus);
+		item.createdate && lotatts.push(item.createdate);
+		item.expiredate && lotatts.push(item.expiredate);
+		item.lotatt01 && lotatts.push(item.lotatt01);
+		item.lotatt02 && lotatts.push(item.lotatt02);
+
+		var row = tssJS.createElement("tr");
+		tssJS(row).html("<td/><td style='white-space: inherit;'/><td/><td/><td/><td/><td/><td/><td/>");
+		tssJS("td:nth-child(" +(++index)+ ")", row).html( '' );
+		tssJS("td:nth-child(" +(++index)+ ")", row).html( skuDesc );
+		tssJS("td:nth-child(" +(++index)+ ")", row).html( '<img id="img' +i+ '"/>' );
+		tssJS("td:nth-child(" +(++index)+ ")", row).html( lotatts.join(",") );
+		tssJS("td:nth-child(" +(++index)+ ")", row).html( item.qty );
+		tssJS("td:nth-child(" +(++index)+ ")", row).html( item.price );
+		tssJS("td:nth-child(" +(++index)+ ")", row).html( item.money );
+ 
+		tssJS("tbody", table).appendChild(row);
+
+		JsBarcode("#img" + i, barcode, {
+			height: "35px",
+	      	fontSize: 20,
+	      	font: "Sans-serif"
+	    });
+	});
+}
+
+function preview() { 
+	window.print(); 
+} 
+
+</script>
+
+</head>
+
+<body>
+<!--startprint-->
+   <table id="t1" class="bitable">
+   		<thead>
+   			<tr>
+   				<th/><th/><th/><th/><th/><th/>
+   			</tr>
+   		</thead>
+   		<tbody>
+	   		<tr>
+	   			<td colspan="6" style="text-align: center;">
+	   				<h2>
+	   					<span></span>&nbsp;&nbsp;
+	   					<button id="b1" class="tssbutton orange">打 印</button>
+	   				</h2>
+	   			</td>
+	   		</tr>	   		
+	   		<tr>
+	   			<td>箱号：</td>
+	   			<td></td>
+	   			<td>订单号：</td>
+	   			<td></td>
+	   			<td>打印时间：</td>
+	   			<td></td>
+	   		</tr>
+	   		<tr>
+	   			<td>订单备注：</td>
+	   			<td colspan="5" id="remark"></td>
+	   		</tr>
+   		</tbody>
+   </table>
+
+   <div id="d1"></div>
+
+<!--endprint-->
+<table class="bitable template">
+	<thead>
+		<tr>
+			<th width="0px"></th>
+			<th width="22%">货品名称</th>	
+			<th width="22%">货品条码</th>
+			<th width="22%">批次</th>
+			<th width="10%">数量</th>
+			<th width="10%">单价</th>
+			<th width="12%">金额</th>
+		</tr>
+	</thead>
+	<tbody>
+	</tbody>
+</table>
+
+</body>
+</html>

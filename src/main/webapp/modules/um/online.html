@@ -1,0 +1,122 @@
+<!DOCTYPE HTML>
+<HTML xmlns:WorkSpace xmlns:Tree xmlns:Grid>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>在线用户</title>
+
+<link href="../../tools/tssJS/css/boubei.css" rel="stylesheet">
+<link href="../../tools/tssJS/fonts/icons.css" rel="stylesheet" >
+<link href="../../css/css.css" rel="stylesheet">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssUtils.js"></script>
+<script src="../../tools/portlet.js"></script>
+
+
+<style type="text/css">
+.white { color: #333; height: 16px; border: 1px solid #999; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1); }
+.white:hover { background-color: inherit; border-left: 1px solid #000; border-right: 1px solid #000; background-color: #eee;  }
+#gridTitle .small { background: inherit; margin: 0px 1px; border-top: 0px; border-bottom: 0px; }
+#gridTitle .small:hover { background-color: #eee; }
+</style>
+
+<SCRIPT type="text/javascript">
+<!--  
+    /* XMLHTTP请求地址汇总 */
+    URL_USER_ONLINE = AUTH_PATH + "user/online";
+
+	if(IS_TEST) {
+		URL_USER_ONLINE = "data/message_list.xml?";
+	}
+	
+    /* 页面初始化 */
+    $(function() {
+
+		loadGridData(); 
+
+		var item1 = {
+			label:"踢掉",
+			callback: function() {
+				deleteOU();
+			},
+			icon: "icon icon-x"
+		}
+		var item2 = {
+			label:"切换账号",
+			callback: function() {
+				su();
+			},
+			icon: "icon icon-sign-out",
+			visible:function() { 
+				var grid = $.G("grid");
+				var sessionId = grid.getColumnValue("sessionId"),
+					user      = grid.getColumnValue("user"),
+					sessionId_in_cookie = $.Cookie.getValue("JSESSIONID");
+				return user === '系统管理员' && sessionId === sessionId_in_cookie;
+			}
+		}
+
+		var menu = new $.Menu();
+		menu.addItem(item1);
+		menu.addItem(item2);
+		$1("grid").contextmenu = menu;
+
+    });
+
+    /* grid加载数据  */
+    function loadGridData() {
+		$.showGrid(URL_USER_ONLINE, "ItemList", deleteOU, "grid", 1, {});
+    }
+
+    function deleteOU() {
+    	var sessionId = $.G("grid").getColumnValue("sessionId"); 
+
+    	sessionId && $.confirm("您确定要踢掉该登录用户吗？", "确认踢掉", function(){
+	        $.ajax({
+				url: URL_USER_ONLINE,
+				params: {"ids": sessionId},
+				method: "DELETE"
+			});
+
+			$.G("grid").deleteSelectedRow();
+	    }); 	
+    }
+
+	function deleteOUs() {
+		var sessionIds = $.G("grid").getCheckedRowsValue("sessionId");
+	    if(!sessionIds || sessionIds.length == 0) return alert("你没有选中任何记录，请勾选后再进行批量操作。");
+
+	    $.confirm("您确定要踢掉选中的登录用户吗？", "确认踢掉", function(){
+			$.ajax({
+		        url: URL_USER_ONLINE,
+		        method: "DELETE",
+		        params: {"ids": sessionIds},
+		        ondata: function() { 
+		            loadGridData(); // 刷新Grid
+		        }
+		    });
+	    }); 	
+	}
+
+//-->
+</SCRIPT>
+
+</head>
+
+<body>
+
+<table style="min-height:500px">
+	<tr>
+		<td id="gridTitle">
+		  <span class="icon"></span>在线用户列表<span class="buttonBox" id="gridToolBar"></span>
+		  <button class="tssbutton small white" style="margin-left: 30px;" onclick="deleteOUs()"><span class="icon-x"></span>批量踢掉</button>
+		</td>
+	</tr>
+	<tr>
+		<td id="gridContainer"><Grid id="grid"></Grid></td>
+	</tr>
+</table>
+	 
+</body>
+</html>

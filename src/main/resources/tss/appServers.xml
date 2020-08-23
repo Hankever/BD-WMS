@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<servers>
+	<server code="TSS" framework="tss" name="TSS" sessionIdName="JSESSIONID" baseURL="http://localhost:8088/tss"/>
+</servers>

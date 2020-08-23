@@ -1,0 +1,325 @@
+<!DOCTYPE HTML>
+<HTML xmlns:Tree xmlns:Grid>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>缓存管理</title>
+
+<link href="../../tools/tssJS/css/boubei.css" rel="stylesheet">
+<link href="../../tools/tssJS/fonts/icons.css" rel="stylesheet" >
+<link href="../../css/css.css" rel="stylesheet">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssUtils.js"></script>
+
+<style>
+
+.panel { border-top: 0; }
+
+#poolHitRate { left: 60px; top: 4px; font-weight: bold; }
+#poolHitRate:hover { cursor: pointer; }
+#poolsGrid td>b { color: blue; font-size: 16px; }
+#poolsGrid td[title="停用"] { color: red; font-weight: bold; }
+#btbox { margin-left: 60px; display: inline-block; }
+#btbox>span { font-size: 16px; vertical-align: middle; cursor: pointer; color: blue; }
+.refreshTreeBT { font-size: 14px; width: 16px; height: 16px; cursor: pointer; vertical-align: middle; }
+.refreshTreeBT:hover { color: blue; font-size: 15px; }
+  
+</style>
+
+<script type="text/javascript">
+
+	/* 后台响应数据节点名称  */
+	XML_MAIN_TREE = "CacheTree";
+	XML_MAIN_GRID = "PoolGrid";
+	XML_HIT_RATE  = "HitRate";
+	XML_CACHE_ITEMS = "CacheItemList";
+	XML_CACHE_STRATEGY  = "CacheStrategy";
+
+	/* XMLHTTP请求地址汇总  */
+	URL_INIT_TREE    = NO_AUTH_PATH + "cache/list";
+	URL_INIT_GRID    = NO_AUTH_PATH + "cache/grid";
+	URL_CACHE_DETAIL = NO_AUTH_PATH + "cache/list/";
+	URL_CACHE_EDIT   = NO_AUTH_PATH + "cache";
+	URL_CACHE_CLEAR  = NO_AUTH_PATH + "cache/release";
+	URL_CACHE_INIT   = NO_AUTH_PATH + "cache/init/";
+	URL_VIEW_ITEM    = NO_AUTH_PATH + "cache/item";
+	
+	if(IS_TEST) {
+		URL_INIT_TREE    = "data/cache_tree.xml?";
+		URL_INIT_GRID    = "data/cache_grid.xml?";
+		URL_CACHE_DETAIL = "data/cache1.xml?";
+		URL_CACHE_EDIT   = "data/_success.xml?";
+		URL_CACHE_CLEAR  = "data/_success.xml?";
+		URL_CACHE_INIT   = "data/_success.xml?";
+		URL_VIEW_ITEM    = "data/item.xml?";
+	}	
+
+	/*页面初始化 */
+	function init() {
+		initMenus();
+		initEvents();
+
+		closePalette();
+		openPalette = null;
+		$("div.leftbar").hide();
+
+		var panel = $.createElement("div", "panel", "cacheStrategyDiv");
+    	document.body.appendChild(panel);   	
+    	$panel = $(panel);
+    	$panel.css("width", "580px").css("height", "350px").center().hide();
+	    $panel.panel("维护缓存策略", '<div id="cacheStrategy"></div><div class="bts"><button class="tssbutton blue medium" onclick="editCacheStrategy()">保存策略</button></div>', false);
+
+		loadInitGrid();
+		$(".refreshTreeBT").click( loadInitGrid );
+
+		window.setInterval(function() {
+			if( !$("#poolHitRate").html() ) {
+				loadInitGrid();
+			}
+		}, 1000 * 60);  // 每60秒刷新一次
+	}
+
+	// 初始化缓存池Grid
+	function loadInitGrid() {
+		$.ajax({
+			url : URL_INIT_GRID, 
+			onresult : function() {
+				$.G("poolsGrid", this.getNodeValue(XML_MAIN_GRID)); 
+				$("#poolHitRate").html("");	
+				$("#btbox, #gridToolBar").hide();
+
+				initMenus();
+				currCode = currName = null;
+			}
+		});
+	}
+
+	var currCode, currName;
+	function initMenus() {
+		// 只有管理员能管理缓存池
+		if( !(window.parent.roles||[-1]).contains(-1) ) return;
+
+		var item1 = {
+			label:"查看缓存池明细",
+			callback: function() { showCachePools(); },
+			icon:"icon icon-list-ordered"
+		}
+		var item2 = {
+			label:"重置缓存池",
+			callback: function() { resetCache(); },
+			icon:"icon icon-sync"
+		}
+		var item3 = {
+			label:"维护缓存策略",
+			callback: function() { showCachePools(1, true); },
+			icon:"icon icon-pencil"
+		}
+
+		var menu = new $.Menu();
+		menu.addItem(item1);
+		menu.addItem(item2);
+		menu.addItem(item3);
+
+		var gridEl = $1("poolsGrid");
+		gridEl.contextmenu = menu;
+
+		gridEl.onRightClickRow = function() {
+			gridEl.contextmenu.show(event.clientX, event.clientY);
+		}
+	}
+
+	function getPoolCode() {
+		var grid = $.G("poolsGrid");
+		currCode = grid.getColumnValue("code");  
+		currName = grid.getColumnValue("name");  
+
+		return currCode;
+	}
+ 
+	/* 清空并重新初始化缓存池  */
+	function resetCache(code) {
+		hideStrategy();
+
+		code = code || getPoolCode();  
+		$.ajax({
+			url : URL_CACHE_CLEAR + "/" + code,
+			onsuccess : function() {
+				initCache(code);
+			}
+		});
+	}
+
+	/* 初始化缓存池  */
+	function initCache(code) {
+		$.ajax({
+			url : URL_CACHE_INIT + code,
+			onsuccess : function() {
+				showCachePools();
+			}
+		});
+	}
+
+	/*
+	 *	缓存池详细信息 
+	 *	参数：string: page              页码
+			 boolean: isShowStrategy   false: 只刷新grid列表
+	 */
+	function showCachePools(page, isShowStrategy) {
+		var code = currCode || getPoolCode();  
+		var name = currName;
+
+		$.ajax({ 
+			url: URL_CACHE_DETAIL + code, 
+			onresult: function() {
+				var strategyXML = this.getNodeValue(XML_CACHE_STRATEGY);
+				if( strategyXML ) {
+					$.cache.XmlDatas["currentCacheInfo"] = strategyXML;
+					$.F("cacheStrategy", strategyXML);
+
+					isShowStrategy && showStrategy();
+				}
+
+				$.initGridToolBar($1("gridToolBar"), this.getNodeValue(XML_PAGE_INFO), function(page) {
+						showCachePools(page, false);
+					}
+				);
+
+				$.G("poolsGrid", this.getNodeValue(XML_CACHE_ITEMS));    
+				initGridMenuAndEvents();
+				
+				//设置点击率
+				var hitRateData = this.getNodeValue(XML_HIT_RATE);
+				var title = "『 " + name + " -- 命中率：" + hitRateData + " 』";
+				$("#poolHitRate").html(title).click( showStrategy );
+				$("#btbox, #gridToolBar").show();
+			}
+		});
+	}
+
+	function showStrategy() {
+        var $panel = $("#cacheStrategyDiv");
+    	$panel.show();
+    	$panel.find(".tssForm").css("padding", "8px 10px");
+    	$panel.find(".bts").css("padding", "0px 240px");
+    	$panel.find(".max").hide();
+        $panel.find(".min").hide();
+   	}
+
+   	function hideStrategy() {
+   		$("#cacheStrategyDiv").hide();
+   	}
+ 
+	/* Grid菜单初始化 */
+	function initGridMenuAndEvents() {
+		var item1 = {
+			label:"查看缓存项信息",
+			callback:showItemInfo,
+			icon:"icon icon-search"
+		}
+		var item2 = {
+			label:"清除缓存项",
+			callback:removeCacheItem,
+			icon:"icon icon-x"
+		}
+
+		var menu = new $.Menu();
+		menu.addItem(item1);
+		menu.addItem(item2);
+
+		var gridEl = $1("poolsGrid");
+		gridEl.contextmenu = menu;
+
+		gridEl.onRightClickRow = function() {
+			gridEl.contextmenu.show(event.clientX, event.clientY);
+		}
+	}
+
+	/* 查看缓存项信息  */
+	function showItemInfo() { 
+		var itemKey = $.G("poolsGrid").getColumnValue("key");
+		var poolCode = currCode;
+
+		var url = URL_VIEW_ITEM + "/" + poolCode + "?key=" + itemKey;
+		window.open(url, "查看缓存项信息", "");
+	}
+
+	function removeCacheItem() {
+		var itemKey = $.G("poolsGrid").getColumnValue("key");
+		var poolCode = currCode;
+		$.ajax({
+			url : URL_VIEW_ITEM + "/" + poolCode + "?key=" + itemKey,
+			method : "DELETE",
+			onsuccess : function() {
+				 $.G("poolsGrid").deleteSelectedRow();
+			}
+		});
+	}
+	
+	function editCacheStrategy() {
+		hideStrategy();
+
+		var cacheInfo = $.cache.XmlDatas["currentCacheInfo"];
+		var dataNode = cacheInfo.querySelector("data");
+		var fieldNodes = dataNode.querySelectorAll("row *");
+        
+        var result = {};
+        $.each(fieldNodes, function(i, node) {
+        	result[node.nodeName] = $.XML.getText(node);
+        });
+ 
+		var jsonData = JSON.stringify(result);
+		$.ajax({
+			url: URL_CACHE_EDIT,
+			method: "POST",
+			params:{"cacheCode": result.code , "jsonData":jsonData},
+			onsuccess: function() {
+				loadInitGrid();
+			}
+		});	
+	}
+
+	window.onload = init;
+
+</script>
+
+</head>
+
+<body>
+
+<!-- 版面 开始 -->
+<table class="panel">
+  <tr class="header"> <td/><td/><td/><td/> </tr>
+  <tr class="body"> 
+	<td/>
+	<td id="palette">
+	</td>
+	<td class="groove">
+		<table>
+			<tr> 
+				<td id="gridTitle">
+					<span class="icon"></span>缓存池
+					<span class="refreshTreeBT"></span>
+					<span id="poolHitRate"></span>
+					<span class="buttonBox" id="gridToolBar"></span>
+					<span id="btbox">
+					  	<span class="icon-arrow-left" title="返 回" onclick="loadInitGrid()"/>&nbsp;&nbsp;&nbsp;&nbsp;
+					  	<span class="icon-trashcan" title="重 置" onclick="resetCache(currCode)"/>
+					</span>
+				</td> 
+			</tr>
+			<tr> 
+				<td id="gridContainer"> 
+					<Grid id="poolsGrid"></Grid> 
+				</td> 
+			</tr>
+		</table>                            
+	</td>
+	<td/>
+  </tr>
+  <tr class="footer"> <td/><td/><td/><td/> </tr>
+</table>
+<!-- 版面 结束 -->
+
+</body>
+</html>

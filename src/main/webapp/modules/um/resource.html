@@ -1,0 +1,253 @@
+<!DOCTYPE HTML>
+<HTML xmlns:Tree xmlns:Grid>   
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title> 应用资源信息 </title>
+<link href="../../tools/tssJS/css/boubei.css" rel="stylesheet">
+<link href="../../tools/tssJS/fonts/icons.css" rel="stylesheet" >
+<link href="../../css/css.css" rel="stylesheet">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssUtils.js"></script>
+
+<style>
+    .groove { background-color:white; height: 100%; vertical-align: top; }
+    .groove .tssForm { padding-left: 10px; padding-top: 10px; }
+</style>
+
+<SCRIPT type="text/javascript">
+<!--
+
+    /* 后台响应数据节点名称 */
+    XML_MAIN_TREE          = "AppSource";
+    XML_APPLICATION_DETAIL = "AppDetail";
+    XML_SOURCE_TYPE_INFO   = "ResourceTypeDetail";
+
+    /* XMLHTTP请求地址汇总 */
+    URL_INIT          = AUTH_PATH + "resource/apps";
+    URL_APP_DETAIL    = AUTH_PATH + "resource/app/";
+    URL_SAVE_APP      = AUTH_PATH + "resource/app"; // POST
+    URL_RESOURCE_TYPE = AUTH_PATH + "resource/resourceType/";
+
+    if (IS_TEST) {
+        URL_INIT = "data/resource_tree.xml?";
+        URL_APP_DETAIL = "data/application.xml?";
+        URL_SAVE_APP = "data/_success.xml?";
+        URL_RESOURCE_TYPE = "data/resourcetype.xml?";
+    }
+
+    function init() {
+        initMenus();
+        initEvents();
+
+        loadInitData();
+    }
+
+    function initMenus() {
+        var item1 = {
+            label: "查看",
+            callback: function() {
+                editTreeNode(false);
+            },
+            icon:"icon icon-search",
+            visible: function() {
+                return "2" == getNodeType();
+            }
+        }
+        var item2 = {
+            label: "编辑",
+            callback: editTreeNode,
+            icon:"icon icon-pencil",
+            visible: function() {
+                return checkTreeNodeEditable();
+            }
+        }
+        var item3 = {
+            label: "新建应用",
+            icon:"icon icon-plus",
+            callback: function() {
+                getOtherApplication(true);
+            },
+            visible: function() {
+                return "-2" == getTreeNodeId();
+            }
+        }
+        var item4 = {
+            label: "导入",
+            callback: importApplication,
+            icon:"icon icon-file-symlink-file",
+            visible: function() {
+                return "1" == getNodeType() && "tssApp-1" == getTreeNodeId();
+            }
+        }
+
+        var menu = new $.Menu();
+        menu.addItem(item1);
+        menu.addItem(item2);
+        menu.addItem(item3);
+        menu.addItem(item4);
+        $1("tree").contextmenu = menu;
+    }
+
+    function loadInitData() {
+        $.ajax({
+            url: URL_INIT,
+            onresult: function() {
+                var tree = $.T("tree", this.getNodeValue(XML_MAIN_TREE));
+                tree.onTreeNodeDoubleClick = function(ev) {
+                    var editable = checkTreeNodeEditable();
+                    editTreeNode(editable);
+                }
+                tree.onTreeNodeRightClick = function(ev) {
+                    onTreeNodeRightClick(ev);
+                }
+            }
+        });
+    }
+
+    // 平台应用不能编辑
+    function getOtherApplication(isCreate, treeID) {
+        treeID = treeID || (isCreate ? DEFAULT_NEW_ID: getTreeNodeId());
+        $.ajax({
+            url: URL_APP_DETAIL + treeID,
+            method: "GET",
+            onresult: function() {
+                var appDetailNode = this.getNodeValue(XML_APPLICATION_DETAIL);
+                $.cache.XmlDatas[treeID] = appDetailNode;
+
+                var xform = $.F("page1Form", appDetailNode);
+                $("#appSaveBt").click( function() {
+                    saveApp(treeID);
+                });
+            }
+        });
+    }
+
+    function saveApp(treeID) {
+        var xform = $.F("page1Form");   
+        if( !xform.checkForm() ) {
+            return;
+        }
+
+        var request = new $.HttpRequest();
+        request.url = URL_SAVE_APP;
+
+        var appInfoNode = $.cache.XmlDatas[treeID];
+        var dataNode = appInfoNode.querySelector("data");
+        request.setFormContent(dataNode);
+
+        syncButton([$1("appSaveBt")], request); // 同步按钮状态
+
+        request.onresult = function() { // 新增
+            var xmlNode = this.getNodeValue(XML_MAIN_TREE).querySelector("treeNode");
+            appendTreeNode("-2", xmlNode);
+            $.alert("新建成功");
+
+            getOtherApplication(false, xmlNode.getAttribute("id"));
+        }
+        request.onsuccess = function() { // 修改，更新树节点名称
+            var name = xform.getData("name");
+            modifyTreeNode(treeID, "name", name);
+            getOtherApplication(false);
+        }
+        request.send();
+    }
+
+    function viewResourceType() {
+        $.ajax({
+            url: URL_RESOURCE_TYPE + getTreeNodeId(),
+            method: "GET",
+            onresult: function() {
+                var typeInfoNode = this.getNodeValue(XML_SOURCE_TYPE_INFO);
+                var form = $.F("page1Form", typeInfoNode);
+                form.editable = "false";
+            }
+        });
+    }
+
+    function getNodeType() {
+        return getTreeAttribute("nodeType");
+    }
+
+    function getApplicationType() {
+        return getTreeAttribute("applicationType");
+    }
+
+    /* 检测树节点是否可编辑, 目前只允许编辑其他系统的配置 */
+    function checkTreeNodeEditable() {
+        var flag = false;
+        switch (getNodeType()) {
+        case "1":
+            if (getApplicationType() == "-2" && getTreeNodeId() != "-2") {
+                flag = true;
+            }
+            break;
+        case "2":
+        case "3":
+            flag = false;
+            break;
+        }
+        return flag;
+    }
+
+    function editTreeNode(editable) {
+        switch (getNodeType()) {
+        case "1":
+            if (editable) {
+                getOtherApplication(false);
+            }
+            break;
+        case "2":
+            viewResourceType();
+            break;
+        }
+    }
+
+    function importApplication() {
+        function checkFileWrong(subfix) {
+            return subfix != ".xml";
+        }
+
+        var url = URL_UPLOAD_FILE + "?afterUploadClass=com.boubei.tss.um.servlet.ImportAppConfig";
+        var importDiv = createImportDiv("只支持XML文件格式导入", checkFileWrong, url);
+        $(importDiv).show();
+    }
+
+    window.onload = init;
+    
+//-->
+</SCRIPT>
+</head>
+
+<body>
+    <table class="panel">
+        <tr class="header">
+            <td/><td/><td/><td/>
+        </tr>
+        <tr class="body">
+            <td/>
+            <td id="palette">
+                <div>
+                    <div class="bar">
+                        <span class="icon"></span>
+                        应用资源
+                        <span class="refreshTreeBT"></span>
+                    </div>
+                    <Tree id="tree">
+                        <div class="loading"></div>
+                    </Tree>
+                </div>
+            </td>
+            <td class="groove">
+                <div id="page1Form" style="background-color:#fff;padding:3px;"></div>
+            </td>
+            <td/>
+        </tr>
+        <tr class="footer">
+            <td/><td/><td/><td/>
+        </tr>
+    </table>
+</body>
+
+</html>

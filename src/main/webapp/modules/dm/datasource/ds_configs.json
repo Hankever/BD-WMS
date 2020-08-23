@@ -1,0 +1,47 @@
+[
+    {
+        "id": 82,
+        "code": "taskpool",
+        "name": "日志输出任务池",
+        "value": "{\"visible\":\"1\",\"customizerClass\":\"com.boubei.tss.modules.log.LogOutputTaskPoolCustomizer\",\"initNum\":\"50\",\"poolContainerClass\":\"com.boubei.tss.cache.MapContainer\",\"code\":\"taskpool\",\"cyclelife\":\"1000\",\"accessMethod\":\"3\",\"poolClass\":\"com.boubei.tss.cache.ReusablePool\",\"name\":\"日志输出任务池\",\"interruptTime\":\"200\",\"poolSize\":\"1000\",\"disabled\":\"0\"}",
+        "text": null,
+        "modality": 0,
+        "type": 1,
+        "description": null,
+        "parentId": 72,
+        "disabled": 0,
+        "udf1": null,
+        "udf2": null,
+        "udf3": null
+    },
+    {
+        "id": 83,
+        "code": "connpool-oracle",
+        "name": "DB连接池-oracle",
+        "value": "{\n    \"customizerClass\": \"com.boubei.tss.framework.persistence.connpool.ConnPoolCustomizer\",\n    \"poolClass\": \"com.boubei.tss.cache.ReusablePool\",\n    \"code\": \"connpool-wms\",\n    \"name\": \"DB连接池-WMS\",\n    \"cyclelife\": \"180000\",\n    \"paramFile\": \"oracle.jdbc.driver.OracleDriver,jdbc:oracle:thin:@(DESCRIPTION = (ADDRESS = (PROTOCOL = TCP)(HOST = 192.168.0.139)(PORT = 1521)) (CONNECT_DATA = (SERVER = DEDICATED) (SERVICE_NAME = wms))),wms,123456\",\n    \"interruptTime\": \"1000\",\n    \"initNum\":\"0\",\n    \"poolSize\": \"10\"\n}",
+        "text": null,
+        "modality": 0,
+        "type": 1,
+        "description": null,
+        "parentId": 72,
+        "disabled": 0,
+        "udf1": null,
+        "udf2": null,
+        "udf3": null
+    },
+    {
+        "id": 75,
+        "code": "connpool-mysql",
+        "name": "DB连接池-MySQL",
+        "value": "{\"paramFile\":\"com.mysql.jdbc.Driver,jdbc:mysql://192.168.0.30:3306/wmsdata,wmsdata,123456\",\"visible\":\"1\",\"poolClass\":\"com.boubei.tss.cache.ReusablePool\",\"accessMethod\":\"3\",\"name\":\"DB连接池-MySQL\",\"poolSize\":\"10\",\"interruptTime\":\"1000\",\"initNum\":\"0\",\"customizerClass\":\"com.boubei.tss.framework.persistence.connpool.ConnPoolCustomizer\",\"poolContainerClass\":\"com.boubei.tss.cache.MapContainer\",\"code\":\"connpool-mysql\",\"disabled\":\"0\",\"cyclelife\":\"180000\"}",
+        "text": null,
+        "modality": 0,
+        "type": 1,
+        "description": null,
+        "parentId": 72,
+        "disabled": 0,
+        "udf1": null,
+        "udf2": null,
+        "udf3": null
+    }
+]

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>我的账户</title>
+
+	<link rel="stylesheet" href="../../css/easyui.css">
+    <link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+    <link rel="stylesheet" href="_.css">
+
+	<script src="../../tools/tssJS/tssJS.js"></script>
+	<script src="../../tools/easyui/jquery.min.js"></script>
+    <script src="../../tools/easyui/jquery.easyui.min.js"></script>
+    <script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+	<script src="_.js"></script>
+</head>
+<style type="text/css">
+
+	.user-account > div{
+		margin-top: 20px;
+		border-bottom: 1px solid #eee;
+	}
+	
+	.money { color: #F00; font-size: 14px; }
+	.title { color: #729ded; }
+	ul { list-style:none; }
+	.user-account-list h2 { text-align: center; color: #555; }
+	.user-account-list > ul{ display: flex; flex-wrap: wrap; }
+	.user-account-list > ul > li {
+		background-color: #eee;
+		margin: 5px;
+		padding: 5px 22px 10px;
+	}
+	.user-account-list > ul > li.active { background-color: #fdf6b2; }
+	.user-account-list > ul > li.disable-assign .subauthorize-button { display: none; }
+	.user-account-list > ul > li > span { font-size: 10px; }
+	.user-account-list ul li div { font-size: 12px; color: #333;  }
+	.user-account-list ul li > div { display: flex; line-height: 15px; padding: 2px 0; }
+	.user-account-list ul li > div label { color: #888; }
+
+	#keyword { width: 100px; margin-left: 10px; }
+	
+	.subauthorize-button { float:right; display: none; }
+	.active .subauthorize-button { display: inline-block; margin-left: 15px; }
+	.active span { line-height: 18px; }
+
+	form { padding-bottom: 5px; }
+	form > input { width: 60px; }
+	form > span { font-size: 10px; color: orange; }
+
+	.assign { display:flex; flex-flow:row nowrap; }
+	.assign h3 { padding: 0 5px; font-size: 13px; margin: 8px 0; }
+	.assign li { margin: 2px 1px; }
+	.assign span { font-size: 13px; }
+	.assign > div { flex:1; }
+	.assign > div:nth-child(1) { border-right: 1px dashed #eee; margin-right: 10px; }
+	.assign > div > div{ padding-left: 5px; border-bottom: 1px dashed #eee; line-height: 30px;}
+	div.assign-role { flex: .7; }
+
+	.selectItem { display: inline-block; }
+	.assign-role .selectItem { width:120px;  }
+	.selectItem > span { 
+		overflow: hidden;
+		text-overflow: ellipsis;
+		word-break: break-all;
+		white-space: nowrap;
+		display: inline-block;
+	    width: 75px;
+	    vertical-align: middle;
+	}
+
+	.money-form { display: none; }
+	.money-form * {font-size: 18px;}
+
+</style>
+<body>
+	<div class="user-account">
+		<div class="user-account-balance">
+			<div class="title">资产信息</div>
+			<ul>
+				<li>
+					<span>充值余额</span>
+					<span class="superscript">¥</span>
+					<span class="money account-info-balance"></span>
+
+					<span style="margin-left: 10px;">赠送余额</span>
+					<span class="superscript">¥</span>
+					<span class="money account-info-balance_frozen"></span>
+
+					<button onclick="setMoney(this)" style="margin-left: 5px;">充值</button>
+				</li>
+			</ul>
+			<form id="rechargeForm" class="money-form" onsubmit="return false">
+				<span>请输入充值金额</span>
+				<input name="money_cal" autocomplete="off" oninput="value=value.replace(/[^\d]/g,'')" required />
+				<button type="submit">提交</button>
+			</form>
+		</div>
+		<div class="user-account-list">
+			<div class="title">我的账号<button onclick="location.href='index.html';" style="margin-left:10px;">购买新账号</button></div>
+			<ul></ul>
+			<form id="renewalfeeForm" class="money-form" onsubmit="return false">
+				<span>您已选择【<b id="device_num"></b>】个账号</span>
+				<span>请输入续费月数</span>
+				<input type="text" name="month_num" value="12" autocomplete="off" required /> &nbsp;&nbsp;
+				<button type="submit"> 提交 </button>
+			</form>
+		</div>
+
+		<div id="tt" class="easyui-tabs"  border="false" style="height: 400px;">
+		    <div title="我的订单" >
+		        <table id="t1" border="false"></table>
+		    </div>
+		    <div title="费用流水" >
+		        <table id="t2" border="false"></table>
+		    </div>
+		</div>
+	</div>
+</body>
+<script type="text/javascript">
+
+	//查询账户
+	function queryAccount(){
+		$.get(ACCOUNT, {}, function(account){
+			$('.account-info-balance').text(number_format(account.balance,2));
+			$('.account-info-balance_frozen').text(number_format(account.balance_freeze,2));
+		})
+	}
+
+	//充值
+	function setMoney(e){
+		$("#rechargeForm").show()
+	}
+	$("#rechargeForm").submit((e)=>{
+		$.post(MODULE_ORDER, {
+				type : 'com.boubei.tss.modules.cloud.pay.RechargeOrderHandler',
+				money_cal : $('input[name="money_cal"]').val()
+			} ,
+			function(moduleOrderBack){
+				if(moduleOrderBack.id){
+					queryOrder();  // 刷新我的订单
+					$("#rechargeForm").hide()
+					payOrder(moduleOrderBack.order_no, moduleOrderBack.money_cal, moduleOrderBack.product)
+				} else {
+					$.messager.alert("异常", moduleOrderBack.errorMsg);
+				}
+			}
+		);
+	})
+
+	//查询流水
+	function queryFlow() {
+		$('#t2').datagrid({
+			url: ORDER_FLOW,
+			fit: true,
+			rownumbers: true,
+			pagination: true,
+			pageSize: 100,
+			pageList: [100, 500, 1000],
+			remoteSort: true,
+			showFooter: true,
+			method: 'GET',
+			columns: [[
+				{ field: 'sn', title: '流水号', align: 'center', width: '11%' },
+				{ field: 'type', title: '费用类型', align: 'center', width: '8%' },
+				{ field: 'payment', title: '支付方式', align: 'center', width: '8%' },
+				{ field: 'order_no', title: '关联的订单号', align: 'center', width: '11%' },
+				{ field: 'money', title: '金额', align: 'right', width: '8%', formatter: formatterMoney },
+				{ field: 'balance', title: '余额（后）', align: 'right', width: '9%', formatter: formatterMoney },
+				{ field: 'balance_freeze', title: '冻结余额（后）', align: 'right', width: '9%', formatter: formatterMoney },
+				{ field: 'pay_time', title: '入账时间', align: 'center', width: '11%' },
+				{ field: 'pay_man', title: '操作人', align: 'center', width: '11%' },
+				{ field: 'remark', title: '备注', align: 'center', width: '11%' },
+			]],
+		})
+	}
+
+	//分配权限
+	function assign(sa_id, ownerId) {
+		//获取角色
+		function getRoles(callback) {
+			$.get(SUBAUTHORIZE_ROLE, { strategyId: sa_id }, (roles) => {
+				let roleStr = "";
+				for (var i = 0; i < roles.length; i++) {
+					let item = roles[i];
+					if ((item[2] || '').indexOf("freeUse") >= 0 || item[0].roleId < 0) continue;
+
+					let checked = item[0].userId == ownerId ? 'checked' : '';
+					let str = `<div class="selectItem">
+			    					<input type="checkbox" name="roles" value=` + item[0].id + ` ` + checked + ` /> 
+			    					<span>` + item[1] + `</span> 
+			    				</div>`;
+					roleStr += str;
+				}
+				callback(roleStr);
+			})
+		}
+
+		getRoles((roleStr) => {
+			let str = "";
+			$.each(USER_MAP, (key, value) => {
+				let checked = key == ownerId ? 'checked' : '';
+				substr = `<div class="selectItem">
+		    				<input name="users" type="radio" value=` + key + ` ` + checked + ` /> 
+		    				<span>` + value + `</span>
+		    			</div>`;
+				if (checked) {
+					str = substr + str;
+				} else {
+					str += substr;
+				}
+			})
+
+			str = `
+			    <div class="assign">
+			    	<div class="assign-user">  
+			    		<h3> 1.请选择员工账号 <input type="text" id="keyword" placeholder="按名字过滤"/></h3>
+			    		` + str + `
+			    	</div>
+			    	<div class="assign-role">
+			    		<h3> 2.请选择授予此员工的角色（岗位） <input type="checkbox" name="allRoles"/>全选</h3>
+			    		` + roleStr + `
+			    	</div>
+			    </div>
+		    `;
+
+			createPanel({
+				title: "分配账号",
+				content: str,
+				funcSubmit: function (e) {
+					let user = $('input[type="radio"][name="users"]:checked').val();
+					let ruid = [];
+					$('input[type="checkbox"][name="roles"]:checked').each(function (i, item) {
+						ruid.push($(item).val())
+					})
+					if (!user) {
+						return $.messager.alert("异常", "请设置完成后再提交！");
+					}
+					$.post(SUBAUTHORIZE_ROLE, { userId: user, ruIds: ruid.join(','), strategyId: sa_id }, function (result) {
+						if (result == true) {
+							$('._panel-title-button-close').click()
+							querySubAuthorize()
+						} else {
+							$.messager.alert("异常", result.errorMsg || result);
+						}
+					})
+				}
+			});
+
+			$('.assign-role input[name="allRoles"]').change(function () {
+				$('input[name="roles"]').each((i, item) => { item.checked = this.checked })
+			});
+
+			$1('keyword').oninput = function () {
+				var _key = tssJS(this).value().trim();
+				if (!_key) {
+					return tssJS("div.assign-user .selectItem").show();
+				}
+
+				tssJS("div.assign-user .selectItem").each(function (i, item) {
+					var name = tssJS(tssJS(item).find("span")[0]).text();
+					if (name.indexOf(_key) >= 0) {
+						tssJS(item).show();
+					} else {
+						tssJS(item).hide();
+					}
+				})
+			};
+		})
+	}
+
+	let USER_MAP = {};
+	let is_admin = false;
+	let module_def = {};
+
+	function init() {
+
+		let d1, d2, d3;
+
+		$.get('/tss/auth/user/has', {}, function (result) {
+			is_admin = result[3] == 'Admin';
+
+			d1 = true; initData();
+		})
+
+		$.get(MODULE_DEF, {}, function (list) {
+			for (var i = list.length - 1; i >= 0; i--) {
+				let item = list[i];
+				module_def[item.id] = item;
+			}
+
+			d2 = true; initData();
+		})
+
+		$.get(API_USER, {}, function (result) {
+			USER_MAP = result;
+
+			d3 = true; initData();
+		})
+
+		function initData() {
+			if (d1 && d2 && d3) {
+				queryAccount();
+
+				querySubAuthorize();
+
+				if (tssJS.Query.get("assignAccount")) {
+					$("#tt, .user-account-balance").hide();
+				} else {
+					queryOrder();
+					queryFlow();
+				}
+			}
+		}
+	};
+
+	$(function () { 
+		queryModuleDef( init );
+	});
+
+</script>
+
+<!-- 我的订单 -->
+<script type="text/javascript">
+	function queryOrder() {
+		$('#t1').datagrid({
+			url: MODULE_ORDER_LIST,
+			fit: true,
+			rownumbers: true,
+			pagination: true,
+			pageSize: 100,
+			pageList: [100, 500, 1000],
+			remoteSort: true,
+			showFooter: true,
+			method: 'GET',
+			columns: [[
+				{ field: 'order_no', title: '订单号', align: 'center', width: '10%' },
+				{ field: 'order_date', title: '下单时间', align: 'center', width: '11%' },
+				{ field: 'pay_date', title: '支付时间', align: 'center', width: '11%' },
+				{ field: 'status', title: '状态', align: 'center', width: '5%' },
+				{ field: 'product', title: '类型', align: 'center', width: '11%' },
+				{ field: 'price', title: '单价', align: 'right', width: '6%', formatter: formatterMoney },
+				{ field: 'account_num', title: '账号（个）', align: 'center', width: '6%' },
+				{ field: 'month_num', title: '时长（月）', align: 'center', width: '6%' },
+				{ field: 'money_cal', title: '应付金额', align: 'right', width: '6%', formatter: formatterMoney },
+				{ field: 'money_real', title: '现金支付', align: 'right', width: '6%', formatter: formatterMoney },
+				{ field: 'money_balance', title: '余额支付', align: 'right', width: '6%', formatter: formatterMoney },
+				{ field: 'creator', title: '创建人', align: 'center', width: '8%', hidden: !is_admin },
+				{
+					field: '_yyy', title: '操作', align: 'center', width: '8%', formatter: function (value, row, index) {
+						return row.status == '待付款' ? '<button onclick="payMyOrder(' + index + ')">支付订单</button>' : ''
+					}
+				},
+			]],
+			loadFilter: function (data) {
+				data.rows.each((i, item) => {
+					if (item.status == '待付款' && (new Date() - new Date(item.createTime)) / 1000 / 60 >= 30) {
+						item.status = '已超期'
+					}
+				})
+				return data;
+			}
+		})
+	}
+
+	function payMyOrder(index) {
+		let row = $('#t1').datagrid('getData').rows[index];
+		if (is_admin) {
+			$.messager.prompt('支付', '点击确定后，该订单就会变成已支付，请输入实际已支付金额（现金）：', function (val) {
+				val && offline_payed(row.order_no, val, function (result) {
+					init();
+				})
+			})
+		} else {
+			payOrder(row.order_no, row.money_cal - row.money_balance, row.product)
+		}
+	}
+
+	function formatter1(value, item) {
+		let str = [];
+		if (item.rebate) {
+			str.push(item.rebate + ' 折');
+		}
+		if (item.derate) {
+			str.push("减免 " + item.derate + ' 元');
+		}
+		return str.join(',') || '-'
+	}
+
+	function formatterMoney(value, row, indx) {
+		if (!value && value != 0) return
+		return number_format(value, 2)
+	}
+</script>
+
+<!-- 我的账号 -->
+<script type="text/javascript">
+	function querySubAuthorize() {
+		$.get(SUBAUTHORIZE, {}, function (subauthorizes) {
+			let $ul = $('.user-account-list > ul');
+			$ul.html('');
+			for (var i = 0; i < subauthorizes.length; i++) {
+				let item = subauthorizes[i];
+				let names = item.name.split('_');
+				let module_id = item.moduleId || names[0];
+				let module = _moduleMap[ module_id ];
+				let startDate = item.startDate.split(' ')[0], endDate = item.endDate.split(' ')[0];
+
+				let str = `
+					<li>
+						<h2>`+ module.module + `</h2>
+						<div>
+							<label onclick="console.log(` + item.id + `)">有效期：</label>
+							<div>
+								<div>`+ startDate + `</div>
+								<div>`+ endDate + `</div>
+							</div>
+						</div>
+						<div>
+							<label>持有者：</label> <b>` + (USER_MAP[item.ownerId]||'') + `</b>
+						</div>
+						<div>
+							<label>续费</label>
+							<input type="checkbox" class="subauthorize-checkbox" 
+								   data-id=` + item.id + ` 
+								   data-module_id=` + module_id + ` />
+							<button type="button" onclick="assign(` + item.id + `,` + item.ownerId + `)" class="subauthorize-button">分配账号</button>
+						</div>
+					</li> `;
+				$(str).addClass(item.disabled == 0 ? 'active' : '')
+					.addClass(module_def[module_id].account_limit == 1 ? 'disable-assign' : '')
+					.appendTo($ul);
+
+				console.log( `$.post("/tss/auth/account/subauthorize", {"strategyId": ` +item.id+ `, "startDay": "` +startDate+ `", "endDay": "`+endDate+ `"} )` );
+				console.log( `$.delete("/tss/auth/subauthorize/"` +item.id+ `, {} )` );
+			}
+
+			$('.subauthorize-checkbox').click(function (e) {
+				const checkedNum = $('.subauthorize-checkbox:checkbox:checked').length;
+				if (checkedNum) {
+					$('#device_num').text(checkedNum)
+					$('#renewalfeeForm').show(); // 展示合并支付
+				} else {
+					$('#renewalfeeForm').hide();
+				}
+			})
+		})
+	}
+
+	$('#renewalfeeForm').submit((e) => {
+		let ids = [], module_ids = [];
+		$('.subauthorize-checkbox:checkbox:checked').each(function (i, item) {
+			ids.push(item.getAttribute('data-id'))
+			let module_id = item.getAttribute('data-module_id');
+			if (!module_ids.contains(module_id)) {
+				module_ids.push(module_id)
+			}
+		})
+		if (module_ids.length > 1) {
+			return $.messager.alert("异常", "您不能同时续费多个产品的账号，请分开操作!");
+		}
+		$.post(MODULE_ORDER, {
+			module_id: module_ids[0],
+			type: 'com.boubei.tss.modules.cloud.pay.RenewalfeeOrderHandler',
+			month_num: $('input[name="month_num"]').val(),
+			params: ids.join(","),
+			account_num: ids.length
+		},
+			function (moduleOrderBack) {
+				if (moduleOrderBack.id) {
+					payOrder(moduleOrderBack.order_no, moduleOrderBack.money_cal, moduleOrderBack.product)
+				} else {
+					$.messager.alert("异常", moduleOrderBack.errorMsg);
+				}
+			}
+		);
+	})
+</script>
+
+</html>

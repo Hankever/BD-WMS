@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<SourceList>
+        <grid>
+            <declare sequence="true" header="checkbox">
+                <column caption="头像" name="icon" mode="image" width="30px"/>
+                <column caption="用户ID" name="id" mode="string" display="none"/>
+                <column caption="用户名" name="loginName" mode="string" sortable="true" highlightCol="true"/>
+                <column caption="用户状态" name="userstate" values="1|0" texts="停用|启用" width="50px"/>
+                <column caption="姓名" name="userName" mode="string"/>
+                <column caption="性别" name="sex" values="0|1" texts="女|男"  width="35px"/>
+                <column caption="出生年月" name="birthday" mode="string" pattern="yyyy-MM-dd" classType="Date"/>
+                <column caption="电子邮件" name="mail" mode="string" width="100px" />
+                <column caption="电话" name="telephone" mode="number" width="60px" sortable="true"/>
+                <column caption="所在组名称" name="groupName" mode="string"/>
+                <column caption="所在组ID" name="groupId" mode="string" display="none"/>
+                <column caption="是否在职" name="sfzh" mode="boolean" width="60px"/>
+            </declare>
+            <data>
+		        <row icon="images/user_0.gif" id="9296" loginName="qiugq" userstate="0" userName="裘国强" sex="1" birthday="1983-05-12" mail="jinpujun@163.com" telephone="78819585" groupName="有关部" groupId="144" sfzh="true"/>
+                <row icon="images/user_1.gif" id="9494" loginName="zhangyichun" userstate="1" userName="章以纯" sex="1" birthday="1983-05-12" mail="jinpujun@163.com" telephone="89819585" groupName="有关部" groupId="144" sfzh="true"/>
+                <row icon="images/user_1.gif" id="9720" loginName="xu_d" userstate="1" userName="许丹" sex="0" birthday="1983-05-12" mail="jinpujun@163.com" telephone="68819585" groupName="有关部" groupId="144" sfzh="true"/>
+                <row icon="images/user_0.gif" id="9840" loginName="jie_zhang" userstate="0" userName="张捷" sex="1" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88819585" groupName="有关部" groupId="144" sfzh="true"/>
+                <row icon="images/user_0.gif" id="9918" loginName="dingl" userstate="0" userName="丁雷" sex="1" birthday="1983-05-12" mail="jinpujun@163.com" telephone="85819585" groupName="有关部" groupId="144" sfzh="false"/>
+                <row icon="images/user_0.gif" id="10018" loginName="zhuhui" userstate="0" userName="朱慧" sex="0" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88819585" groupName="有关部" groupId="144" sfzh="true"/>
+                <row icon="images/user_0.gif" id="10114" loginName="ying.wang" userstate="0" userName="王颖" sex="0" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88819585" groupName="有关部" groupId="144" sfzh="true"/>
+                <row icon="images/user_0.gif" id="10186" loginName="shen.ling" userstate="0" userName="沈玲" sex="0" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88819585" groupName="有关部" groupId="144" sfzh="true"/>
+                <row icon="images/user_0.gif" id="10266" loginName="xu_jg" userstate="0" userName="徐建国" sex="1" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88219585" groupName="有关部" groupId="144" sfzh="false"/>
+                <row icon="images/user_0.gif" id="10322" loginName="he_wy" userstate="0" userName="何文英" sex="0" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88818585" groupName="有关部" groupId="144" sfzh="false"/>
+                <row icon="images/user_0.gif" id="10370" loginName="我" userstate="0" userName="陆素萍" sex="0" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88519585" groupName="有关部" groupId="144" sfzh="false"/>
+                <row icon="images/user_0.gif" id="10430" loginName="dongyb" userstate="0" userName="董亚波" sex="1" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88619585" groupName="有关部" groupId="144" sfzh="false"/>
+                <row icon="images/user_0.gif" id="10492" loginName="douxp" userstate="0" userName="窦献平" sex="1" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88319585" groupName="有关部" groupId="144" sfzh="true"/>
+                <row icon="images/user_0.gif" id="10552" loginName="wxl" userstate="0" userName="王雪莲" sex="0" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88829585" groupName="有关部" groupId="144" sfzh="true"/>
+                <row icon="images/user_0.gif" id="10614" loginName="whdz" userstate="0" userName="王泓" sex="1" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88816585" groupName="有关部" groupId="144" sfzh="true"/>
+                <row icon="images/user_0.gif" id="10656" loginName="lxu" userstate="0" userName="徐丽" sex="0" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88819185" groupName="有关部" groupId="144" sfzh="true"/>
+                <row icon="images/user_0.gif" id="10688" loginName="chen_xiaoyan" userstate="0" userName="陈筱燕" sex="0" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88819885" groupName="有关部" groupId="144" sfzh="true"/>
+                <row icon="images/user_0.gif" id="10756" loginName="lxm" userstate="0" userName="刘晓梅" sex="0" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88819586" groupName="有关部" groupId="144" sfzh="true"/>
+                <row icon="images/user_0.gif" id="10794" loginName="mh" userstate="0" userName="茅慧" sex="0" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88819515" groupName="有关部" groupId="144" sfzh="true"/>
+                <row icon="images/user_0.gif" id="10834" loginName="金贝贝" userstate="0" userName="金贝贝" sex="0" birthday="1983-05-12" mail="jinpujun@163.com" telephone="88829585" groupName="有关部" groupId="144" sfzh="true"/>
+            </data>
+		</grid>
+	</SourceList>
+	<PageInfo>
+        <pagelist totalpages="10" totalrecords="999" currentpage="3" pagesize="100"/>
+	</PageInfo>
+</Response>

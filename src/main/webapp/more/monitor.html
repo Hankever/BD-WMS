@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>系统监控</title>
+
+<link rel="stylesheet" href="../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../tools/easyui/themes/icon.css">
+
+<script src="../tools/tssJS/tssJS.js"></script>
+<script src="../tools/easyui/jquery.min.js"></script>
+<script src="../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<STYLE type="text/css">
+    html, body { height: 100%; }
+    iframe { width:100%; height: 99.5%; display:block; }
+
+</STYLE>
+
+<script type="text/javascript">
+
+$(function(){
+    // 使得 easyui-tabs 高度自适应
+　　$("#tabs").tabs({ 
+　　　　width:  $("#tabs").parent().width(), 
+　　　　height: $("#tabs").parent().height() 
+　　}); 
+
+    var urls = ["xn.html", "../modules/_cache/cache.htm", "../modules/_log/log.htm", "../modules/um/online.html", "feedback.html"]
+
+    for(var i=4; i >= 0; i--) {
+        $("#tabs").tabs("select", i); 
+        $("#if" + (i+1)).height(document.body.clientHeight-33).attr("src", urls[i]);
+    }
+
+    var isAdmin = tssJS.Cookie.decode("userHas")[1].contains(-1);
+    if( !isAdmin ) {
+        $("#tabs").tabs("close", 3); 
+        $("#tabs").tabs("close", 3); 
+    }
+});
+
+</script>
+
+</head>
+
+<body>
+
+   <div class="easyui-tabs" data-options="fit:true" border="false" id="tabs">
+        <div border="false" title="量能监控">
+            <iframe scrolling="auto" frameborder="0" id="if1"></iframe>
+        </div>
+        <div border="false" title="缓存监控">
+            <iframe scrolling="auto" frameborder="0" id="if2"></iframe>
+        </div>
+        <div border="false" title="日志监控">
+            <iframe scrolling="auto" frameborder="0" id="if3"></iframe>
+        </div>
+        <div border="false" title="在线用户">
+            <iframe scrolling="auto" frameborder="0" id="if4"></iframe>
+        </div>
+        <div border="false" title="异常反馈">
+            <iframe scrolling="auto" frameborder="0" id="if5"></iframe>
+        </div>
+    </div>
+
+</body>
+</html>

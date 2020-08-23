@@ -1,0 +1,365 @@
+<!DOCTYPE HTML>
+<HTML xmlns:WorkSpace xmlns:Tree>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>数据源管理</title>
+
+<link href="../../tools/tssJS/css/boubei.css" rel="stylesheet">
+<link href="../../tools/tssJS/fonts/icons.css" rel="stylesheet" >
+<link href="../../css/css.css" rel="stylesheet">
+<link href="dm.css" rel="stylesheet" >
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssUtils.js"></script>
+
+<style type="text/css">
+.white { color: #333; height: 16px; border: 1px solid #999; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1); }
+.white:hover { background-color: inherit; border-left: 1px solid #000; border-right: 1px solid #000; background-color: #eee;  }
+#palette .small { background: inherit; margin: 0px 1px; border-top: 0px; border-bottom: 0px; }
+#palette .small:hover { background-color: #eee; }
+</style>
+
+<SCRIPT type="text/javascript">
+
+    /*  XMLHTTP请求地址汇总 */
+    
+	GET_DS_1 = NO_AUTH_PATH + "param/json/combo/datasource_list";
+    GET_DS_2 = AUTH_PATH + "ds/param/config";
+    GET_DS_XFORM  = "datasource/connpool.xml";
+    URL_DS_SAVE   = AUTH_PATH + "ds/connpool";
+    URL_DS_DELETE = AUTH_PATH + "ds/connpool/";
+    URL_DS_TEST   = AUTH_PATH + "ds/test";
+    URL_GET_USER_HAS  = AUTH_PATH + "user/has";
+
+	if(IS_TEST) {		
+        GET_DS_1 = "datasource/ds_list.json";
+        GET_DS_2 = "datasource/ds_configs.json";
+        URL_DS_SAVE = "data/_success.json?";
+        URL_DS_TEST = "data/_success.json?";
+        URL_DS_DELETE = "data/_success.json?";
+        URL_GET_USER_HAS  = "data/user_has.json?";
+	}
+
+    var currentUser;
+    $.ajax({
+        url : URL_GET_USER_HAS,
+        method : "GET",
+        type : "json",
+        ondata: function() {
+            var result = this.getResponseJSON();
+            currentUser = result[2];
+        }
+    });
+
+    function init() {
+        initMenus();
+        initWorkSpace();
+        initEvents();
+
+        loadInitData();
+        addNewDS();
+    }
+
+    function checkPermission(treeNode) {
+        treeNode = treeNode || $.T("tree").getActiveTreeNode();
+        return treeNode.getAttribute("creatorid") == currentUser || currentUser == "-1";
+    }
+ 
+    function initMenus() {
+        var item1 = {
+            label: "删除数据源",
+            callback: delDS,
+            icon:"icon icon-x",
+            visible:function() { return checkPermission(); }
+        }
+        var item2 = {
+            label: "修改数据源",
+            callback: function() {
+                editDSInfo();
+            },
+            icon:"icon icon-pencil",
+            visible:function() { return checkPermission(); }
+        }   
+
+        var menu1 = new $.Menu();
+        menu1.addItem(item2);
+        menu1.addItem(item1);
+
+        $1("tree").contextmenu = menu1;
+    }
+
+	function loadInitData() {
+        var data1, data2;
+        $.ajax({
+            url: GET_DS_1,
+            method: "GET",
+            ondata: function() {
+                data1 = this.getResponseJSON();
+                data1 && data2 && showDS();
+            }
+        });
+
+        $.ajax({
+            url: GET_DS_2,
+            method: "GET",
+            ondata: function() {
+                data2 = this.getResponseJSON();
+                data1 && data2 && showDS();
+            }
+        });
+
+        function showDS() {
+            var result = [];
+            data1.each(function(i, item1) {
+
+                data2.each(function(j, item2) {
+                    if(item1[2] === item2.code) {
+                        item2.name = item1[1];
+                        result.push(item2);
+                    }
+                });
+            });
+
+            var tree = $("#tree").tree(result, "node3");    
+			tree.onTreeNodeActived = function(ev) {
+				editDSInfo();
+			}
+			tree.onTreeNodeRightClick = function(ev) {
+				tree.el.contextmenu.show(ev.clientX, ev.clientY); 
+			}			
+		}
+    }
+
+    /* 编辑参数信息 */
+    function editDSInfo() {
+        var tree = $.T("tree");
+        var treeNode = tree.getActiveTreeNode();
+        if( treeNode ) {
+            var treeID   = treeNode.id;
+            var treeName = treeNode.name;
+
+            var callback = {};
+            callback.onTabChange = function() {
+                setTimeout(function() {
+                    loadTreeDetailData(treeNode);
+                }, TIMEOUT_TAB_CHANGE);
+            };
+
+            var inf = {};
+            inf.label = treeName;
+			inf.SID = treeID;
+            inf.defaultPage = "page1";
+            inf.callback = callback;
+            ws.open(inf);
+        }
+    }
+
+    function addNewDS() {
+        var callback = {};
+        callback.onTabChange = function() {
+            setTimeout(function() {
+                loadTreeDetailData();
+            }, TIMEOUT_TAB_CHANGE);
+        };
+
+        var inf = {};
+        inf.defaultPage = "page1";
+        inf.label = OPERATION_ADD.replace(/\$label/i, "数据源");
+        inf.phases = null;
+        inf.callback = callback;
+        inf.SID = "_new_";
+        var tab = ws.open(inf);
+    }
+
+    function loadTreeDetailData(treeNode) {
+        var editable = treeNode ? checkPermission(treeNode) : true;
+        var treeID = treeNode ? treeNode.id : "_new_";
+        var xmlNode = $.cache.XmlDatas[treeID];
+        if(xmlNode) {
+            return initForm();
+        }
+
+		$.ajax({
+			url : GET_DS_XFORM ,
+			method : "GET",
+			onresult : function() { 
+				xmlNode = this.getNodeValue("TL");
+				$.cache.XmlDatas[treeID] = xmlNode;
+				initForm();
+			}
+		});
+
+        function initForm() {
+            var xform = $.F("page1Form", xmlNode);
+            xform.setEditable( editable ? "true" : "false" );
+
+            // 初始化值
+            if(treeNode) {
+                var config = $.parseJSON( treeNode.attrs.value );
+                updateField("code", config.code, xform);
+                updateField("name", treeNode.name, xform);
+                updateField("interruptTime", config.interruptTime, xform);
+                updateField("cyclelife", config.cyclelife, xform);
+                updateField("initNum", config.initNum, xform);
+                updateField("poolSize", config.poolSize, xform);
+
+                var dbproperties = config.paramFile.split(",");
+                if( dbproperties.length == 4 ) {
+                    updateField("driver", dbproperties[0], xform);
+                    updateField("connUrl", dbproperties[1], xform);
+                    updateField("connUser", dbproperties[2], xform);
+                    updateField("connPwd", dbproperties[3], xform);
+                } else {
+                    updateField("connUrl", config.paramFile, xform);
+                }           
+            }
+            else { // 新建数据源时，设定一些初始化值
+                updateField("code", "DS-" + $.now(), xform);
+                updateField("interruptTime", 1000, xform);
+                updateField("cyclelife", 1800000, xform);
+                updateField("initNum", 3, xform);
+                updateField("poolSize", 30, xform);
+
+                tssJS.getJSON("/tss/sn/DS-xxxx/1", function(result) {
+                    updateField("code", result[0], xform);
+                });
+                xform.setFieldEditable("code", "true");
+            }
+
+            attachReminder(treeID, xform); // 离开提醒
+ 
+            $1("page1BtSave").disabled = false;
+            if( !editable ) {
+                $("#page1BtSave").hide();
+            } else {
+                $("#page1BtSave").show();
+            }
+            $("#page1BtSave").click( function() {
+                saveDS(treeID);
+            } );
+        }
+    }
+
+    function saveDS(treeID) {
+        var xform = $.F("page1Form");	
+        if( !xform.checkForm() ) return;
+ 
+        var request = new $.HttpRequest();
+        request.url = URL_DS_SAVE;
+
+        // 拼接各个配置值
+        var param = {};
+        param.paramFile = xform.getData("driver") + "," + xform.getData("connUrl")
+             + "," + xform.getData("connUser") + "," + xform.getData("connPwd");
+        param.code = xform.getData("code");
+        param.name = xform.getData("name");
+        param.interruptTime = xform.getData("interruptTime");
+        param.cyclelife = xform.getData("cyclelife");
+        param.initNum = xform.getData("initNum");
+        param.poolSize = xform.getData("poolSize");
+        param.customizerClass = "com.boubei.tss.framework.persistence.connpool.ConnPoolCustomizer";
+        param.poolClass = "com.boubei.tss.cache.ReusablePool";
+
+        request.params.value = JSON.stringify(param);
+        request.params.code = param.code;
+        request.params.name = param.name;
+        if( treeID != '_new_') {
+            request.params.id = treeID;
+        }
+       
+        syncButton([$1("page1BtSave")], request); // 同步按钮状态
+		detachReminder(treeID); // 解除提醒
+
+        request.ondata = function() { 
+            var returnVal = this.getResponseJSON();
+            $.alert(returnVal);
+
+        	ws.closeActiveTab();
+            delete $.cache.XmlDatas[treeID]; // 清除缓存
+        	
+			loadInitData();
+        }
+        request.send();
+    }
+ 
+    function delDS() {
+        $.confirm("您确定要删除此数据源吗？此操作不可逆。", "删除确认", function(){
+            $.ajax( {
+                url: URL_DS_DELETE + getTreeNodeId(),
+                method: "DELETE",
+                ondata: function() {
+                    $.alert( this.getResponseJSON() );
+                    loadInitData();
+                }
+            });
+        });        
+    }
+ 
+    function getTreeNodeVal() {
+        return getTreeAttribute("value");
+    }
+
+    function updateField(code, value, xform) {
+        xform.updateDataExternal(code, value);    
+        // xform.updateData( $1(code) );
+    }
+
+    function testConn() {
+        var xform = $.F("page1Form"), params = {};
+        params.driver = xform.getData("driver");
+        params.url = xform.getData("connUrl");
+        params.user = xform.getData("connUser");
+        params.pwd = xform.getData("connPwd");
+
+        $.ajax( {
+            url: URL_DS_TEST,
+            params: params,
+            ondata: function() {
+                var result = this.getResponseJSON();
+                $.alert(result);
+            }
+        })
+    }
+
+    window.onload = init;
+
+</script>
+
+</head>
+
+<body>
+
+<table class="panel" >
+    <tr class="header"> <td/><td/><td/><td/> </tr>
+    <tr class="body"> 
+        <td/>
+        <td id="palette">
+            <div>
+                <div class="bar">
+                    <span class="icon"></span>数据源列表&nbsp;&nbsp;&nbsp;&nbsp;
+                    <button class='tssbutton small white' onclick="addNewDS();"><span class="icon-plus"></span>创建一个</button>
+                    <span class="refreshTreeBT"></span>
+                </div>
+                <Tree id="tree"><div class="loading"></div></Tree>
+            </div> 
+        </td>
+        <td class="groove"> 
+        	<WorkSpace:Box id="ws">
+        	  <WorkSpace:Page id="page1">
+        		  <div id="page1Form"></div>
+        		  <WorkSpace:PageStep>
+                    <br>
+        			<input type="button" class="tssbutton blue medium" value="保 存" id="page1BtSave"/>
+                    <input type="button" class="tssbutton blue medium" value="测试连接" onclick="testConn()"/>
+        		  </WorkSpace:PageStep>
+        	  </WorkSpace:Page>
+        	</WorkSpace:Box>
+        </td>
+        <td/>
+    </tr>
+    <tr class="footer"> <td/><td/><td/><td/> </tr>
+</table>
+
+</body>
+</html>

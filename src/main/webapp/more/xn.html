@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>量能监控【流量|性能|流程|异常】</title>
+
+<link rel="stylesheet" href="../tools/tssJS/css/boubei.css">
+
+<link rel="stylesheet" href="../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../tools/easyui/themes/icon.css">
+
+<script src="../tools/tssJS/tssJS.all.js"></script>
+<script src="../tools/tssJS/tssJS.data.js"></script>
+
+<script src="../tools/easyui/jquery.min.js"></script>
+<script src="../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<script src="../tools/echarts/echarts-all-2.1.10.js"></script>
+<script src="../more/bi_template/tssJS.chart.js"></script>
+<script src="../more/bi_template/common.js"></script>
+
+<STYLE type="text/css">
+
+.querycondition { padding: 10px 3px; }
+.querycondition label { margin: 0 10px 0 5px; }
+.querycondition input { width: 105px; }
+
+         
+</STYLE>
+
+<script type="text/javascript">
+
+function json_url(id)  { return '/tss/data/json/' + id; }
+
+$(document).ready(function(){
+    
+    $('#time1').datebox("setValue", today);
+    $('#time2').datebox("setValue", nextDay);
+
+    $("#theme").combobox( {
+        panelHeight: '100px',
+        data: [ 
+            {"text": "数据录入", "value": 2}, 
+            {"text": "流程审批", "value": 4}, 
+            {"text": "数据查询", "value": 1}, 
+            {"text": "数据ETL", "value": 3}
+        ],
+        value: 2
+    });
+
+    tssJS.get("/tss/auth/service/domains", {}, function(data) {
+        data.each(function(i, g) {
+            g.value = '@' + g.domain;
+            g.text = g.name.substring(0, 9) + (g.name.length > 9 ? '...' : '');
+        });
+
+        $("#vistor").combobox( {
+            data: data
+        });
+
+        beginQuery();
+    });
+
+    setInterval(query, 1000*60*10);
+});
+
+var FIELDS_1 = [
+    { field: 'f1', width: 120, align: "center", sortable: true},
+    { field: 'f2', width: 60, align: "right", sortable: true},
+    { field: 'f3', width: 55, align: "right"},
+    { field: 'f4', width: 60, align: "right", sortable: true},
+    { field: 'f5', width: 60, align: "right"}
+];
+
+var interval;
+function query() {
+    var params = {"param1": _params.time1, "param2": _params.time2};
+    params.param4 = _params.theme || '1';
+
+    if(_params.vistor){
+        params.param3 = _params.vistor;
+
+        /* 判断是否按域查询，格式：@XXX */
+        if( params.param3.indexOf('@') == 0 ) {
+            var domain = params.param3.substring(1);
+            $.getJSON("/tss/auth/service/domainuser", {'domain': domain, 'field': 'userName'}, function(data) {
+                data.push("God");
+                // $('#vistor').textbox("setValue", data.join(","));
+                _params.vistor = data.join(",");
+                query();
+            });
+
+            return;
+        }
+    } 
+
+    FIELDS_1[3].hidden = FIELDS_1[4].hidden = false;
+    FIELDS_1[2].sortable = false;
+
+    interval && clearInterval(interval);
+    switch( params.param4 ) {
+    case '1' :
+        FIELDS_1[0].title = '服务名称';
+        FIELDS_1[1].title = '平均时长';
+        FIELDS_1[2].title = '最长时长';
+        FIELDS_1[3].title = '访问次数';
+        FIELDS_1[4].title = '超时次数';
+        interval = setInterval(showRunning, 6*1000);
+        break;
+    case '2' :
+        FIELDS_1[0].title = '操作对象';
+        FIELDS_1[1].title = '次数';
+        FIELDS_1[2].title = '参与人数';
+        FIELDS_1[2].sortable = true;
+        FIELDS_1[3].hidden = true;
+        FIELDS_1[4].hidden = true;
+        break;
+    case '3' :
+        FIELDS_1[0].title = '任务名称';
+        FIELDS_1[1].title = '总次数';
+        FIELDS_1[2].title = '均耗时';
+        FIELDS_1[3].title = '最长耗时';
+        FIELDS_1[4].title = '数据量/次';
+        break;
+    case '4' :
+        FIELDS_1[0].title = '处理结果';
+        FIELDS_1[1].title = '次数';
+        FIELDS_1[2].title = '参与人数';
+        FIELDS_1[3].title = '流程数';
+        FIELDS_1[4].title = '申请数';
+        break;
+    }
+
+    tssJS.getJSON(json_url('visit-summary'), params, function(data){
+        $('#t1').datagrid({
+            fit : true,
+            fitColumns : true,
+            singleSelect : true,
+            remoteSort : false,
+            columns : [FIELDS_1],
+            toolbar:'#tb',
+            data: data,
+            onClickRow: function(index, row) {
+                showDetail( row["f1"] );
+            }
+        });
+
+    }, "POST", true);
+
+    showDetail();
+}
+
+var FIELDS_2 = [[],
+    [
+        { field: '服务名称', title: '服务名称', width: 100 , sortable: true},
+        { field: '参数', title: '参数', width: 300 },
+        { field: '访问时间', title: '访问时间', width: 90, sortable: true},
+        { field: '运行时长', title: '运行时长', width: 60, align: "right"},
+        { field: '访问人', title: '访问人', width: 60, sortable: true },
+        { field: 'origin', title: '来源', width: 90 },
+    ],
+    [
+        { field: '操作对象', title: '操作对象', width: 80 },
+        { field: '操作人', title: '操作人', width: 60, sortable: true },
+        { field: '操作内容', title: '操作内容', width: 400},
+        { field: '操作时间', title: '操作时间', width: 90, sortable: true},
+        { field: 'origin', title: '来源', width: 80 },
+        { field: 'ip', title: 'ip', width: 85 }
+    ],
+    [
+        { field: '任务', title: 'ETL任务', width: 150 },
+        { field: '创建人', title: '创建人', width: 70 },
+        { field: '异常次数', title: '异常次数', width: 70},
+        { field: '异常原因', title: '异常原因', width: 350 },
+        { field: '耗时', title: '耗时', width: 50 },
+        { field: '最早一次出错', title: '最早一次出错', width: 90 },
+        { field: '最近一次出错', title: '最近一次出错', width: 90 }
+    ],
+    [
+        { field: '流程表', title: '流程表', width: 90 },
+        { field: '处理结果', title: '处理结果', width: 80 },
+        { field: '处理人', title: '处理人', width: 70, sortable: true },
+        { field: '处理意见', title: '处理意见', width: 350},
+        { field: '处理时间', title: '处理时间', width: 90, sortable: true},
+        { field: 'origin', title: '来源', width: 80 }
+    ]
+];
+
+function showDetail(serviceName) {
+    var params = {"pagesize": 200, "page": 1};    
+    params.param3 = _params.time1; 
+    params.param4 = _params.time2;
+    params.param5 = parseInt(_params.theme || '1');
+    if(_params.vistor){
+        params.param2 = _params.vistor;
+    }
+    if(serviceName && params.param5 != 3) {
+        params.param1 = serviceName;
+    }
+
+    tssJS.getJSON(json_url('visit-trace'), params, function(data){
+        $('#t2').datagrid({
+            fit : true,
+            fitColumns : true,
+            rownumbers : true,
+            remoteSort : false,
+            columns : [ FIELDS_2[params.param5] ],
+            data: data.rows || data
+        }, "POST", true);
+
+        tssJS("#x1").text( params.param1||"" );
+    });
+
+    showChart( serviceName, 'H' );
+    showChart( serviceName, 'd' );
+
+    // 使得 easyui-tabs 高度自适应
+　　$("#tabs1").tabs({ 
+　　　　width:  $("#tabs1").parent().width(), 
+　　　　height: $("#tabs1").parent().height() 
+　　}); 
+    $("#tabs1").tabs("select", 1); 
+    $("#tabs1").tabs("select", 0); 
+
+    $("#tabs2").tabs("select", params.param5 == 1 ? 1 : 0); 
+}
+
+function showChart(serviceName, type) {
+    var params = {};    
+    params.param3 = _params.time1; 
+    params.param4 = _params.time2;
+    params.param5 = type;
+    params.param6 = _params.theme || '2';
+
+    if(_params.vistor) params.param2 = _params.vistor;
+    if(serviceName)    params.param1 = serviceName;
+
+    var canvas = "canvasDiv_" + type, wainting = true;
+    if(type == 'd') {
+        params.param3 = subDateS(toDate(today), 12);
+        wainting = false;
+    }
+
+    var legend1, legend2, ya1; 
+    switch( params.param6 ) {
+    case '1' :
+        legend1 = '访问速度(秒)';
+        legend2 = '访问次数';
+        ya1 = '秒/次';
+        break;
+    case '2' :
+        legend1 = '参与人数';
+        legend2 = '操作次数';
+        ya1 = '人数';
+        break;
+    case '3' :
+        legend1 = '执行速度(秒)';
+        legend2 = '抽取数据行'
+        ya1 = '秒/次';
+        break;
+    case '4' :
+        legend1 = '参与人数';
+        legend2 = '操作次数'
+        ya1 = '人数';
+        break;
+    }
+
+    tssJS.getJSON(json_url('visit-trend'), params, function(data){
+        if(data.length == 0) {
+            data.push({name: "00", value: 0, v2: 0});
+            data.push({name: "01", value: 0, v2: 0});
+            data.push({name: "02", value: 0, v2: 0});
+            data.push({name: "03", value: 0, v2: 0});
+            data.push({name: "04", value: 0, v2: 0});
+        }
+
+        var data2 = [], labels = [], _v1 = 1000, _v2 = 0;
+
+        data.each( function(i, item) {
+            _v2 += item.v2||0;
+        } );
+        if(params.param6 == '2' || params.param6 == '4') { 
+            _v1 = 1;
+        }
+
+        _v2 = _v2/(data.length||1);
+        _v2 = _v2 >= 100000 ? 10000 : 1;
+        if(_v2 == 10000) legend2 += "(万)";
+
+        data.each( function(i, item) {
+            item.value = Math.round(item.value*10/_v1)/10;
+            data2.push( {"name": item.name, "value": Math.round(item.v2/_v2) } );
+            labels.push(item.name);
+        } );
+
+        var chartObj = echarts.init($1(canvas));
+        var option = {
+            title:   { text: serviceName||" " },
+            tooltip : {
+                trigger: 'axis'
+            },
+            calculable : false,
+            legend: {
+                data:[ legend1, legend2]
+            },
+            grid: { // 控制图表四周的留白区域大小
+                x: '35px',
+                x2: '35px',
+                y2: '40px'
+            },
+            xAxis : [
+                {
+                    type : 'category',
+                    data : labels
+                }
+            ],
+            yAxis : [
+                { type : 'value', name : ya1, splitNumber: 3 },
+                { type : 'value', name : '次', splitNumber: 3 },
+            ],
+            series : [
+                { name:legend1, type:'line', data: data,  yAxisIndex: 0, smooth: true, symbolSize: 2, itemStyle : { normal: {label : {show: true, position: 'top'}}},},
+                { name:legend2, type:'line', data: data2, yAxisIndex: 1, smooth: true, symbolSize: 2, itemStyle : { normal: {label : {show: true, position: 'top'}}},}
+            ]
+        };
+        chartObj.setOption(option);             
+
+    }, "POST", wainting);
+}
+
+var _params = {};
+function beginQuery() {
+    _params.time1 = $('#time1').datebox("getValue");
+    _params.time2 = $('#time2').datebox("getValue");
+
+    _params.theme = $('#theme').combobox("getValue");
+    
+    _params.vistor = $('#vistor').combobox("getValue");
+    if( !_params.vistor ) {
+        delete _params["vistor"];
+    }
+    
+    query();
+}
+
+function toDate(dataStr) {
+    return new Date(dataStr.replace(/-/g, "/"));
+}
+function subDate(day, x) {
+    return new Date(day.getTime() - x*1000*60*60*24);
+}
+function subDateS(day, x) {
+    return subDate(day, x).format("yyyy-MM-dd");
+}
+var today = new Date().format("yyyy-MM-dd");
+var nextDay = subDateS(toDate(today), -1);
+    
+</script>
+
+
+</head>
+
+<body>
+   
+   <div id="main" class="easyui-layout" data-options="fit:'true'">
+        <div data-options="region:'west',split:true" title="系统运行监控" style="width:30%;" border="false">
+            <table id="t1" border="false"></table>
+        </div>
+        <div data-options="region:'center'"  style="width:70%;" border="false">
+            <div class="easyui-layout" data-options="fit:'true'" border="false">
+                <div data-options="region:'north'"  style="height:60%;" border="false">
+                    <div class="easyui-tabs" data-options="fit:true" border="false" id="tabs2">
+                        <div border="false" title="<i id='x1'></i> 执行明细">
+                            <table id="t2" border="false"></table>
+                        </div>
+                        <div border="false" title="运行中监控">
+                            <table id="t3" border="false"></table>
+                        </div>
+                    </div>
+                </div>
+                <div data-options="region:'south'" style="height:40%;" border="false">
+                    <div class="easyui-tabs" data-options="fit:true" border="false" id="tabs1">
+                        <div id='canvasDiv_H' title="按小时统计" style="height: 100%; "></div>
+                        <div id='canvasDiv_d' title="按天统计" style="height: 100%; ">
+                            <br>&nbsp;&nbsp;加载中......
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>       
+    </div>
+
+    <div class="querycondition" id="tb">
+        <label>主题:</label><input id="theme" class="easyui-textbox" style="width: 85px;"/>
+        <label>人域:</label><input id="vistor" class="easyui-textbox" style="width: 160px;" />
+        <br><br>
+        <label>时间:</label><input id="time1" class="easyui-datebox"/> --
+            <input id="time2" class="easyui-datebox"/> &nbsp;
+        <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-search" onclick="beginQuery()">查 询</a>
+    </div>
+
+<script type="text/javascript">
+/*  -----------------------------------------------运行中报表监控------------------------------------- */ 
+    var reports;
+    var FIELDS_3 = [
+        { field: 'report', title: '服务名称', width: 120 },
+        { field: 'params', title: '访问参数', width: 300 },
+        { field: 'visitor', title: '访问人', width: 75 },
+        { field: 'hit', title: '命中次数', width: 55 },
+        { field: 'hitLong', title: '已运行时间', width: 75 },
+        { field: 'datasource', title: '数据源', width: 80 },
+        { field: 'rpCache', title: '报表缓存', width: 65 },
+        { field: 'creator', title: '开发者', width: 60, hidden: false }
+    ];
+    $.each(FIELDS_3, function(i, field){
+        field.align = field.align||"center";
+    });
+
+    $('#t3').datagrid({
+            fit : true,
+            fitColumns : true,
+            rownumbers : true,
+            remoteSort : false,
+            multiSort: true,
+            nowrap: false,
+            sortName : "datasource,hitLong",
+            sortOrder : "asc,desc",
+            columns : [FIELDS_3]
+        });
+
+    function showRunning() {
+        tssJS.getXML("/tss/cache/list/SHORT", {}, function(xml) {
+            var rootNode = xml.documentElement;
+
+            if(!reports) {
+                tssJS.getJSON( json_url("report_list"), {}, function(data) {
+                    reports = {};
+                    data.each(function(i, item) {
+                        reports[item.id] = item;
+                    });
+
+                    showGrid3(rootNode, reports);
+                } );
+            } else {
+                showGrid3(rootNode, reports);
+            }
+        });
+    }
+
+    function showGrid3(rootNode, reports) {
+        var qcList = [];
+        tssJS("grid>data>row", rootNode).each(function(i, row){
+            var item = {}, $row = tssJS(row);
+            var key = $row.attr("key");
+            item.age = $row.attr("age");
+            item.hit = $row.attr("hit");
+            item.hitLong = $row.attr("hitLong");
+            item.visitor = $row.attr("remark");
+
+            if(key.indexOf('QC_') != 0) return true;
+
+            // 报表服务 queryReport(Long reportId, Map<String, String> requestMap, int page, int pagesize, Object cacheFlag);
+            var info;
+            if( key.indexOf("queryReport") > 0 ) {
+                info = key.substring(54, key.length-1);
+                var _params = info.substring(info.indexOf("{")+1, info.indexOf("}"));
+                info = info.replace(_params, "").split(",");
+                item.params = _params.substring(0, 120);
+
+                var reportId = parseInt(info[0]);
+                var report = reports[reportId];
+                if(report) {
+                    item.report = report.name;
+                    item.datasource = report.datasource;
+                    item.creator = report.username;
+                }
+            }
+            else if( key.indexOf("queryByScript") > 0 ) {
+                info = key.substring(55, key.length-1);
+                var _params = info.substring(info.indexOf("{")+1, info.indexOf("}"));
+                info = info.replace(_params, "").split(",");
+                item.params = _params.substring(0, 120);
+
+                item.report = info[0];
+                item.creator = 'sys';
+            }
+            else {
+                item.report = key;
+            }
+
+            // 报表的缓存策略
+            item.rpCache = parseInt(info[4]);
+            if(item.rpCache == -1) {
+                item.rpCache = "按参数";
+            }
+            else if(item.rpCache > 1480734537699) {
+                item.rpCache = "不缓存";
+            } 
+            else {
+                item.rpCache = "按参数+用户";
+            }
+
+            qcList.push(item);
+        }) ;
+
+        $('#t3').datagrid("loadData", qcList);
+    }
+
+</script>
+
+</body>
+</html>

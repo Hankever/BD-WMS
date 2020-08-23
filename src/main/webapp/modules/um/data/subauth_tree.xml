@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<RuleTree>
+		<actionSet>
+            <treeNode name="全部" id="_root" _open="true">
+                <treeNode roleState="1" icon="images/rule_0.gif"  name="转授策略一" id="620"/>
+                <treeNode roleState="1" icon="images/rule_0.gif"  name="转授策略二" id="619"/>
+                <treeNode roleState="1" icon="images/rule_0.gif"  name="转授策略三" id="621"/>
+            </treeNode>
+		</actionSet>
+	</RuleTree>
+</Response>

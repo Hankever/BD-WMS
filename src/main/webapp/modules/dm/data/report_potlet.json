@@ -1,0 +1,6 @@
+[
+    "访问概览",
+    "[ \n  {'label':'服务名称', 'type':'String', 'nullable':'true', 'jsonUrl':'/tss/display/json/GetAllServices','multiple':'true', 'height':'200px'},\n  {'label':'访问人', 'type':'String', 'jsonUrl':'/tss/display/json/GetAllVisitors','multiple':'true', 'height':'150px'},\n  {'label':'起始时间', 'type':'date', 'nullable':'false', 'defaultValue':'today - 300'}, \n  {'label':'起始时间', 'type':'date', 'nullable':'false', 'defaultValue':'today - 0'}\n]",
+    "../../more/bi_demo/demo1.html",
+    true
+]

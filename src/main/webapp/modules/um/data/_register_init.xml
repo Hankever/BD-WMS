@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <UserInfo>
+        <xform>
+            <declare>
+                <column name="loginName" caption="账号" mode="string" maxLength="100" empty="false"/>
+                <column name="password" caption="密码" mode="string" maxLength="100" empty="false" inputReg="^[\u0000-\u00FF]*$" />
+                <column name="password2" caption="确认密码" mode="string" maxLength="100" empty="false"/>
+                <column name="userName" caption="姓名" mode="string" maxLength="100" empty="false"/>
+                <column name="employeeNo" caption="员工号" maxLength="100" mode="string"/>
+                <column name="sex" caption="性别" mode="combo" values="0|1" texts="男|女"/>
+                <column name="birthday" caption="出生年月" mode="date" pattern="yyyy/MM/dd"/>
+                <column name="certificateCategory" caption="证件种类" mode="combo" values="1|2" texts="工作证|身份证"/>
+                <column name="certificateNumber" caption="证件号码" maxLength="100" mode="string"/>
+                <column name="mail" caption="电子邮件" mode="string" inputReg="^[\w\-]*@?[\w\-]*(\.[\w\-]*){0,2}$" maxLength="100"/>
+                <column name="telephone" caption="联系电话" maxLength="100" mode="string"/>
+                <column name="address" caption="联系地址" maxLength="100" mode="string"/>
+                <column name="postalCode" caption="邮政编码" mode="string" maxLength="100" inputReg="^\d{0,10}$"/>
+                <column name="passwordQuestion" caption="密码提示问题" mode="string" maxLength="100" empty="false"/>
+                <column name="passwordAnswer" caption="密码提示答案" mode="string" maxLength="100" empty="false"/>
+            </declare>
+            <layout>
+                <TR>
+                    <TD width="100"><label binding="loginName"/></TD>
+                    <TD><input binding="loginName" style="width:120px;"/></TD>
+                    <TD><label binding="sex"/></TD>
+                    <TD><input binding="sex"/></TD>
+                </TR>
+                <TR>
+                    <TD><label binding="password"/></TD>
+                    <TD><input binding="password" type="password" style="width:120px;"/></TD>
+                    <TD><label binding="certificateCategory"/></TD>
+                    <TD><input binding="certificateCategory"/></TD>
+                </TR>
+                <TR>
+                    <TD><label binding="password2"/></TD>
+                    <TD><input binding="password2" type="password" style="width:120px;"/></TD>
+                    <TD><label binding="certificateNumber"/></TD>
+                    <TD><input binding="certificateNumber" style="width:120px;"/></TD>
+                </TR>
+                <TR>
+                    <TD><label binding="passwordQuestion"/></TD>
+                    <TD><input binding="passwordQuestion" style="width:120px;"/></TD>
+                    <TD><label binding="mail"/></TD>
+                    <TD><input binding="mail" style="width:120px;"/></TD>
+                </TR>
+                <TR>
+                    <TD><label binding="passwordAnswer"/></TD>
+                    <TD><input binding="passwordAnswer" style="width:120px;"/></TD>
+                    <TD><label binding="telephone"/></TD>
+                    <TD><input binding="telephone" style="width:120px;"/></TD>
+                </TR>
+                <TR>
+                    <TD><label binding="userName"/></TD>
+                    <TD><input binding="userName" style="width:120px;"/></TD>
+                    <TD><label binding="address"/></TD>
+                    <TD><input binding="address" style="width:120px;"/></TD>
+                </TR>
+                <TR>
+                    <TD><label binding="birthday"/></TD>
+                    <TD><input binding="birthday" style="width:140px;"/></TD>
+                    <TD><label binding="postalCode"/></TD>
+                    <TD><input binding="postalCode" style="width:120px;"/></TD>
+                </TR>
+                <TR>
+                    <TD><label binding="employeeNo"/></TD>
+                    <TD><input binding="employeeNo" style="width:120px;"/></TD>
+                </TR>
+            </layout>
+            <data>
+                <row/>
+            </data>
+        </xform>
+    </UserInfo>
+	<PasswordInfo>
+		<xform>
+			<declare>
+				<column name="userId" caption="" mode="string" display="none"/>
+				<column name="userName" caption="用户名" mode="string" editable="false"/>
+				<column name="password" caption="输入旧密码" mode="string"/>
+				<column name="newPassword" caption="输入新密码" mode="string"/>
+				<column name="newPassword2" caption="新密码确认" mode="string"/>
+			</declare>
+			<layout>
+				<TR>
+					<TD width="80"><label binding="userName"/></TD>
+					<TD><input binding="userName"/></TD>
+				</TR>
+				<TR>
+					<TD><label binding="password"/></TD>
+					<TD><input binding="password" type="password" style="width:180px;"/></TD>
+				</TR>
+				<TR>
+					<TD><label binding="newPassword"/></TD>
+					<TD><input binding="newPassword" type="password" style="width:180px;"/></TD>
+				</TR>
+				<TR>
+					<TD><label binding="newPassword2"/></TD>
+					<TD><input binding="newPassword2" type="password" style="width:180px;"/></TD>
+				</TR>
+			</layout>
+			<data>
+                <row>
+                  <userName><![CDATA[J.K]]></userName>
+                </row>
+            </data>
+		</xform>
+	</PasswordInfo>
+</Response>

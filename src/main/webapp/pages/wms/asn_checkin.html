@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>验货入库</title>
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="wms.js"></script>
+
+<style type="text/css">
+    #x1 input { font-size: 16px; }
+    .datagrid-cell-c1-qty { font-size: 20px; }
+    .datagrid-cell-c1-qty_actual { font-size: 20px; }
+    .datagrid-cell-c1-qty_this { font-size: 20px; }
+    .datagrid-cell-c1-money { font-size: 20px; }
+</style>
+
+</head>
+
+<body id = "io_check" >
+<div id="init"></div>
+
+<div id="main" class="easyui-layout" fit="true">
+    <div data-options="region:'north',split:false" style="height:170px" border="false">
+        <div class="easyui-layout" fit="true">
+            <div data-options="region:'west'" style="width:46%;border-bottom:0;border-top:0; border-left:0;">
+                <div class="easyui-layout" fit="true">
+                    <div data-options="region:'center'" border="false">
+                        <table style="border-collapse:separate;border-spacing:15px;">  
+                            <tr>
+                                <td class='label label_'>入库单号</td>
+                                <td>
+                                    <input name='asnno' id='asnno' class="input_" autocomplete="off" style="width: 160px;"/>
+                                    <span id='_enable_sn'>
+                                        <input class="easyui-switchbutton" id="enable_sn" data-options="width:'90px', height:'25px', onText:'采集序列号', offText:'关闭序列号'" checked>
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class='label label_'>收货容器</td>
+                                <td id="x1">
+                                    <input name='loccode' id='loccode' class="easyui-combobox input_" placeholder="容器（库位）编码" />
+                                </td>
+                            </tr>
+                            <tr> 
+                                <td class='label label_'>货品条码</td>
+                                <td>
+                                    <input name='barcode' id='barcode' class="input_" placeholder="使用把枪扫码" autocomplete="off"/> *
+                                    <input name='scanfactor' id='scanfactor' class='input_ len1' value="1" placeholder="系数" autocomplete="off"/> 
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div data-options="region:'east',collapsible:true" style="width: 35%;" border="false">
+                        <table style="border-collapse:separate;border-spacing:15px;">  
+                            <tr>
+                                <td>
+                                    <input name='qty_checking' id='qty_checking' value="0" class='input_ len2' disabled />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <a href="#" class="easyui-linkbutton len2" style="width: 160px" onclick="saveData()">提交入库（F9）</a>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div data-options="region:'center'" border="false" class="layout_center">
+                <table style="border-collapse:separate;border-spacing:20px;">  
+                    <tr>
+                        <td class='label_b'>总&nbsp;数&nbsp;量&nbsp;：</td>
+                        <td>
+                            <text id="qty" class="qty_text"></text>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class='label_b'>已入库数：</td>
+                        <td>
+                            <text id="qty_actual" class="qty_text"></text>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class='label_b'>剩余数量：</td>
+                        <td>
+                            <text id="qty_remain" class="qty_text"></text>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div data-options="region:'east'" style="width:35%;border-bottom:0;border-top:0;border-right:0;">
+                <div class="easyui-layout" fit="true">
+                    <div data-options="region:'center'" border="false">
+                        <div class="img_text"><text class="label_">复核货品图片</text></div>
+                        <div id="imgs"><img class="img_"/></div>
+                    </div>
+                    <div data-options="region:'east',collapsible:true" style="width:40%;border-bottom:0;border-top:0;border-right:0;">
+                        <text class="label_" style="display:block; padding:5px 10px;">异常提示：</text>
+                        <text class="label_" style="display:block; padding:10px; height: 100px; margin-bottom: 5px" id="exc_reason"></text>
+                        <a href="#" class="easyui-linkbutton" onclick="recException()" style="margin-left: 20px; width: 140px">异常登记（F4）</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="dataContainer" data-options="region:'center'" border="false" title="入库单<span id='asnno_tag'></span>明细<b id='doc_status'></b>">
+        <table id="t1" border="false"></table>
+    </div>
+</div>
+
+<div id="dlg" class="easyui-dialog" closed="true" buttons="#dlg-buttons">
+    <form id="fm" method="post" novalidate>
+        <table class='l'>
+            <tr>
+                <td class='label'>货品条码</td>
+                <td>
+                    <input name='barcode' id='sku_barcode' class='easyui-textbox' readonly required/>
+                </td>
+                <td class='label'>货品编码</td>
+                <td>
+                    <input name='code' id='sku_code' class='easyui-textbox' required/>
+                </td>
+            </tr>
+            <tr>
+                <td class='label'>货品名称</td>
+                <td>
+                    <input name='name' id='sku_name' class='easyui-textbox' required/>
+                </td>  
+                <td class='label'>包装单位</td>
+                <td>
+                    <input name='uom' id='sku_uom' class='easyui-textbox' prompt="例：包、箱、瓶、双..." />
+                </td> 
+            </tr>
+            <tr class='money'>
+                <td class='label'>进价(元)</td>
+                <td>
+                    <input name='price0' id='sku_price0' class='easyui-numberbox'/>
+                </td>  
+                <td class='label'>售价(元)</td>
+                <td>
+                    <input name='price2' id='sku_price2' class='easyui-numberbox'/>
+                </td> 
+            </tr>
+        </table>      
+    </form>
+</div>
+<div id="dlg-buttons">
+    <a href="#" class="easyui-linkbutton" onclick="saveSku()">保 存</a>
+    <a href="#" class="easyui-linkbutton" onclick="closeDialog()">取 消</a>
+</div>
+
+<div id="dlg1" class="easyui-dialog" closed="true" buttons="#dlg1-buttons">
+    <form id="fm1" method="post" novalidate>
+        <table class='l'>
+            <tr>
+                <td class='label'>异常内容</td>
+                <td>
+                    <textarea name='content' id='content' class="textarea" cols="30" required></textarea>
+                </td>
+            </tr>
+        </table>      
+    </form>
+</div>
+<div id="dlg1-buttons">
+    <a href="#" class="easyui-linkbutton" onclick="submitExc()">提 交</a>
+</div>
+
+<div id="dlg2" class="easyui-dialog" closed="true" buttons="#dlg2-buttons">
+    <form id="fm2" method="post" novalidate>
+        <table class='l'>
+            <tr>
+                <td class='label'>编码</td>
+                <td>
+                    <input name='code' id='loc_code' class='easyui-textbox' required/>
+                </td>
+            </tr>
+            <tr>
+                <td class='label'>长*宽*高</td>
+                <td colspan="3">
+                    <input name='len' id='len' class='easyui-numberbox len1' data-options='precision:2' /> m *
+                    <input name='width' id='width' class='easyui-numberbox len1' data-options='precision:2'/> m *
+                    <input name='height' id='height' class='easyui-numberbox len1' data-options='precision:2'/> m
+                </td>  
+            </tr>
+        </table>      
+    </form>
+</div>
+<div id="dlg2-buttons">
+    <a href="#" class="easyui-linkbutton" onclick="saveLoc()">保 存</a>
+</div>
+
+
+<div id="dlg_sn_list" class="easyui-dialog" closed="true" buttons="#dlg_sn_list-buttons" style="width: 760px; height: 480px; padding: 10px 20px;">
+    <input id="tagbox" style="width: 100%;">
+</div>
+<div id="dlg_sn_list-buttons" style="text-align: center;">
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle-outline" onclick="updateQtyBySN()" style="width: 150px;">
+        完成扫描 ( <span id='sn_count'>0</span> )
+    </a>
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-close-circle-outline" onclick="clearSNList()">清 空</a>
+</div>
+
+<audio id="chatAudio">
+    <source src="sounds/ErrorTipsSound.mp3" type="audio/mpeg"/>
+</audio>
+<audio id="chatAudio_2">
+    <source src="sounds/ScanTipsSound.mp3" type="audio/mpeg"/>
+</audio>
+
+</body>
+
+<script src="asn_checkin.js"></script>
+<script type="text/javascript">
+
+with_items_ck = true;
+
+function query() {
+    if(!asnno) return showItems([], '');
+
+    noticeException('');
+
+    tssJS.getJSON( ASN.QUERY, {warehouse_id: SELECTED_WH, asnno: asnno, strictQuery: true}, function(data) {
+        if(data.length ) {
+            var asn = data[0];
+            asn_id = asn.id;
+            $('#asnno_tag').text(asn.asnno);
+            $("#doc_status").text("【" +asn.status+ "】");
+
+            tssJS.getJSON( AITEMS.QUERY, {asn_id: asn_id}, function(data_) {
+                if(data_.length == 0) {
+                    showItems([], ''); 
+
+                    $.messager.confirm('提示', "入库单【" + asnno + "】的货品清单为空，是否切换到【入库（无单）】？", function(confirmed) {
+                        confirmed && addTab('url', '入库（无单）', "/tss/pages/wms/asn_checkin_ni.html?asnno=" + asnno);
+                    })
+                } 
+                else {
+                    showItems(data_, data[0].status); 
+                }
+            })
+        } else {
+            _noticeException("入库单【" + asnno + "】不存在");
+            $('#asnno').val(''); 
+            asnno = '';
+            showItems([], ''); 
+        }
+    })
+}
+
+function showItems(data, status) {
+    data.each(function(i, item) {
+        var sku = SKU_M[item.sku_id];
+        item.skuname = sku.name;
+        item.skucode = sku.code;
+        item.barcode = sku.barcode;
+        item.barcode2 = sku.barcode2;
+        item.sku_id   = sku.id;
+        item.status  = !item.qty_actual ? "待入库" : (item.qty_actual == item.qty ? "已完成" : status);
+    });
+    asnitemList = data;
+    loadDataGrid(asnitemList);
+}
+
+function setSkuList(barcode) {
+    currCKItem = null;
+    _checking = -1;
+    for(var i = 0; i < asnitemList.length; i++) {
+        var aItem = asnitemList[i];
+        if( [aItem.barcode, aItem.barcode2].includes(barcode) ) {
+            currCKItem = aItem;
+            _checking = i;
+
+            if( aItem.qty > (aItem.qty_actual||0) ) break;
+        }
+    }
+    if( currCKItem == null ) {
+        return _noticeException("入库单【" + asnno + "】里没有货品【" + barcode + "】的明细");
+    }
+
+    scanfactor = $('#scanfactor').val() * 1;
+    noticeException('');
+    querySkuPic(currCKItem.sku_id);
+
+    var new_code = true, item_qty = currCKItem.qty - currCKItem.qty_actual;
+    if( currCKItem.skuItem ) {
+        new_code = false;
+        var qty_this = currCKItem.skuItem.qty_this + scanfactor;
+        if( qty_this > item_qty ) {
+            return _noticeException('当前扫描验货中的货品数超出入库单的数量');
+        }
+
+        currCKItem.skuItem.scan_num++;
+        currCKItem.skuItem.qty_this = qty_this;
+
+        changeQtyThis(qty_this);
+    }
+
+    if ( skuList.length == 0 || new_code) {
+        if( scanfactor > item_qty ) {
+            return _noticeException('扫描货品数超出订单数');
+        }
+
+        var skuItem = cloneObj(currCKItem);
+        clone({ barcode: barcode, name: currCKItem.skuname, code: currCKItem.skucode, scan_num: 1, qty_this: scanfactor}, skuItem);
+        skuList.push(skuItem);
+        currCKItem.skuItem = skuItem;
+        
+        changeQtyThis(scanfactor);
+    }
+    
+    loadDataGrid(asnitemList);
+    $('#barcode').val('');
+    dg.datagrid("selectRow", _checking);
+
+    if( enable_sn ) {
+        showTagBox( currCKItem.snlist, item_qty );
+    }
+    else {
+        setCheckingQty();
+    }
+}
+
+function changeQtyThis(qty_this) {
+    if( qty_this < 0 ) {
+        return $.messager.alert('错误提示', '当前入库明细行的数量不能为负数');
+    }
+    $('#chatAudio_2')[0].play();
+    asnitemList[_checking].qty_this = qty_this;
+}
+
+function updateQtyBySN() {
+    var values = $('#tagbox').tagbox('getValues');
+    if( curr_item_qty && values.length > curr_item_qty ) {
+        return $.messager.alert('错误提示', '当前扫描的序列号个数(' +values.length+ ')已超过待入库数量(' +curr_item_qty+ ')');
+    }
+
+    currCKItem.skuItem.snlist = currCKItem.snlist = values.join(",");
+    currCKItem.skuItem.qty_this = currCKItem.qty_this = values.length;
+    loadDataGrid(asnitemList);
+    setCheckingQty();
+
+    $('#tagbox').tagbox('setValues', []);
+    closeDialog(null, 'dlg_sn_list');
+    $('#barcode').focus();
+}
+
+function _noticeException( content, justTip ) {
+    $('#chatAudio')[0].play();
+    noticeException( content, justTip );
+}
+    
+</script>
+
+</html>

@@ -1,0 +1,69 @@
+/*monthNavigation月份导航*/
+.ud_monthnavigation{  
+  display: flex;  
+  flex-direction: row;   
+  background-color: #224b9b;
+  position:relative;
+} 
+.ud_month{
+   border:1px dashed white;
+   border-radius:50%;
+   line-height: 50px;
+   text-align: center;
+   color: white;
+   margin: 15px 5px;
+} 
+.ud_active{
+  border:1px solid white;
+}
+.ud_active:after{
+  content: '';
+  border-width: 10px;
+  border-color:transparent  transparent  #fff transparent ;
+  border-style:solid dashed dashed dashed;    
+  bottom:-17px;
+  position:absolute;
+  margin-left:-29px;
+} 
+
+/*概览*/
+.ud_cell {
+  position: relative; 
+  background: #fff;
+  padding: 5px 16px;
+  border-bottom: 1px solid #dbdbdb;
+  box-sizing: border-box;
+}
+.label{
+  color:#333;
+  min-width:80px;
+  padding-right:15px;  
+  font-size:14px; 
+  display:inline-block;
+  text-align:right;
+}
+.value{
+  flex:1;
+  line-height:1.6;
+  padding:4px 0;
+  min-height:22px;
+  height:auto;
+  font-size:14px; 
+}
+.cell .label {
+  font-size: 15px; color: #9b9b9b;
+}
+.cell .value {
+  font-size: 15px; color: #35383c;
+}
+.cell .badge {
+  position: absolute;
+  top: 5px; right: 30px;
+} 
+.right_arrow {
+  position: absolute;
+  top: 0; bottom: 0; right: 16px;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+}

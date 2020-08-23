@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+	<meta charset="UTF-8">
+	<title>ichart图表</title>
+
+	<link href="common.css" rel="stylesheet">
+
+	<script src="../../tools/tssJS/tssJS.all.js"></script>
+	<script src="tssJS.chart.js"></script>
+	<script src="common.js"></script>
+	
+	<script src="../../tools/ichartjs/ichart.1.1.min.js"></script>
+	<script src="ichart.js"></script>
+
+	<script type="text/javascript">
+
+	var CHART_TYPES = ["Column2D", "Column3D", "Pie2D", "Pie3D", "Donut2D", "Bar2D", "Line2D"];
+	
+	var autoSize, title, chartType  = $.Query.get("type") || "column2D";
+ 
+ 	// 显示外部传入的数据
+	function showOuterData() {
+		var globalValiable = window.parent.globalValiable;
+		if(globalValiable && globalValiable.data) {
+			title = globalValiable.title;
+			show(globalValiable.data);
+			return true;
+		}
+		return false;
+	}
+
+	window.onresize = showOuterData;
+	window.onload = function() {
+		if(showOuterData()) {
+			return;
+		}
+
+		title = "报表XXX";
+		tssJS.ajax({
+			url : "data/1.json",
+			method : "GET",
+			type : "json",
+			waiting : true,
+			ondata : function() {
+				var data = this.getResponseJSON();
+				var index = 0;
+				window.setInterval( function() {
+					chartType = CHART_TYPES[index++ % CHART_TYPES.length];
+					show(data);
+				}, 1000 * 1.5); 
+			}
+		});	  
+	}
+
+	function show(data) {	
+		autoSize = autoAdjustSize("canvasDiv");
+
+		var dataCopy = [];
+		for(var index = 0; index < data.length; index++) {
+			if(chartType == CHART_TYPES[2] || chartType == CHART_TYPES[3] || chartType == CHART_TYPES[4] ) {
+				data[index].color = tssJS.COLORS[index % 16];
+			}
+			else {
+				data[index].color =  tssJS.COLORS[2];
+			}
+			
+			dataCopy.push(data[index]);
+		}
+		
+		// 除折线图外，Culomn、bar、pie等图都需要控制数据个数，控制在16个
+		function sortNumber(a, b) {
+			return parseFloat(a.value) - parseFloat(b.value);
+		}
+
+		if(dataCopy.length > 16 && chartType != "Line2D") {
+			var tempArray1 = [];
+			var temp =  dataCopy.slice().sort(sortNumber)[dataCopy.length - 15];
+			for(var i=0; i < dataCopy.length; i++) {
+				if( dataCopy[i].value >= Math.max(1, temp.value) ) {
+					tempArray1.push(dataCopy[i]);
+				}
+			}
+
+			dataCopy = tempArray1;
+		}
+ 
+ 		switch(chartType) {
+ 			case "Line2D":
+ 			case "Column3D":
+ 				eval(chartType + "(dataCopy)");
+ 				break;
+ 			default:
+ 				eval("draw" + chartType + "('canvasDiv', dataCopy, title, autoSize[0], autoSize[1])");
+ 				break;
+ 		}
+	}
+
+	function Column3D(data) {
+		var values = [];
+		var labels = [];
+		var max = 0, min = 99999999;
+		for(var i = 0; i < data.length; i++) {
+			var item = data[i];
+			values[i] = item.value;
+			labels[i] = item.name;
+
+			max = Math.max(max, item.value); 
+		}
+ 
+		max = $round(Math.round(max));
+
+		var _data = [
+	         	{
+	         		name : '',
+	         		value: values,
+	         		color: "#9370DB"
+	         	}
+	         ];
+		drawColumn3D('canvasDiv', _data, labels, max, title, "", autoSize[0], autoSize[1]);
+	}	
+
+	function Line2D(data) {
+		var _data = [];
+		var labels = [];
+		var max = 0, min = 99999999;
+		for(var i = 0; i < data.length; i++) {
+			var item = data[i];
+			_data[i]  = item.value;
+			labels[i] = item.name;
+
+			max = Math.max(max, item.value); 
+			min = Math.min(min, item.value); 
+		}
+ 
+		max = $round(Math.round(max));
+		min = $ceil(Math.round(min));
+
+		drawLine2D('canvasDiv', _data, labels, max, min, title, autoSize[0], autoSize[1]);
+	}
+	
+	</script>
+</head>
+
+<body>
+
+	<div id='canvasDiv'></div>
+
+</body>
+</html>

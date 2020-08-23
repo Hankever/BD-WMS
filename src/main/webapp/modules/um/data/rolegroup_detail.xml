@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<RoleGroupInfo>
+		<xform>
+			<declare>
+				<column name="id" caption="ID号" mode="string" editable="false"/>
+				<column name="name" caption="名称" mode="string"/>
+				<column name="remarks" caption="说明" mode="string" empty="false"/>
+			</declare>
+			<layout>
+				<TR>
+					<TD width="50"><label binding="id"/></TD>
+					<TD><input binding="id"/></TD>
+				</TR>
+				<TR>
+					<TD><label binding="name"/></TD>
+					<TD><input binding="name"/></TD>
+				</TR>
+				<TR>
+					<TD valign="top"><label binding="remarks"/></TD>
+					<TD><textarea binding="remarks" style="width:90%;height:100px;"/></TD>
+				</TR>
+			</layout>
+			<data>
+				<row>
+                  <id><![CDATA[1]]></id>
+                  <name><![CDATA[角色组1]]></name>
+                  <remarks><![CDATA[测试角色组编辑]]></remarks>
+                </row>
+			</data>
+		</xform>
+	</RoleGroupInfo>
+</Response>

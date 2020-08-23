@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>拣货分配</title>
+    <link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+    <link rel="stylesheet" href="../../css/easyui.css">
+
+    <link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+    <link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+    <link rel="stylesheet" href="../../tools/ionicons.css">
+    <link rel="stylesheet" href="wms.css">
+
+    <script src="../../tools/tssJS/tssJS.all.js"></script>
+
+    <script src="../../tools/easyui/jquery.min.js"></script>
+    <script src="../../tools/easyui/jquery.easyui.min.js"></script>
+    <script src="../../tools/easyui/datagrid-cellediting.js"></script>
+    <script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+    <script src="../../tools/easyui.js"></script>
+    <script src="../../tools/util_date.js"></script>
+    <script src="wms.js"></script>
+    <script src="order_pickup.js"></script>
+</head>
+
+<body>
+<div id="init"></div>
+
+<div id="main" class="easyui-layout" fit="true">
+    <div data-options="region:'west',split:true,collapsible:false" style="width: 460px" border="false" title="订单列表">
+        <table id="t1" border="false"></table>
+    </div>
+    <div id="dataContainer" data-options="region:'center'" border="false">
+        <div class="easyui-layout" fit="true">
+            <div data-options="region:'north',split:true,collapsible:false" style="height:45%" border="false" title="<b class='order_no'></b> 订单明细">
+                <table id="t2" border="false"></table>
+            </div>
+            <div data-options="region:'center'" border="false" 
+                title="<b class='order_no'></b> 拣货指导单<span id='_worder'></span><input type='hidden' id='_worder_'><input type='hidden' id='_opid_'>">
+                <table id="t_pkd" border="false"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="dlg_worker" class="easyui-dialog" closed="true" buttons="#dlg_worker-buttons" style="width: 300px; height: 400px">
+    <form id="fm_worker" method="post" novalidate>
+        <input name='worker' id='worker' border="false" required/>   
+    </form>
+</div>
+<div id="dlg_worker-buttons">
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle-outline" onclick="saveWorker()">保 存</a>
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-close-circle-outline" onclick="closeDialog('fm_worker', 'dlg_worker')">取 消</a>
+</div>
+
+<div id="dlg1" class="easyui-dialog" title="查询订单" closed="true" buttons="#dlg1-buttons">
+    <table class="l">
+        <tr>
+            <td class="label">出库单号:</td>
+            <td><input id="query_orderno" class="easyui-textbox" style="width:250px"/></td>              
+        </tr>
+        <tr>
+            <td class="label">货主:</td>
+            <td><input id="query_owner_id" class="easyui-textbox" style="width:150px"/></td>              
+        </tr>
+        <tr>
+            <td class="label">状态:</td>
+            <td><input id="query_status" class="easyui-combobox" style="width:80px"/></td>              
+        </tr>
+        <tr>
+            <td class="label">备注:</td>
+            <td><input id="query_remark" class="easyui-textbox" style="width:250px"/></td>              
+        </tr>
+        <tr>
+            <td class="label">下单日期:</td>
+            <td>
+                <input id="time1" class="easyui-datebox"/> -->
+                <input id="time2" class="easyui-datebox"/>
+            </td>              
+        </tr>
+    </table>
+</div>
+<div id="dlg1-buttons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-search" onclick="beginQuery()">查 询</a>
+</div>
+
+<div id="dlgInv" class="easyui-dialog" title="选择拣货库存" style="width:960px; height:320px; padding: 0" closed="true" buttons="#dlgInv-buttons">
+    <table id="t_inv" border="false"></table>
+</div>
+<div id="dlgInv-buttons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-add-circle" onclick="selectInv()" style="width:120px">选择库存并更换</a>
+</div>
+
+</body>
+
+<script type="text/javascript">
+    
+var dg1, dg2, dg_pkd, dg1_selected,
+
+FIELDS_1 = [
+    {field: "orderno", title: "订单号", width: '110px'},
+    {field: "owner_id", title: "货主", formatter:ownerid2name, width: '80px'},
+    {field: "qty", title: "数量", width: '60px'},
+    {field: "status", title: "状态", width: '65px', styler: linkStyler},
+    {field: "tag", title: "缺货标记", width: '75px'}
+], 
+FIELDS_2 = [
+    {field: "sku_id", title: "货品ID", hidden: true},
+    {field: "skuname", title: "货品", sortable: true, align: "left", width: '13%'},
+    {field: "skucode", title: "货品编码", align: "left", width: '11%'},
+    {field: "qty", title: "订单数量", width: '8%'},
+    {field: "uom", title: "单位", width: '5%'},
+    {field: "invstatus"},
+    {field: "createdate"},
+    {field: "expiredate"},
+    {field: "lotatt01"},
+    {field: "lotatt02"},
+    {field: "lotatt03"},
+    {field: "lotatt04"},
+    {field: "remark", title: "备注", width: '15%'}
+], 
+FIELDS_3 = [
+    {field: 'ck', checkbox: true},
+    {field: "inv_id", title: "库存ID", hidden: true},
+    {field: "sku_id", title: "货品ID", hidden: true},
+    {field: "skuname", title: "货品", sortable: true, align: "left", width: '13%'},
+    {field: "skucode", title: "货品编码", align: "left", width: '11%'},
+    {field: "parent_loc", title: "拣货库位", width: '12%'},
+    {field: "qty", title: "拣货数量", width: '7%'},
+    {field: "uom", title: "单位", width: '5%'},
+    {field: "invstatus"},
+    {field: "createdate"},
+    {field: "expiredate"},
+    {field: "lotatt01"},
+    {field: "lotatt02"},
+    {field: "lotatt03"},
+    {field: "lotatt04"},
+    {field: "status", title: "作业状态", width: '7%'},
+    {field: "opts",title: "操作", width: '12%', styler: function(value,row,index){ return 'cursor: pointer;'; }, align: "center"}
+];
+fixLotatts(FIELDS_2);
+fixLotatts(FIELDS_3);
+
+$.each(FIELDS_1, function(i, field) {
+    field.align = field.align||"center";
+    field.sortable = true;
+});
+$.each(FIELDS_2, function(i, field) {
+    field.align = field.align||"center";
+    field.width = field.width||"10%";
+    field.sortable = true;
+});
+$.each(FIELDS_3, function(i, field) {
+    field.align = field.align||"center";
+    field.width = field.width||"7%";
+    field.sortable = true;
+});
+
+prepareOwners(function(){   
+    $('#query_owner_id').combobox({
+        data: OWNER_D,
+        textField: 'name',
+        valueField: 'id',
+        panelHeight: '100px'
+    })
+});
+$('#query_status').combobox({
+    url: '/tss/param/json/combo/OrderStatus?KV=true&valField=text',
+    method: 'get',
+    textField:'value',
+    valueField:'text',
+    panelHeight:'auto'
+});
+ prepareLOCs();
+
+
+$(function () {
+    initContext(drawTable);
+    init();
+
+    dg2 = $('#t2').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        remoteSort: false,
+        columns: [FIELDS_2],
+        sortName: "skucode",
+        data: [],
+        onSelect: function(index, row) {
+            dg_pkd.datagrid("clearSelections");
+
+            var rows = dg_pkd.datagrid("getRows");
+            rows.each(function(i, row2) {
+                if( row2.orderitem.id === row.id ) {
+                    dg_pkd.datagrid("selectRow", i);
+                }
+            });
+        }
+    });
+
+    dg_pkd = $('#t_pkd').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: false,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        remoteSort: false,
+        sortName: "skucode",
+        columns: [FIELDS_3],
+        data: [],
+        onClickCell: function(index, field, value) {
+            if(field == 'opts') {
+                dg_pkd_selected = dg_pkd.datagrid("getRows")[index];
+                queryInvs( dg_pkd_selected );
+            }           
+        },
+        toolbar: [
+            { text: '指派拣货员', iconCls: 'ion ion-ios-person', handler: assign, id: "_bt3" },
+            '-', { text: '打印拣货指导单', iconCls: 'ion ion-ios-print', handler: printPkds, id: "_bt4", disabled: true },
+            '-', { text: '确认拣货完成', iconCls: 'ion ion-ios-checkmark-circle-outline', handler: function() { pickup(false); }, id: "_bt5", disabled: true },
+            '-', { text: '拣货取消', iconCls: 'ion ion-ios-close-circle-outline', handler: function() { pickup(true); }, id: "_bt6", disabled: true },
+            '-', { text: '去验货', iconCls: 'ion ion-ios-shuffle', handler: gotoCheck, id: "_bt7", disabled: true}
+        ]
+    });
+});
+
+function drawTable(SELECTED_WH){
+    prepareLOCs(function () {
+        prepareSKUs(function() {
+            prepareOwners(function(){   
+                SELECTED_WH = SELECTED_WH;
+                queryOrder();
+            })
+        })
+    });
+}
+
+function init() {
+    $('.order_no').text('');
+}
+
+function queryOrder() {
+    dg1 = $('#t1').datagrid({
+        url: ORDER.QUERY,
+        queryParams: getParams(),
+        fit: true,
+        fitColumns: true,
+        pagination: true,
+        rownumbers: true,
+        pageSize : 50,
+        pageList:[50, 100, 200],
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        remoteSort: false,
+        columns: [FIELDS_1],
+        toolbar: [
+            { text: '查找订单', iconCls: 'ion ion-ios-search', handler: search},
+            '-', { text: '刷新', iconCls: 'ion ion-ios-refresh', handler: queryOrder },
+            '-', { text: '分配库存', iconCls: 'ion ion-ios-calculator', handler: allocate, id: "bt1" },
+            '-', { text: '取消分配', iconCls: 'ion ion-ios-close-circle-outline', handler: cancelAllocate, id: "bt2" },
+            '-', { text: '指派拣货员', iconCls: 'ion ion-ios-person', handler: assign, id: "bt3" }
+        ],
+        onLoadSuccess: function(data) {
+            if(data.total) {
+                setTimeout(function() {
+                    dg1.datagrid("selectRow", dg1_selected || 0);
+                }, 500);   
+            }
+            else{
+                dg2.datagrid({data:[]})
+            }
+            return data;
+        },
+        onSelect: function(index, row) {
+            queryItems( row['orderno'], row['id'] );
+            dg1_selected = index;
+
+            if( row.status == '新建' || row.status == '出库取消' ) {
+                $("#bt1").linkbutton("enable");
+                $("#bt2, #bt3").linkbutton("disable");
+            } 
+            else if( row.status == '取消') {
+                $("#bt1, #bt2, #bt3").linkbutton("disable");
+            } else {
+                $("#bt1").linkbutton("disable");
+                $("#bt2, #bt3").linkbutton("enable");
+            }
+        },
+        onClickCell: function(index, field, value){
+            if(field == 'status') {
+                showOpLog();
+            }
+        }
+    });
+}
+
+function search() {
+    var time1 = $('#time1').datebox("getValue") || subDateS(now, TIME_SPAN),
+        time2 = $('#time2').datebox("getValue") || subDateS(now, -1);
+
+    $('#time1').datebox('setValue', time1);
+    $('#time2').datebox('setValue', time2);
+    $('#dlg1').dialog( {"modal": true} ).dialog('open');
+}
+function beginQuery() {
+    $('#dlg1').dialog('close');
+    queryOrder();
+}
+
+function getParams() {
+    var orderno_ = decodeURI(tssJS.Query.get("orderno") || '');
+    var params = {
+            warehouse_id:SELECTED_WH,
+            orderno : $('#query_orderno').val() || orderno_ ,
+            owner_id: $("#query_owner_id").combobox('getValue')
+        };
+
+    if( !params.orderno ) {
+        var time1 = $('#time1').datebox("getValue") || subDateS(now, TIME_SPAN),
+        time2 = $('#time2').datebox("getValue") || subDateS(now, -1);
+
+        params.orderday = "[" + [time1, time2].join(",") + "]";
+        params.status = $('#query_status').combobox('getValue') || '新建,已分配,部分拣货,已拣货,出库取消';
+        params.origin = '拣货分配';
+        params.remark = $("#query_remark").val();
+    }
+    
+    return params;
+}           
+
+function queryItems(orderno, order_id) {
+    var params = {};
+    params.order_id = order_id;
+
+    tssJS.getJSON( OITEMS.QUERY, params, function(data) {
+        var inv_ids = [-999];
+        data.each(function(i, item) {
+            item.inv_id && inv_ids.push( item.inv_id ); 
+        });
+
+        tssJS.get(INV.QUERY, {id: inv_ids.join(",")}, function(invs) {
+            var invMap = {};
+            invs.each(function(i, inv) {
+                invMap[inv.id] = inv;
+            });
+
+            showItems(data, invMap); 
+        })
+
+        queryPKDs();       
+    });
+
+    $('.order_no').text("【" + orderno + "】");
+    $("#_bt4, #_bt5").linkbutton("disable");
+}
+
+function showItems(data, invMap) {
+    data.each(function(i, item) {
+        var sku = SKU_M[item.sku_id];
+        item.skuname = sku.name;
+        item.skucode = sku.code;
+        item.brand = sku.brand;
+        item.supplier = sku.supplier;
+        item.guige = sku.guige;
+        item.price = item.price || sku.price2 || sku.price || sku.price0 || 0;
+        item.uom = sku.uom;
+        item.shelflife = sku.shelflife;  
+        if( item.inv_id ) {     
+            item.out_loc = invMap[item.inv_id].location_id;  // inv_id 转换成 out_loc
+        }
+    });
+    dg2.datagrid("loadData", data);
+}   
+
+function queryPKDs() {
+    dg_pkd.datagrid("loadData", []);
+    $("#_worder").text("");
+    $("#_worder_").val("");
+
+    var row = dg1.datagrid('getSelected');
+    if(row.status != '新建') {
+        tssJS.getJSON( SERVICE.order_pkd_op + '/' + row.id, {}, function(oph) {
+            oph.items && oph.items.length && showPKDs(oph);
+        })
+    } 
+}
+
+function allocate() {
+    var oRow = dg1.datagrid('getSelected');
+    if( !oRow.qty ) {
+        return $.messager.alert('异常提示', '此出库单是个空单子，不能分配库存.');
+    }
+
+    $.post( SERVICE.order_allocate + '/' + oRow.id, {}, function(oph) {
+        if(oph.errorMsg) {
+            $.messager.alert('分配失败提示', oph.errorMsg);
+            queryItems(oRow.orderno, oRow.id);
+        } 
+        else {
+            showPKDs(oph);
+
+            oRow.status = '已分配';
+            oRow.udf4 = '';
+            dg1.datagrid("refreshRow", dg1_selected);
+            dg1.datagrid("selectRow", dg1_selected);
+
+            var rule = oph.wave.rules.length ? oph.wave.rules[0].name : '先进先出（系统默认）';
+            $.messager.show({ title: '拣货推荐提示', msg: '本次使用拣货规则为【' +rule+ "】<br>可为不同仓库或货主设置不同的推荐规则"});
+        }
+    })
+}
+
+var CURRENT_OP_NO;
+function showPKDs(oph) {
+    CURRENT_OP_NO = oph.opno;
+    var pkds = oph.items;
+    pkds.each(function(i, item) {
+        var inv = item.opinv;
+        item.inv_id = inv.id;
+        item.sku_id = inv.sku.id;
+        item.skuname = inv.sku.name;   
+        item.guige = inv.sku.guige;
+        item.uom = inv.sku.uom;
+        item.inv_qty = inv.qty;
+        item.qty_locked = inv.qty_locked;
+
+        var parent_loc = LOC_C[item.loccode].parent_id ? LOC_I[LOC_C[item.loccode].parent_id].code : '';
+        item.parent_loc = (parent_loc ? parent_loc + ' / ' : '') + item.loccode
+
+        if( item.status != '已完成' ) {
+            item.opts = '<a href="javascript:void(0)" style="text-decoration: underline;">更换拣货库存</a>';
+        }
+    });
+
+    dg_pkd.datagrid("loadData", pkds);
+    
+    if( oph.status == '已完成' ) {
+        $("#_bt6,#_bt7").linkbutton("enable");
+        $("#_bt4,#_bt5").linkbutton("disable");
+    } 
+    else if( oph.status != '新建' ) {
+        $("#_bt6,#_bt7").linkbutton("enable");
+        $("#_bt4,#_bt5").linkbutton("enable");
+    }
+    else {
+        $("#_bt6,#_bt7").linkbutton("disable");
+        $("#_bt4,#_bt5").linkbutton("enable");
+    }
+
+    var order_row = dg1.datagrid('getSelected');
+    if(order_row.status == '已验货') {
+        $('#_bt6').linkbutton("disable");
+    }
+
+    if( oph.worker ) {
+        var workers = oph.worker.split(","), workerNames = [];
+        workers.each(function(i, userCode) {
+            userCode = userCode.trim();
+            workerNames.push( userPartner[userCode] );
+        });
+        $("#_worder").text("，拣货员：" + workerNames.join());
+        $("#_worder_").val(oph.worker);
+    }
+    $("#_opid_").val(oph.id);
+}
+
+var selected_op;
+function assign() {
+    var row = $('#t1').datagrid('getSelected');
+    if(row.status == '新建') {
+        return $.messager.alert('提示', "请先为订单分配库存，再指派拣货员");
+    }
+
+    tssJS.getJSON( SERVICE.order_pkd_op + '/' + row.id, {}, function(data) {
+        selected_op = data.id;
+
+        chooseWorker( $("#_worder_").val() );
+    })
+}
+
+function saveWorker() {
+    var row = $('#t1').datagrid('getSelected');
+    var params_ = {}; 
+    params_.id = row.id;
+    params_.worker = getChoosedWorkers();
+    params_.type = '拣货';
+    params_.opId = selected_op;
+
+    JQ.post(SERVICE.order_assign, params_, function(res) {
+        $.messager.show({ title: '提示', msg: '指派完成'});
+
+        dg1.datagrid("selectRow", dg1_selected);
+        sendMsg(row, params_);
+    })
+}
+
+function cancelAllocate() {
+    tssJS.confirm("确定要取消分配吗", "确认取消分配", function(reason) {
+
+        var row = $('#t1').datagrid('getSelected');
+        tssJS.post(SERVICE.order_cancelAllocate + row.id, {}, function(oh) {
+            row["status"] = oh.status;
+
+            dg1.datagrid("refreshRow", dg1_selected);
+            dg1.datagrid("selectRow", dg1_selected); // 模拟 onSelect，触发onSelect事件以更新按钮状态
+        });
+    });
+}
+
+var globalV = {};
+function printPkds() {
+    globalV.data = dg_pkd.datagrid("getSelections");
+    if( globalV.data.length == 0 ) { 
+        globalV.data = dg_pkd.datagrid("getRows");
+    }
+
+    globalV.orderno = $('#t1').datagrid('getSelected').orderno;
+    globalV.pkhno = CURRENT_OP_NO;
+    globalV.worker = userCode2userName( $("#_worder_").val() );
+    tssJS.openIframePanel("panel-1", " - 拣货指导单打印", 800, 480, "order_pkd_print.html");
+}
+
+function gotoCheck() {
+    var oRow = dg1.datagrid('getSelected');
+    var url = '/tss/pages/wms/order_checkout.html?orderno=' + oRow.orderno;
+    addTab('url', '验货（封箱）', url);
+}
+
+</script>
+
+</html>

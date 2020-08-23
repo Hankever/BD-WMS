@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>验货出库</title>
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="wms.js"></script>
+
+<style type="text/css">
+    .datagrid-cell-c1-qty { font-size: 20px; }
+    .datagrid-cell-c1-qty_checked { font-size: 20px; }
+    .datagrid-cell-c1-qty_this { font-size: 20px; }
+    .datagrid-cell-c1-money { font-size: 20px; }
+</style>
+
+</head>
+
+<body id = "io_check" >
+<div id="init"></div>
+
+<div id="main" class="easyui-layout" fit="true">
+    <div data-options="region:'north',split:false" style="height:170px" border="false">
+        <div class="easyui-layout" fit="true">
+            <div data-options="region:'west'" style="width:45%;border-bottom: 0; border-top: 0; border-left: 0;">
+                <div class="easyui-layout" fit="true">
+                    <div data-options="region:'center'" border="false">
+                        <table style="border-collapse:separate; border-spacing:15px;">  
+                            <tr>
+                                <td class='label label_'>出库单号</td>
+                                <td>
+                                    <input name='orderno' id='orderno' class="input_" autocomplete="off"/>
+                                </td>
+                            </tr>
+                            <tr> 
+                                <td class='label label_'>货品条码</td>
+                                <td>
+                                    <input name='barcode' id='barcode' class="input_" placeholder="使用把枪扫码" autocomplete="off"/> *
+                                    <input name='scanfactor' id='scanfactor' class='input_ len1' placeholder="系数" autocomplete="off"/> 
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class='label label_'>验货模式</td>
+                                <td>
+                                    <span id='check_box'>
+                                        <input class="easyui-switchbutton" id="if_box" data-options="width:'80px', height:'25px', onText:'封箱', offText:'只验数量'" checked>
+                                    </span>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;
+                                    <span id='_enable_sn'>
+                                        <input class="easyui-switchbutton" id="enable_sn" data-options="width:'80px', height:'25px', onText:'按序列号', offText:'按条码'" checked>
+                                    </span>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;
+                                    <span id='_print_box'>
+                                        <input class="easyui-switchbutton" id="print_box" data-options="width:'80px', height:'25px', onText:'打印箱码', offText:'不打印'" checked>
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div data-options="region:'east',collapsible:true" style="width:36%;" border="false">
+                        <table style="border-collapse:separate; border-spacing:20px;">  
+                            <tr>
+                                <td>
+                                    <input name='sku_num' id='sku_num' value="0" class='input_ len2' disabled />
+                                </td>
+                            </tr>
+                            <tr id="fx">
+                                <td>
+                                    <a href="#" class="easyui-linkbutton" style="width: 160px" onclick="saveData('fx')">封箱（F8）</a>
+                                </td>
+                            </tr>
+                            <tr id="yh" style="display: none">
+                                <td>
+                                    <a href="#" class="easyui-linkbutton" style="width: 160px" onclick="saveData('yh')">验货完成（F9）</a>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div data-options="region:'center'" border="false" class="layout_center">
+                <table style="border-collapse:separate; border-spacing:20px;">  
+                    <tr>
+                        <td class='label_b'>总&nbsp;数&nbsp;量&nbsp;：</td>
+                        <td>
+                            <text id="qty" class="qty_text"></text>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class='label_b'>已封箱数：</td>
+                        <td>
+                            <text id="box_num" class="qty_text underline"></text>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class='label_b'>已验货数：</td>
+                        <td>
+                            <text id="qty_checked" class="qty_text"></text>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div data-options="region:'east'" style="width:35%; border-bottom: 0; border-top: 0; border-right: 0;">
+                <div class="easyui-layout" fit="true">
+                    <div data-options="region:'center'" border="false">
+                        <div class="img_text"><text class="label_">复核货品图片</text></div>
+                        <div id="imgs"><img class="img_" /></div>
+                    </div>
+                    <div data-options="region:'east',collapsible:true" style="width:40%;border-bottom:0;border-top:0;border-right:0;">
+                        <text class="label_" style="display:block; padding:5px 10px;">异常提示：</text>
+                        <text class="label_" style="display:block; padding:10px; height: 100px; margin-bottom: 5px" id="exc_reason"></text>
+                        <a href="#" class="easyui-linkbutton" onclick="recException()" style="margin-left: 20px; width: 140px">异常登记（F4）</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="dataContainer" data-options="region:'center'" border="false" title="订单<span id='order_tag'></span><span>明细</span><b id='doc_status'></b>">
+        <table id="t1" border="false"></table>
+    </div>
+</div>
+
+<div id="dlg1" class="easyui-dialog" closed="true" buttons="#dlg1-buttons">
+    <form id="fm1" method="post" novalidate>
+        <table class='l'>
+            <tr>
+                <td class='label'>异常内容</td>
+                <td>
+                    <textarea name='content' id='content' class="textarea" required></textarea>
+                </td>
+            </tr>
+        </table>      
+    </form>
+</div>
+<div id="dlg1-buttons">
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle-outline" onclick="submitExc()">保 存</a>
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-close-circle-outline" onclick="closeDialog('fm1', 'dlg1')">取 消</a>
+</div>
+
+<audio id="chatAudio">
+    <source src="sounds/ErrorTipsSound.mp3" type="audio/mpeg"/>
+</audio>
+<audio id="chatAudio_1">
+    <source src="sounds/OkTipsSound.mp3" type="audio/mpeg"/>
+</audio>
+<audio id="chatAudio_2">
+    <source src="sounds/ScanTipsSound.mp3" type="audio/mpeg"/>
+</audio>
+
+</body>
+
+<script type="text/javascript">
+
+function onshow() {
+    orderno = tssJS.Query.get("orderno");
+    console.log(orderno);
+    query(); 
+}
+
+var orderno_ = tssJS.Query.get("orderno");
+var barcode_list = [], sn_list = [], sn_id_list = [];
+
+var FIELDS_1 = [
+    {field: "sku_id", title: "货品ID", hidden: true},
+    {field: "skuname", title: "货品", width: '10%', sortable: true, align: "left"},
+    {field: "skucode", title: "编码"},
+    {field: "barcode", title: "条码", width: '11%', formatter: barcodeCopyScan},
+    {field: "status", title: "状态", width: '5%'},
+    {field: "qty", title: "订单数", width: '5%'},
+    {field: "qty_checked", title: "已完成验货"},
+    {field: "qty_this", title: "当前验货中", styler: highlightStyler},
+    {field: "invstatus"},
+    {field: "createdate"},
+    {field: "expiredate"},
+    {field: "lotatt01"},
+    {field: "lotatt02"},
+    {field: "lotatt03"},
+    {field: "lotatt04"},
+    {field: "guige", title: "规格"},
+    {field: "uom", title: "单位"},
+    {field: "price", title: "单价(元)", hidden: hide_money, align: "right", width:'6%', editor: {type:'numberbox', options: {precision:3, min:0} }},
+    {field: "money", title: "金额(元)", hidden: hide_money, align: "right", editor: {type:'numberbox', options: {precision:2, min:0}} }
+], 
+orderno, order_id, oitemList = [], currCKItem, _checking, skuList = [],  box_serial = 0, if_box = true, print_box = true;
+
+fixLotatts(FIELDS_1);
+fixFields(FIELDS_1, "wms_sku");
+
+$.each(FIELDS_1, function(i, field) {
+    field.align = field.align||"center";
+    field.width = field.width||"6%";
+});
+
+
+$(function () {
+    initContext(drawTable);
+    init();
+
+    bindOrdernoChange();
+    bindBarcodeChange();
+    FxOrYhKeyDown();
+    checkBox();
+
+    dg = $('#t1').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        remoteSort: false,
+        columns: [FIELDS_1],
+        data: [],
+        showFooter: true
+    });
+});
+
+function drawTable(SELECTED_WH){
+    prepareSKUs(function(){
+        prepareLOCs(function() {
+            if(orderno_ != 'undefined') {
+                orderno = orderno_;
+                $('#orderno').val(orderno_);
+                $('#order_tag').text(orderno ? orderno : 'XXX');
+            }
+            SELECTED_WH = SELECTED_WH;
+            query();
+        })
+    });
+}
+
+function init() {
+    $('#scanfactor').val(1);
+    $('#qty, #qty_checked, #box_num').text(0);
+    $('#yh').hide();
+    $('#' + (orderno ? 'barcode' : 'orderno') ).focus();
+}
+
+function checkBox() {
+    $('#if_box').switchbutton({
+        checked: true,
+        onChange: function(checked){
+            if(checked) {
+                if_box = true;
+                $("#fx").show();
+                $("#yh").hide();
+                $('#_print_box').show();
+                $('#print_box').switchbutton({
+                    checked: true
+                })
+                print_box = true;
+            } else {
+                if_box = false;
+                $("#fx").hide();
+                $("#yh").show();
+                $('#_print_box').hide();
+                print_box = false;
+            }
+        }
+    });
+
+    $('#print_box').switchbutton({
+        onChange: function(checked){
+            print_box = checked;
+        }
+    })
+
+    if(enable_sn) {
+        $('#enable_sn').switchbutton({
+            checked: true,
+            onChange: function(checked){
+                enable_sn = checked;
+            }
+        })
+    } else {
+        $('#_enable_sn').hide();
+    }
+}
+
+function bindOrdernoChange() {
+    $("#orderno").keydown(function () {
+        orderno = $('#orderno').val();
+        if(event.keyCode == 13) {
+            query(); 
+        }
+    })
+}
+
+function query() {
+    $('#sku_num').val(0);
+    skuList = [];
+
+    orderno && tssJS.getJSON( ORDER.QUERY, {warehouse_id: SELECTED_WH, orderno: orderno, strictQuery: true}, function(data) {
+        if(data.length > 0) { // 1、先查 出库单
+            _query (data);
+        } 
+        else { // 2、再查 订单（按物流单号等）
+            tssJS.getJSON( OMSORDER.QUERY, {'platformno|outorderno|logisticcode': orderno}, function(data) {
+                if(data.length > 0) { // 最后查 出库单
+                    var _orderno = data[0].orderno;
+                    tssJS.getJSON( ORDER.QUERY, {warehouse_id: SELECTED_WH, orderno: _orderno, strictQuery: true}, function(data) {
+                        if(data.length == 1) {
+                            _query (data);
+                        } else {
+                            _noticeException("出库单【" + _orderno + "】不存在");
+                            showItems([], ''); 
+                        }
+                    })
+                } else {
+                    _noticeException("出库单【" + orderno + "】不存在");
+                    showItems([], ''); 
+                }
+            })
+        }
+    })
+}
+
+function _query (data) {
+    var order = data[0];
+    order_id = order.id;
+
+    $('#order_tag').text(order.orderno);
+    $("#doc_status").text("【" +order.status+ "】");
+    $('#box_num').text(0);
+
+    tssJS.getJSON( OITEMS.QUERY, {order_id: order_id}, function(data_) {
+        if(data_.length == 0) {
+            return _noticeException("出库单【" + orderno + "】的货品清单为空，请先维护。");
+        }
+        showItems(data_, order.status); 
+    })
+
+    if( order.status == '已完成' ) {
+        $('#qty, #qty_checked, #box_num').text(0);
+        $.messager.show({ title: '提示', msg: '此订单已出库完成'});
+    }
+    else if( !(order.status.indexOf('验货') >= 0 || order.status.indexOf('拣货') >= 0 || order.status == '已分配' ) ) {
+        $('#fx, #yh').hide();
+        if_box = "no_data";
+        return $.messager.alert('提示', "出库单【" +orderno+ "】状态为：" +order.status+ "，不能进行验货作业。");
+    } 
+    else {
+        tssJS("#barcode").focus();
+    }
+
+    if_box && tssJS.getJSON( BOX.QUERY, {order_id: order_id}, function(d) {
+        
+
+        $('#fx').show();
+        $('#yh').hide();
+
+        if(d && d.length) {
+            $('#box_num').text( d.length );
+
+            var max_serial = 0;
+            d.each(function(i, item) {
+                var _serial = item.boxno.replace( orderno+'-', '' ) * 1;
+                if(max_serial < _serial) {
+                    max_serial = _serial;
+                }
+            })
+            box_serial = max_serial;
+            queryBox();
+        }
+    })
+}
+
+function showItems(data, status) {
+    data.each(function(i, item) {
+        var sku = SKU_M[item.sku_id];
+        item.skuname = sku.name;
+        item.skucode = sku.code;
+        item.barcode = sku.barcode;
+        item.barcode2 = sku.barcode2;
+        item.skuid = sku.id;
+        item.status = status;
+        barcode_list.push(sku.barcode);
+    });
+    oitemList = data;
+    loadDataGrid(oitemList);
+}
+
+function loadDataGrid(oitemList) {
+    var qty = 0, qty_checked = 0, qty_this = 0, money = 0;
+    oitemList.each(function(i, item) {
+        qty += item.qty;
+        qty_checked += (item.qty_checked || 0); 
+        qty_this += (item.qty_this || 0);
+        money += (item.money||0);
+    });
+
+    qty = round(qty, _qty_precision);
+    qty_checked = round(qty_checked, _qty_precision);
+    qty_this = round(qty_this, _qty_precision);
+    money = round(money, 1);
+
+    $('#qty').text(qty);
+    $('#qty_checked').text(qty_checked);
+
+    dg.datagrid("loadData", oitemList);
+    dg.datagrid('reloadFooter',[
+        { skuname: '合计', qty: qty, qty_checked: qty_checked, qty_this: qty_this, money: money}
+    ]);
+}
+
+function queryBox() {
+    $('#box_num').click(function() {
+        var url = '/tss/pages/wms/box.html?orderno=' + orderno, 
+            name = '封箱信息';
+        
+        parent.$('#tabs').tabs('close', name);
+        addTab('url', name, url);
+    }).css("cursor", "pointer").css("color", "blue");
+}
+
+function bindBarcodeChange() {
+    $('#barcode').keydown( function() { scanOnce(false); } );
+}
+
+function scanOnce(copyIn) {
+    var barcode = ($('#barcode').val()||'').trim();
+    if(event.keyCode == 13 || copyIn) {
+        if(!orderno) {
+            _noticeException("请先扫描出库单号", true);
+            return $('#barcode').val('')
+        }
+        if( barcode ) {
+            if( enable_sn ) {
+                var sn = barcode;
+                if( sn_list.contains(sn) ) {
+                    return _noticeException("序列号已扫描，不要重复扫描", true);
+                }
+                $.getJSON(SN.QUERY, {barcode: barcode_list.join(","), sn: sn, strictQuery: true, sortField: 'sorder', sortType: 'onlynull'}, 
+                    function(result) {
+                        if( result.length == 0 ) {
+                            _noticeException("序列号不存在或已出库", true);
+                        }
+                        else {
+                            var snRow = result[0];
+                            sn_list.push( sn );
+                            sn_id_list.push( snRow.id );
+                            setSkuList( snRow.barcode );
+                        }
+                    }
+                );
+            }
+            else {
+                setSkuList(barcode);
+            }
+        }
+    }
+}
+
+function setSkuList(barcode) {
+    currCKItem = null; 
+    _checking = -1;
+    var finished = 0;
+    for(var i = 0; i < oitemList.length; i++) {
+        var oItem = oitemList[i];
+        if(oItem.qty * 1 == oItem.qty_checked * 1 + (oItem.qty_this || 0) * 1) {
+            finished++;
+        }
+        if( [oItem.barcode, oItem.barcode2].includes(barcode) ) { 
+            currCKItem = oItem;
+            _checking = i;
+
+            if( oItem.qty > (oItem.qty_checked||0) ) continue;
+        }
+    }
+
+    if(currCKItem == null) {
+        return _noticeException("出库单【" + orderno + "】里没有货品【" + barcode + "】的明细");
+    }
+
+    scanfactor = $('#scanfactor').val() * 1;
+    noticeException('');
+    querySkuPic(currCKItem.skuid);
+
+    var new_code = true, item_qty = currCKItem.qty - currCKItem.qty_checked;
+    for(var i = 0; i < skuList.length; i++) {
+        if(skuList[i].id == currCKItem.id) {
+            new_code = false;
+            var qty_this = skuList[i].qty_this + scanfactor;
+            if( qty_this > item_qty ) {
+                _noticeException("扫描货品数量超出订单数");
+                break;
+            }
+            if( qty_this == item_qty ) {
+                finished++;
+            }
+
+            skuList[i].scan_num++;
+            skuList[i].qty_this = qty_this;
+            changeQtyThis(qty_this);
+        }
+    }
+
+    if ( skuList.length == 0 || new_code ) {
+        if( scanfactor > item_qty ) {
+            return _noticeException("扫描货品数量超出订单数");
+        }
+        skuList.push(
+            { id: currCKItem.id, sku_id: currCKItem.skuid, barcode: barcode, name: currCKItem.skuname, code: currCKItem.skucode, 
+                scan_num: 1, qty_this: scanfactor, 
+                createdate: currCKItem.createdate, expiredate: currCKItem.expiredate, invstatus: currCKItem.invstatus, 
+                lotatt01: currCKItem.lotatt01, lotatt02: currCKItem.lotatt02, lotatt03: currCKItem.lotatt03, lotatt04: currCKItem.lotatt04,
+                money: currCKItem.money 
+            }
+        );
+        if( scanfactor == item_qty ) {
+            finished++;
+        }
+        changeQtyThis(scanfactor);
+    }
+
+    loadDataGrid(oitemList);
+    setCheckingQty();
+    $('#barcode').val('');
+
+    dg.datagrid("selectRow", _checking);
+
+    if(finished == oitemList.length) {
+        saveData(if_box ? 'fx' : 'yh', true); 
+    } 
+}
+
+function changeQtyThis(qty_this) {
+    if( qty_this < 0 ) {
+        return $.messager.alert('错误提示', '当前验货中的出库明细行的数量不能为负数');
+    }
+    $('#chatAudio_2')[0].play();
+    oitemList[_checking].qty_this = qty_this;
+}
+
+function setCheckingQty() {
+    var sku_num = 0;
+    skuList.each(function(i,item){
+        sku_num += item.qty_this;
+    })
+    $('#sku_num').val(sku_num || 0);
+}
+
+function FxOrYhKeyDown() {
+    $(document).keydown(function () {
+        if(if_box == "no_data") return
+
+        if(if_box) {
+            if(event.keyCode == 119) { // F8
+                saveData('fx');
+            }
+        } else {
+            if(event.keyCode == 120) { // F9
+                saveData('yh');
+            }
+        }
+
+        if(event.keyCode == 115) { // F4
+            recException();
+        }
+    })
+}
+
+function saveData(op_type, autoCommit) {
+    var $saveBtn = $('#dlg-buttons>a[onclick^="saveData"]');
+    $saveBtn.linkbutton("disable");
+
+    if(skuList.length == 0) {
+        $.messager.alert('提示', "当前没有产生验货数据，请扫描货品条码进行验货");
+        $saveBtn.linkbutton("enable");
+        return;
+    }
+
+    if(op_type == 'yh') {
+        doYH(autoCommit);
+    } 
+    else if (op_type == 'fx') {
+        doFX(autoCommit);
+    }
+}
+
+var _boxno = '';
+function doYH(autoCommit) {
+    var $saveBtn = $('#dlg-buttons>a[onclick^="saveData"]');
+
+    if( $('#qty').text() * 1 != $('#sku_num').val() * 1) {
+        return $.messager.alert('提示',"已验货数 与 总数量不符，请核实");
+    }
+
+    var url = SERVICE.order_check + '/' + order_id;
+    if(autoCommit) {
+        $('#chatAudio_1')[0].play();
+        _saveData( url, { snlist: sn_id_list.join(",") }, 'yh', autoCommit);
+    } 
+    else {
+        $.messager.confirm("操作提示", "是否确认验货完成？", function (data) {
+            if (data) {
+                var url = SERVICE.order_check + '/' + order_id;
+                _saveData( url, { snlist: sn_id_list.join(",") }, 'yh', autoCommit);
+            } else {
+               $saveBtn.linkbutton("enable");
+            }
+        });
+    }
+}
+
+function doFX(autoCommit) {
+    var $saveBtn = $('#dlg-buttons>a[onclick^="saveData"]');
+    $saveBtn.linkbutton("disable");
+
+    var skus = 0, money = 0, skuArray = [];
+    skuList.each(function(i, item) {
+        money += item.money;
+        if( !skuArray.includes(item.barcode) ) {
+            skuArray.push(item.barcode);
+            skus++;
+        }
+    })
+
+    _boxno = orderno + '-' + getBoxno(box_serial + 1);
+    var box_params = { boxno: _boxno, qty: $('#sku_num').val(), money: money, skus: skus};
+    box_params.scanfactor = $('#scanfactor').val() * 1;
+
+    var params = { orderId: order_id, items: JSON.stringify(skuList), box: JSON.stringify(box_params), snlist: sn_id_list.join(",") };
+
+    var msg = autoCommit ? '验货量已满足订单量，是否确认提交？' : '是否确认封箱？';
+    $.messager.confirm("操作提示", msg, function (data) {
+        if (data) {
+            var url = SERVICE.order_sealing;
+            _saveData( url, params, 'fx', autoCommit);
+        } else {
+           $saveBtn.linkbutton("enable");
+        }
+    });
+}
+
+function getBoxno(num) {
+    var num = '00' + num;
+    return num.substring(num.length-3);
+}
+
+function _saveData(url, params_, type, autoCommit) {
+    var $saveBtn = $('#dlg-buttons>a[onclick^="saveData"]');
+    tssJS.post(url, params_, function(res) {
+        $('#scanfactor').val(1);
+        $('#sku_num').val(0);
+        $('#qty, #qty_checked, #box_num').text(0);
+        
+        skuList = [];
+        $saveBtn.linkbutton("enable");
+
+        if(autoCommit) { // 已完成
+            tssJS("#orderno").value("");
+            tssJS("#orderno").focus();
+            $.messager.show({ title: '验货完成提示', msg: '订单验货完成'});
+        } else {
+            tssJS("#barcode").focus();
+        }
+
+        if(type == 'yh') {
+            loadDataGrid([]);
+        } 
+        else if(type == 'fx') {
+            if(print_box) {
+                printBoxNo(_boxno);
+            }
+            query();
+        }
+    })
+}
+
+var globalV = {};
+function printBoxNo(boxno) {
+    globalV.codes = boxno;
+    var url = '/tss/pages/base/barcode_print.html';
+    openEasyuiIframe("p1", url, '箱码打印', 900, 500, true);
+}
+
+function _noticeException( content, justTip ) {
+    $('#chatAudio')[0].play();
+    noticeException( content, justTip );
+}
+
+function recException() {
+    var content = $('#exc_reason').text();
+    if( content ) {
+        if( currCKItem ) {
+            var lot = formatterLot('', currCKItem, '');
+            content += "。异常货品 【" + currCKItem.skuname + ", " + currCKItem.skucode + (lot ? (', 批次:' + lot) : '') + "】";
+        }
+        
+        $('#content').text( content );
+    }
+    openDialog('异常登记', false, 'fm1', 'dlg1');
+}
+
+function submitExc() {
+    var fm_data = $("#fm1").serializeArray(), params = {}, $saveBtn = $('#dlg-buttons1>a[onclick^="submitExc"]');
+    $saveBtn.linkbutton("disable");
+
+    fm_data.each(function(i,item){
+        params[item.name] = item.value;
+    })
+    params.orderId = order_id;
+
+    if(params.content){
+        tssJS.post(SERVICE.opCheckException, params, function(res) {
+            closeDialog('fm1', 'dlg1');
+            $saveBtn.linkbutton("enable");
+        })
+    } else {
+        $.messager.alert('提示', "请填写异常反馈内容");
+        $saveBtn.linkbutton("enable");
+    }
+}
+
+function barcodeCopyScan(value){
+    return value + "<button onclick='copyScan(\" " +value+ "\")' style='margin-left: 10px; color: #999; background: #eee;'>无码扫描</button>";
+}
+
+function copyScan(barcode) {
+    $("#barcode").val(barcode).focus();
+    scanOnce(true);
+}
+
+</script>
+
+</html>

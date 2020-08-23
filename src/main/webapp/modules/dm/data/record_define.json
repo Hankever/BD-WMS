@@ -1,0 +1,56 @@
+[
+    [
+        {
+            "label": "分公司",
+            "code": "org",
+            "nullable": "false",
+            "jsonUrl": "data/ext/CompanyList.json",
+            "onchange": "getNextLevelOption(^org^, 399, ^center^)",
+            "isparam":"true"
+        },
+        {
+            "label": "分拨中心",
+            "code": "center",
+            "options": {
+                "codes": "",
+                "names": ""
+            },
+            "isparam":"true"
+        },
+        {
+            "label": "考核内容",
+            "code": "content",
+            "height": "72",
+            "width": "300"
+        },
+        {
+            "label": "完成情况",
+            "code": "wcqk",
+            "options": {
+                "codes": "优秀|良好|及格",
+                "names": "优秀|良好|及格"
+            },
+            "width": "100"
+        },
+        {
+            "label": "自我评分",
+            "code": "score",
+            "type": "number",
+            "checkReg": "^[0-9]\\d{0,1}$",
+            "errorMsg": "请输入0到99之间的数字",
+            "width": "100",
+            "isparam":"true"
+        },
+        {
+            "label": "日期",
+            "code": "day",
+            "type": "date",
+            "nullable": "false",
+            "defaultValue": "today-0",
+            "isparam":"true"
+        }
+    ],
+    "console.log(123);",
+    "var batchOpBtn = $.createElement('button', 'tssbutton small blue');$(batchOpBtn).html('批量确认');  $('#customizeBox').appendChild(batchOpBtn);",
+    1
+]

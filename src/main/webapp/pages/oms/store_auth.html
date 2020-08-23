@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>授权管理</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.data.js"></script>
+<script src="../../tools/util_date.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+<script src="../../tools/easyui.js"></script>
+<script src="oms.js"></script>
+
+<STYLE type="text/css">
+		 
+</STYLE>
+
+<script type="text/javascript">
+
+$(function(){
+    var params = tssJS.Query.getItems();
+    
+    if(params.code){
+        tssJS.post(SERVICE.oms_store_saveauth, params, function(result){
+            if(result.code == "success"){
+                $.messager.alert({ title: '提示', msg: '授权成功！' });
+            }
+            setTimeout(function() {
+                gotoIndex();
+            }, 3 * 1000);
+        });
+    }
+});
+
+function gotoIndex() {
+    var origin = window.location.origin;
+    window.location.href = origin + "/tss/bi.html";
+}
+
+</script>
+
+
+</head>
+
+<body>
+   
+   	<div id="main"></div>
+
+</body>
+</html>

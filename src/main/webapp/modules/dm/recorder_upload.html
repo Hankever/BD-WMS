@@ -1,0 +1,188 @@
+<!DOCTYPE HTML>
+<HTML xmlns:Grid>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>上传附件</title>
+
+<link href="../../tools/tssJS/css/boubei.css" rel="stylesheet">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssUtils.js"></script>
+
+<style type="text/css">
+
+    body { background-color: #fff; }
+    #attach { width: 700px; margin: 0 auto; z-index: 10000; }
+    #uploadForm  { background-color: #E0ECFF; padding: 5px 5px 5px 10px; margin-top: -3px; }
+    #attachGrid { height: 197px; background-color: #fff; }
+    #sourceFile { color: #fff; background-color: #323232; padding: 2px 0px 1px 0px; }
+
+</style>
+
+<!-- 使用此上传页示例一：为【车辆管理】模块上传行驶证照片
+
+    var tableId = -100;
+    var globalValiable = {"tableId": tableId}
+    function upload() {
+        var row = getSelectedRow();
+        if (row) {
+            globalValiable.itemId = row.id;
+            var title = "上传车辆【" + row.code + "】的行驶证";
+            tssJS.openIframePanel("if1", title, 810, 257, "../modules/dm/recorder_upload.html", true);
+        }
+    }
+
+    function getAttachs(itemId) {
+        tssJS.ajax({ 
+            url: "/tss/auth/xdata/attach/json/" + tableId + "/" + itemId, 
+            method: "GET", 
+            ondata: function(){
+                var data  = this.getResponseJSON();
+                data && data.each(function(i, item) {
+                    // ...
+                });
+            } 
+        });
+    }
+-->
+
+<SCRIPT type="text/javascript">
+
+/* 注：如果希望打开附件管理时不能修改和删除，只读，可以通过在recorder_upload.html加一个 readonly=true的参数 */
+ 
+var tableId = -1, itemId = 0, callback;
+
+$(function() {
+    
+    var globalValiable = window.parent.globalValiable;
+    if(globalValiable) {
+        tableId   = globalValiable.tableId;
+        itemId = globalValiable.itemId;
+        callback = globalValiable.callback;
+    } 
+
+    manageAttach();
+
+});
+
+URL_ATTACH_LIST   = AUTH_PATH + "xdata/attach/xml/";
+URL_ATTACH_DELETE = AUTH_PATH + "xdata/attach/";
+URL_ATTACH_SETTOP = AUTH_PATH + "xdata/attach/top/";
+
+if( IS_TEST ) {
+    URL_ATTACH_LIST   = "data/record_attach_list.xml?";
+    URL_ATTACH_DELETE = "data/_success.xml?";
+    URL_ATTACH_SETTOP = "data/_success.xml?";
+}
+
+function manageAttach(lineId) {       
+    $.ajax({ 
+        url: URL_ATTACH_LIST + tableId + "/" + itemId, 
+        method: "GET", 
+        onresult: function(){
+            var attachNode  = this.getNodeValue("RecordAttach");
+
+            $("#attach").show(true);
+
+            if( $.Query.get("readonly") == 'true' ) {
+                $("#uploadForm span").hide();  // 隐藏上传附件操作
+                $("column[name='delOpt']", attachNode).attr("display", "none");  // 隐藏删除附件操作      
+            }
+            else {               
+                $("#uploadForm span").show(); 
+            }           
+
+            $.G("attachGrid", attachNode);
+        } 
+    });
+}
+
+function uploadAttach() {       
+    var fileValue = $("#sourceFile").value();
+    if( !fileValue ) {
+         return $("#sourceFile").notice("您还没有选择文件，请选择一个文件再点上传!");               
+    }
+    if( checkUploadFile(fileValue) ) {
+        return $.tssTip("当前后缀类型的文件已被禁止上传。");
+    }
+
+    var url = URL_UPLOAD_FILE + "?afterUploadClass=com.boubei.tss.dm.record.file.CreateAttach";
+    url += "&recordId=" + tableId;  
+    url += "&itemId=" + itemId;
+    url += "&refreshGrid=true";
+    url += "&type=" + ($.radioValue("fileType") || 2);
+    if (callback) {
+        url +=  "&callback=" + callback;
+    }
+    
+    var form = $1("uploadForm");
+    form.action = url;
+    form.submit();
+
+    // 清空file input，防止重复上传
+    tssJS("#sourceFile").value("");
+}
+
+function addAttach(id, type, name, url, uploadUser) {
+    var newAttach = {
+        "id": id, 
+        "type": type, 
+        "name": name, 
+        "url": url, 
+        "_url": "<a href='" + url + "' target='_blank'>查看</a>", 
+        "topOpt": "<a href='javascript:void(0)' onclick='setTop(" + id + ")'>置顶</a>", 
+        "delOpt": "<a href='javascript:void(0)' onclick='delAttach(" + id + ")'>删除</a>", 
+        "uploadUser": uploadUser,
+        "uploadDate": $.now(true),
+    };
+    $.G("attachGrid").insertRow(newAttach);
+    parent.getAddAttach(id, type, name, url, uploadUser);
+}
+
+function delAttach() {
+    $.confirm("您确定要删除该附件吗？", "删除确认", function(){
+        var attachId = $.G("attachGrid").getColumnValue("id"); 
+        $.ajax({
+            url: URL_ATTACH_DELETE + attachId + "?recordId=" + tableId,
+            method: 'DELETE',
+            waiting: true,
+            onsuccess: function() {
+                $.G("attachGrid").deleteSelectedRow();
+            }
+        });
+    });
+}
+
+function setTop(attachId) {
+    tssJS.post(URL_ATTACH_SETTOP + attachId, {}, function(attach) {
+            manageAttach(attach.itemId, "row");
+            tssJS.showWaitingLayer(); // 继续遮罩
+        }
+    );
+}
+
+</SCRIPT>
+
+</head>
+
+<body>
+
+    <div id="attach">
+        <Grid id="attachGrid" height="197"></Grid>
+        <form id="uploadForm" method="post" target='fileUpload' enctype="multipart/form-data">
+            <span>
+                <input type="file" name="file" id="sourceFile"/>&nbsp;&nbsp;
+                附件类型: &nbsp;&nbsp;
+                <label><input name="fileType" type="radio" value="1" checked="checked"/> 图 片 </label> &nbsp;&nbsp;
+                <label><input name="fileType" type="radio" value="2"/> 文 档 </label> 
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <input type="button" class="tssbutton small blue" onclick="uploadAttach()" value="上传附件" />
+                <b>&nbsp;单个附件大小不宜超过2M</b>
+            </span>
+        </form>
+        <iframe name='fileUpload' style='display:none;'></iframe>
+    </div>
+
+</body>
+</html>

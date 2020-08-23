@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<AppSource>
+		<actionSet>
+			<treeNode applicationType="1" nodeType="1" name="平台系统" id="-1">
+				<treeNode applicationType="1" applicationId="tss" icon="images/app.gif" nodeType="1" name="Portal" id="107" _open="true">
+					<treeNode icon="images/resource_type.gif" resourceTypeId="1" nodeType="2" name="门户结构" id="108" _open="true">
+						<treeNode icon="images/permission.gif" nodeType="3" name="删除" id="110"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="编辑" id="111"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="查看" id="112"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="启用" id="113"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="停用" id="114"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="移动" id="115"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="复制" id="116"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="预览" id="117"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="新建门户" id="118"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="新建页面" id="119"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="新建版面" id="120"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="新建portlet" id="121"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="排序" id="122"/>
+					</treeNode>
+					<treeNode icon="images/resource_type.gif" resourceTypeId="2" nodeType="2" name="菜单" id="109">
+						<treeNode icon="images/permission.gif" nodeType="3" name="新建" id="123"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="删除" id="124"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="编辑" id="125"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="查看" id="126"/>
+					</treeNode>
+				</treeNode>
+				<treeNode applicationType="1" applicationId="tss" icon="images/app.gif" nodeType="1" name="UM" id="1">
+					<treeNode icon="images/resource_type.gif" resourceTypeId="2" nodeType="2" name="用户组类型" id="3">
+						<treeNode icon="images/permission.gif" nodeType="3" name="增加用户" id="14"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="增加" id="15"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="删除" id="16"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="修改" id="17"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="查看" id="18"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="查看用户" id="19"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="启/停用" id="20"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="排序" id="21"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="移动" id="22"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="用户搜索" id="23"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="密码初始化" id="24"/>
+					</treeNode>
+					<treeNode icon="images/resource_type.gif" resourceTypeId="3" nodeType="2" name="角色类型" id="4">
+						<treeNode icon="images/permission.gif" nodeType="3" name="增加" id="25"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="删除" id="26"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="修改" id="27"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="查看" id="28"/>
+						<treeNode icon="images/permission.gif" nodeType="3" name="启/停用" id="30"/>
+					</treeNode>
+					
+				</treeNode>
+			</treeNode>
+			<treeNode applicationType="2" nodeType="1" name="其他系统" id="-2"/>
+		</actionSet>
+	</AppSource>
+</Response>

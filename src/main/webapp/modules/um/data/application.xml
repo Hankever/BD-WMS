@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><Response><AppDetail>
+<xform>
+	<declare>
+		<column name="applicationType" caption="应用系统类型" mode="string" display="none"/>
+		<column name="applicationId" caption="应用系统ID" mode="string" empty="false" maxLength="100"/>
+		<column name="name" caption="名称" mode="string" empty="false" maxLength="100"/>
+		<column name="description" caption="描述" mode="string" maxLength="400"/>
+		<column name="dataSourceType" caption="数据库类型" mode="combo" values="1|2" texts="LDAP|关系数据库" empty="false"/>
+		<column name="paramDesc" caption="参数描述(XML格式)" mode="string" maxLength="4000" empty="false"/>
+	</declare>
+	<layout>
+		<TR>
+			<TD width="100"><label binding="applicationId"/></TD>
+			<TD><input binding="applicationId"/></TD>
+		</TR>
+		<TR>
+			<TD><label binding="name"/></TD>
+			<TD><input binding="name"/></TD>
+		</TR>
+		<TR>
+			<TD><label binding="dataSourceType"/></TD>
+			<TD><input binding="dataSourceType"/></TD>
+		</TR>
+		<TR>
+			<TD><label binding="paramDesc"/></TD>
+			<TD><textarea binding="paramDesc" style="width:90%;height:400px"/></TD>
+		</TR>
+		<TR>
+			<TD><label binding="description"/></TD>
+			<TD><textarea binding="description" style="width:90%;height:60px"/></TD>
+		</TR>
+		<TR>
+			<TD colspan="2" align="center">
+				<a href="#" class="tssbutton small blue" id="appSaveBt">完成</a>
+			</TD>
+		</TR>
+	</layout>
+	<data><row><createTime><![CDATA[2014-09-15 00:00:00.0]]></createTime><paramDesc><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<params>
+	<url>jdbc:oracle:thin:@(DESCRIPTION = (ADDRESS = (PROTOCOL = TCP)(HOST = 10.8.73.139)(PORT = 1521)) (CONNECT_DATA = (SERVER = DEDICATED) (SERVICE_NAME = wms)))</url>
+	<driver>oracle.jdbc.driver.OracleDriver</driver>
+	<user>wms</user>
+	<password>wms800best</password>
+	<groupSql>
+        select distinct g.id, g.parentId, g.name as name, g.description
+		from xxx_group g 
+		where g.id >= :groupId 
+	</groupSql>
+	<userSql>
+		select distinct u.id, u.groupId, u.loginName, '111111' as password, u.userName, u.email, u.sex, u.birthday, u.employeeNo, null authMethod
+		from xxx_user u 
+		where u.groupId >= :groupId
+	</userSql>
+</params>]]></paramDesc><updateTime><![CDATA[2015-02-05 16:26:24.0]]></updateTime><applicationId><![CDATA[WMS8]]></applicationId><creatorId><![CDATA[-1]]></creatorId><updatorName><![CDATA[Admin]]></updatorName><applicationType><![CDATA[-2]]></applicationType><updatorId><![CDATA[-1]]></updatorId><lockVersion><![CDATA[16]]></lockVersion><id><![CDATA[3]]></id><creatorName><![CDATA[Admin]]></creatorName><description><![CDATA[一个月内登录过的用户]]></description><name><![CDATA[WMS（同步用户）]]></name><dataSourceType><![CDATA[2]]></dataSourceType></row></data>
+</xform></AppDetail></Response>

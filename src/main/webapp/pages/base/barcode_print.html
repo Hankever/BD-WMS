@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>条码打印（高级）</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/datagrid-filter.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+<script src="../../tools/common/JsBarcode.all.min.js"></script>
+
+<STYLE type="text/css">
+
+html,body {
+    box-sizing: content-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+	width: 100%;
+}
+
+#main { display: flex; height: 100%; width: 100%; }
+.d1 { height: 100%; width: 49%; }
+.d2 { height: 100%; width: 51%; overflow: auto; }
+.d1 label { display: inline-block; width: 32px; margin-left: 8px; }
+#tb input {  width: 35px; height: 22px; text-align: center; font-size: 14px; margin-right: 2px; vertical-align: middle; }
+.print-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: black;
+}
+.print-btn { width: 100px; text-align: center; margin: 20px; }
+.blank { height: 5px; }
+.bord { border: 0.3mm solid black; }
+.bar{
+	display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.nameDiv { max-height: 40%; }
+.barcode { max-width: 85%; max-height: 60%; }
+
+@media print {
+    .noPrint {
+        display: none;
+    }
+    .bord{
+        border:0;
+    }
+    .nextPage {
+        page-break-before: always;
+    }
+}
+		 
+</STYLE>
+
+<script type="text/javascript">
+
+var nameHidden = true, WIDTH  = 60, HEIGHT = 40, FONTSIZE = 16, YEJIAO = false, origin = '';
+
+var nameList = [], codeList = [], uomList = [], total_qty = 0;
+
+$(function(){
+    var nameStr = decodeURIComponent( parent.globalV.names || tssJS.Query.get("names") || "");
+    var codeStr = decodeURIComponent( parent.globalV.codes || tssJS.Query.get("codes") || "");
+    var qty2Str = decodeURIComponent( parent.globalV.qtys  || tssJS.Query.get("qtys") || "");
+    var udf1Str = decodeURIComponent( parent.globalV.udf1s || tssJS.Query.get("udf1s") || "");
+    var udf2Str = decodeURIComponent( parent.globalV.udf2s || tssJS.Query.get("udf2s") || "");
+
+    origin = decodeURIComponent( parent.globalV.origin || tssJS.Query.get("origin") || "");
+    WIDTH  = tssJS.Cookie.getValue("bar_width") || tssJS.Query.get("width") || WIDTH;
+    HEIGHT = tssJS.Cookie.getValue("bar_height") || tssJS.Query.get("height") || HEIGHT;
+    FONTSIZE = tssJS.Cookie.getValue("bar_fontSize") || tssJS.Query.get("fontSize") || FONTSIZE;
+    YEJIAO = tssJS.Cookie.getValue("bar_yejiao") || tssJS.Query.get("yejiao") || YEJIAO;
+
+    nameList = codeList = udf1List = udf2List = qtyList = [];
+    if(nameStr){
+    	nameList = nameStr.split(",|");
+    	nameHidden = false;
+        if(udf1Str){
+            udf1List = udf1Str.split(",");
+        }
+        if(udf2Str){
+            udf2List = udf2Str.split(",");
+        }
+    }
+
+    if(codeStr) {
+    	codeList = codeStr.split(",");
+    } else {
+        return $.messager.alert({ title: '提示', msg: '当前没有勾选待打印条码的记录!' });
+    }
+    
+    if( codeList.length < nameList.length ) {
+        return $.messager.alert({ title: '提示', msg: '部分数据条码信息没有维护，请先维护再打印!' });
+    }
+
+    if( qty2Str ) {
+        qtyList = qty2Str.split(",");
+    }
+    
+    var data = [];
+    codeList.each(function(i, item) {
+    	var d = {"code": item, "num": 1};
+    	if(nameList.length == codeList.length){
+    		d.name = nameList[i];
+            if(d.name) {
+            	if(udf1List[i]) d.name += " " + udf1List[i];
+            	if(udf2List[i]) d.name += " " + udf2List[i];
+                if(qtyList[i]) d.num = qtyList[i];
+            }
+    	}
+    	else {
+    		d.name = "";
+    	}
+
+    	data.push(d);
+    });
+    init(data);
+});
+
+function init(data){
+	initParams();
+	showTable(data);
+    showBarcodes(data);
+}
+
+function initParams(){
+	$("#width").val(WIDTH);
+	$("#height").val(HEIGHT);
+    $("#fontSize").val(FONTSIZE);
+    if(YEJIAO) $1("yejiao").checked = true;
+}
+
+var editRow = undefined;
+function showTable(data){
+	var FIELDS_1 = [
+        [
+            { field: 'name', title: '名称', width: 150, align: 'center', hidden: nameHidden },
+            { field: 'code', title: '条码', width: 120, align: 'center'},
+            { field: 'num', title: '打印数量', width: 70, align: 'center', editor: {type:'numberbox',options:{precision:0, min: 1}} }
+        ]
+    ];
+
+    $('#t1').datagrid({
+        rownumbers: true,
+        singleSelect: true,
+        fitColumns: true,
+        columns: FIELDS_1,
+        data: data,
+        onClickCell: function(index, field, value){
+        	if(field == "num"){
+        		toEdit(index);
+        	}
+        	else{
+        		$('#t1').datagrid("endEdit", editRow);
+        	}
+        },
+        onAfterEdit: function(index, row, changes){
+            editRow = undefined;
+        }
+    });
+
+    $('#t1').datagrid('enableFilter', [{field:'code', type:'textbox'}, {field:'name', type:'textbox'}, {field:'num', type:'numberbox'}]);
+}
+
+function toEdit(index){
+    $('#t1').datagrid("endEdit", editRow);
+    if (editRow == undefined) {
+        $('#t1').datagrid("beginEdit", index);
+        editRow = index;
+    }
+}
+
+function preview(auto) {
+	var width = $("#width").val();
+	var height = $("#height").val();
+    var fontSize = $("#fontSize").val();
+	if(!width){
+		$.messager.alert({ title: '提示', msg: '请设置标签宽度!' });
+		return;
+	}
+	if(!height){
+		$.messager.alert({ title: '提示', msg: '请设置标签高度!' });
+		return;
+	}
+    if(!fontSize){
+        $.messager.alert({ title: '提示', msg: '请设置名称字体大小!' });
+        return;
+    }
+
+	$('#t1').datagrid("endEdit", editRow);
+	var rows = $('#t1').datagrid("getRows");
+	showBarcodes(rows);
+
+    if( !auto ) {
+        tssJS.Cookie.setValue("bar_width", width);
+        tssJS.Cookie.setValue("bar_height", height);
+        tssJS.Cookie.setValue("bar_fontSize", fontSize);
+        tssJS.Cookie.setValue("bar_yejiao", $1("yejiao").checked);
+    }
+}
+
+function showBarcodes(data){
+    total_qty = 0;
+	$('#printDiv').nextAll().remove();
+	for(var j = data.length; j >= 1; j--){
+		initBarcodes(data[j-1], j);
+	}
+}
+
+function initBarcodes(item, j){
+    if(!item.code){
+        return;
+    }
+
+    var n = item.num * 1;
+    total_qty += n;
+    if( total_qty > 500 ) {
+        return $.messager.alert('打印提示', '单次打印条码数量不能超过500');
+    }
+
+    for(var i = 0; i < n; i++){
+    	var outBarID = 'B-' + j + '-' + i;
+        var html = getHtml(item, outBarID, i, n);
+        $('#printDiv').after(html);
+        
+        JsBarcode("#" + outBarID, item.code, {
+          fontOptions: "bold",
+          fontSize: 24,
+          font: "Sans-serif"
+        });
+    }
+}
+
+function getHtml(item, outBarID, index, total){
+	var width = $("#width").val();
+	var height = $("#height").val();
+    var fontSize = $("#fontSize").val();
+	
+	var htmlStr = '<div class="bar bord nextPage" style="width:' + width + 'mm;height:' + height + 'mm;">';
+	if(item.name){
+		htmlStr += '<div class="nameDiv" style="text-align: center;font-size:' + fontSize + 'px">' + item.name + '</div>';
+	}
+	htmlStr += '<img id="' + outBarID + '" class="barcode"></img>';
+    if( total >= 1 && $1("yejiao").checked ) {
+        var yejiao = " @" + new Date().format('yyyy-MM-dd');
+        htmlStr += '<div>' + total + "-" + (index+1) + yejiao + '</div>';
+    }
+    htmlStr += '</div>';
+    htmlStr += '<div class="blank noPrint"></div>';
+    return htmlStr;
+}
+
+function printBarcodes() { 
+	preview(true);
+
+	var bdhtml = window.document.body.innerHTML; 
+	var sprnstr = "<!--startprint-->"; 
+	var eprnstr = "<!--endprint-->"; 
+	var prnhtml = bdhtml.substring( bdhtml.indexOf(sprnstr) + 17); 
+	prnhtml = prnhtml.substring(0, prnhtml.indexOf(eprnstr)); 
+	window.document.body.innerHTML = prnhtml; 
+
+	window.print(); 
+    tssJS.post("/tss/api/log", {table: "打印日志", code: origin + "条码", content: total_qty + " : " + codeList});
+
+	window.document.body.innerHTML = bdhtml;
+
+    window.location.reload();
+}
+
+function downloadPDF(){
+    var handleType = "com.boudata.oms.print.PrintLabel";
+    var width = $("#width").val();
+    var height = $("#height").val();
+    var fontSize = $("#fontSize").val();
+    var footer = $1("yejiao").checked;
+
+    $('#t1').datagrid("endEdit", editRow);
+    var rows = $('#t1').datagrid("getRows");
+    rows.each(function(i, item){
+        item.width = width;
+        item.height = height;
+        item.fontSize = fontSize;
+        item.footer = footer;
+    });
+
+    tssJS.post("/tss/api/print/draw", {"handleType": handleType, "data": JSON.stringify(rows)}, function(result){
+        if(result.code == "success"){
+            var url = "/tss/api/print/down" + "?file=" + result.saveName;
+            window.open(url, '_blank');
+        }
+    });
+}
+
+</script>
+
+</head>
+
+<body>
+    <div id="main">
+	    <div class="d1">
+	    	<table id="t1" border="false" data-options="toolbar:'#tb'" style="height:100%;"></table>
+            <div id="tb" style="padding: 10px 3px;" >
+            	<label>宽度:</label><input id="width" name="width"/>mm
+            	<label>高度:</label><input id="height" name="height"/>mm
+                <label>字体:</label><input id="fontSize" name="fontSize"/>px
+                <label>页脚:</label><input id="yejiao" name="yejiao" type="checkbox" style="width: 14px; margin:0 3px;" />
+                <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-md-eye" style="width: 70px; margin-left: 5px;" onclick="preview()">预览</a>
+            </div>
+	    </div>
+	    <div class="d2">
+	    	<div class="print-box">
+                <div class="noPrint">
+                    <input class="print-btn noPrint tssbutton orange" type="button" value="打 印" onClick="printBarcodes()">
+                    <input class="print-btn noPrint tssbutton orange" type="button" value="PDF下载" onClick="downloadPDF()"> 
+                </div>
+		        <!--startprint-->
+		        <div>
+		            <div id="printDiv" class="noPrint"></div>
+		        </div>
+		        <!--endprint-->
+		    </div>
+	    </div>
+	</div>
+</body>
+
+</html>

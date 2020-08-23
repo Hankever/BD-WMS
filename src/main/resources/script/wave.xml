@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sqls>
+
+	<sql code="waveOrderQuery" name="波次订单查询条件">
+		<![CDATA[
+				from wms_order o, wms_order_item oi, wms_sku sku
+				where o.id = oi.order_id 
+					and oi.sku_id = sku.id
+					and o.warehouse_id = ${whId}
+					<#if wave_id??> and o.wave_id = ${wave_id} <#else> and o.wave_id is null </#if>
+					<#if createtime1??> and o.createtime >= '${createtime1}' </#if> 
+					<#if createtime2??> and o.createtime < '${createtime2}' + interval 1 day </#if> 
+					<#if d_receiver??> and o.d_receiver = '${d_receiver}' </#if> 
+					<#if orderno??> and find_in_set(o.orderno, '${orderno}') > 0 </#if> 
+					<#if orderday1??> and o.orderday >= '${orderday1}' </#if> 
+					<#if orderday2??> and o.orderday < '${orderday2}' + interval 1 day </#if> 
+					<#if owner_id??> and o.owner_id = ${owner_id} </#if> 
+					<#if qty1??> and o.qty >= '${qty1}' </#if> 
+					<#if qty2??> and o.qty <= '${qty2}' </#if> 
+					<#if skucode??> and sku.code = '${skucode}' </#if> 
+					<#if skus1??> and o.skus >= '${skus1}' </#if> 
+					<#if skus2??> and o.skus <= '${skus2}' </#if> 
+					<#if sku_brand??> and sku.brand = '${sku_brand}' </#if>
+					<#if sku_category??> and sku.category = '${sku_category}' </#if>
+					<#if status??> and o.status = '${status}' </#if>
+					
+					<#if query_oms??> 
+					   -- '${query_oms}'
+                       and exists (
+							select om.id from oms_order om 
+							where o.orderno = om.orderno 
+							<#if oms_type??> and om.orderflag like '%${oms_type}%' </#if> 
+						) 
+					</#if>
+		]]>
+	</sql>
+	
+	<sql code="waveOrderItem" name="波次作业出库单明细">
+		<![CDATA[
+			select o.id order_id, o.orderno, o.owner_id, o.warehouse_id, o.skus, o.status, o.wave_id, o.worker, o.d_receiver, 
+				oi.sku_id, oi.inv_id, oi.money, oi.price, oi.qty, 
+				oi.createdate, oi.expiredate, oi.invstatus, 
+				oi.lotatt01, oi.lotatt02, oi.lotatt03, oi.lotatt04, oi.remark, oi.id item_id
+			${waveOrderQuery}	
+		]]>
+	</sql>
+	
+	<sql code="waveOrderSum" name="波次订单查询汇总">
+		<![CDATA[
+			select 
+				count(*) order_num, 
+				group_concat(order_id) order_ids,
+				sum(case when skus = 1 then 1 else 0 end) single, 
+			   	sum(case when skus = 1 then 0 else 1 end) multi 
+			from 
+			  (select distinct o.id order_id, o.orderno, o.warehouse_id, o.owner_id, o.skus
+			   ${waveOrderQuery} and o.status in ('新建')
+			) t	
+		]]>
+	</sql>
+
+</sqls>

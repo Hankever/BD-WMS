@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<Group2UserListTree>
+		<actionSet>
+			<treeNode id="_root" name="全部" icon="images/user_group_0.gif" _open="true">
+                <treeNode icon="images/user_0.gif" name="用户1" id="1"/>
+                <treeNode icon="images/user_0.gif" name="用户2" id="2"/>
+                <treeNode icon="images/user_0.gif" name="用户3" id="3"/>
+                <treeNode icon="images/user_0.gif" name="用户4" id="4"/>
+			</treeNode>
+        </actionSet>
+	</Group2UserListTree>
+</Response>

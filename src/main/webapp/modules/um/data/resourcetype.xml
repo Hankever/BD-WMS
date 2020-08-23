@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+<ResourceTypeDetail>
+<xform>
+	<declare>
+		<column name="resourceTypeId" caption="资源类型ID" mode="string" empty="false"/>
+		<column name="rootId" caption="根节点ID" mode="number" inputReg="^\-?\d*$" empty="false"/>
+		<column name="name" caption="名称" mode="string" empty="false"/>
+		<column name="description" caption="描述" mode="string"/>
+		<column name="permissionTable" caption="权限表名" mode="string" empty="false"/>
+		<column name="resourceTable" caption="资源表名" mode="string" empty="false"/>
+	</declare>
+	<layout>
+		<TR>
+			<TD width="100"><label binding="resourceTypeId"/></TD>
+			<TD><input binding="resourceTypeId"/></TD>
+		</TR>
+		<TR>
+			<TD><label binding="rootId"/></TD>
+			<TD><input binding="rootId"/></TD>
+		</TR>
+		<TR>
+			<TD><label binding="name"/></TD>
+			<TD><input binding="name"/></TD>
+		</TR>
+		<TR>
+			<TD><label binding="permissionTable"/></TD>
+			<TD><input binding="permissionTable" style="width:500px;"/></TD>
+		</TR>
+		<TR>
+			<TD><label binding="resourceTable"/></TD>
+			<TD><input binding="resourceTable" style="width:500px;"/></TD>
+		</TR>
+		<TR>
+			<TD><label binding="description"/></TD>
+			<TD><input binding="description" style="width:500px;"/></TD>
+		</TR>
+	</layout>
+	<data><row><createTime><![CDATA[2013-07-24 00:21:32.015]]></createTime><rootId><![CDATA[-1]]></rootId><seqNo><![CDATA[1]]></seqNo><applicationId><![CDATA[tss]]></applicationId><creatorId><![CDATA[-1]]></creatorId><lockVersion><![CDATA[0]]></lockVersion><permissionTable><![CDATA[com.boubei.tss.um.entity.permission.GroupPermission]]></permissionTable><id><![CDATA[1]]></id><resourceTypeId><![CDATA[1]]></resourceTypeId><creatorName><![CDATA[Admin]]></creatorName><resourceTable><![CDATA[com.boubei.tss.um.entity.permission.GroupResource]]></resourceTable><description><![CDATA[用户组织资源类型]]></description><name><![CDATA[用户组]]></name></row></data>
+</xform>
+</ResourceTypeDetail>
+</Response>

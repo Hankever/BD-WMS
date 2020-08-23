@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>时空互钻, 一级空间</title>
+
+<link href="common.css" rel="stylesheet">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.data.js"></script>
+<script src="tssJS.chart.js"></script>
+
+<script src="../../tools/echarts/echarts-all-2.1.10.js"></script>
+
+
+<style type="text/css">
+
+body { overflow: hidden; } 
+#research { right: 5px; left: inherit; }
+
+
+</style>
+
+<script type="text/javascript">
+
+var autoSize, title, data;
+
+window.onresize = show;
+
+window.onload = function() {
+	var globalValiable = window.parent.globalValiable;
+	if(globalValiable && globalValiable.data) {
+		title = globalValiable.title;
+		data = globalValiable.data
+		show();
+		return true;
+	}
+
+	title = "货量";
+	$.ajax({
+		url : "data/2.json",
+		method : "GET",
+		type : "json",
+		waiting : true,
+		ondata : function() {
+			data = this.getResponseJSON();
+			show();
+		}
+	});	  
+}
+
+function show() {	
+ 	var parentNode, node = $1("b1");
+    parentNode = node.parentNode ? node.parentNode : document.body;
+
+    var c = {"title": title};
+    c.height1 = c.height2 = Math.max(300, parentNode.offsetHeight / 2) + "px";
+
+ 	tssJS.TimeSpace1(data, node, c).show();
+}
+
+</script>
+</head>
+
+<body id="b1">
+
+	<div style="height:50%"><div id='canvasDiv1'></div></div>
+	<div style="height:50%"><div id='canvasDiv2'></div></div>
+
+</body>
+</html>

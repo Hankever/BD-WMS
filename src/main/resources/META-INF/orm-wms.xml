@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<entity-mappings xmlns="http://java.sun.com/xml/ns/persistence/orm"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://java.sun.com/xml/ns/persistence/orm http://java.sun.com/xml/ns/persistence/orm_1_0.xsd"
+   version="1.0">
+   
+   	<!-- wms -->	
+	<entity class="com.boudata.wms.entity._Customer"/>
+	<entity class="com.boudata.wms.entity._Location"/>
+	<entity class="com.boudata.wms.entity._Owner"/>
+	<entity class="com.boudata.wms.entity._Rule"/>
+	<entity class="com.boudata.wms.entity._Sku"/>
+	<entity class="com.boudata.wms.entity._SkuX"/>
+	<entity class="com.boudata.wms.entity._Warehouse"/>
+	<entity class="com.boudata.wms.entity.Asn"/>
+	<entity class="com.boudata.wms.entity.AsnItem"/>
+	<entity class="com.boudata.wms.entity.Box"/>
+	<entity class="com.boudata.wms.entity.BoxItem"/>
+	<entity class="com.boudata.wms.entity.InvCheck"/>
+	<entity class="com.boudata.wms.entity.Inventory"/>
+	<entity class="com.boudata.wms.entity.InventoryLog"/>
+	<entity class="com.boudata.wms.entity.InventoryTemp"/>
+	<entity class="com.boudata.wms.entity.InvSN"/>
+	<entity class="com.boudata.wms.entity.InvSoi"/>
+	<entity class="com.boudata.wms.entity.OperationH"/>
+	<entity class="com.boudata.wms.entity.OperationItem"/>
+	<entity class="com.boudata.wms.entity.OperationLog"/>
+	<entity class="com.boudata.wms.entity.OpException"/>
+	<entity class="com.boudata.wms.entity.OrderH"/>
+	<entity class="com.boudata.wms.entity.OrderItem"/>
+	<entity class="com.boudata.wms.entity.OrderWave"/>
+	
+	<entity class="com.boudata.oms.print.XPrintModel"/>
+	<entity class="com.boudata.oms.print.XPrintLog"/>
+	<entity class="com.boudata.mq.Erp"/>
+
+</entity-mappings>

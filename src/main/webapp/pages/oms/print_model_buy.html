@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+    <meta charset="UTF-8">
+	<title>面单模板购买</title>
+
+	<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+	<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+	<link rel="stylesheet" href="../../css/easyui.css">
+	<link rel="stylesheet" href="../../tools/ionicons.css">
+
+	<script src="../../tools/tssJS/tssJS.all.js"></script>
+	<script src="../../tools/tssJS/tssJS.data.js"></script>
+	<script src="../../tools/util_date.js"></script>
+
+	<script src="../../tools/easyui/jquery.min.js"></script>
+	<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+	<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+	<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+	<script src="../../tools/easyui.js"></script>
+	<script src="../wms/wms.js"></script>
+	<script src="oms.js"></script>
+
+	<style type="text/css">
+		#modelContainer { 
+			width: 100%;
+		    display: flex;
+		    flex-direction: row;
+		    flex-wrap: wrap;
+		    align-items: flex-start;
+		    align-content: flex-start;
+		}
+
+		.model { 
+			width: 30%; 
+			height: 600px; 
+			box-sizing: border-box;
+			padding: 20px 20px 0 20px;
+			margin-top: 20px;
+			margin-bottom: 20px;
+			margin-left: 1.5%;
+			margin-right: 1.5%;
+			border: 5px dashed grey;
+		}
+
+		.model-line{
+			height: 30px;
+			display: flex;
+			flex-direction: row;
+		}
+
+		.model-line>text{
+			font-size: 12px;
+		}
+
+		.model-title{
+			width: 60px;
+			text-align: right;
+			padding-right: 10px;
+			color: grey;
+		}
+
+		.model-content{
+			width: calc(100% - 60px);
+			overflow: hidden;
+		}
+
+		.platform{
+			width: 50%;
+			display: flex;
+		}
+
+		.describe{
+			height: 70px;
+			padding-bottom: 10px;
+		}
+
+		.model-img{
+			text-align: center;
+			height: 360px;
+		}
+
+		.img{
+			max-width: 90%;
+            max-height: 360px;
+            border: 1px solid grey;
+		}
+
+		.model-btn{
+			height: 50px;
+			text-align: center;
+			line-height: 50px;
+		}
+
+		.model-btn>button{
+			width: 100px;
+			height: 30px;
+			border-radius: 10px;
+			background-color: orange;
+		}
+
+		.model-empty{
+			width: 100%;
+			height: 400px;
+			line-height: 400px;
+			text-align: center;
+			font-size: 100px;
+			color: grey;
+		}
+	</style>
+
+	<script type="text/javascript">
+		$(function(){
+			Promise.all([getPrintModel(), fetchCodeMap()]).then(
+		        (values) => {
+		            showModel(values[0]);
+		        },
+		        (reason) => {
+		            $.messager.alert({ title: '提示', msg: reason });
+		        }
+		    );
+		});
+
+		function getPrintModel(){
+			var p = new Promise(function(resolve, reject){
+		        $.get(SERVICE.oms_model_query, {}, function(data) {
+	            	resolve(data);
+	            });
+		    });
+		    return p;
+		}
+
+		function showModel(data){
+			var html = "";
+			data.each(function(i, item){
+				var size = item.size.split(",");
+
+				var imgId = item.img.split("#")[1];
+				var imgSrc = "/tss/xdata/attach/download/" + imgId;
+				if(item.price == 0){
+					var btnText = "免费添加";
+				}
+				else{
+					var btnText = "购买：¥" + item.price;
+				}
+
+				html += '<div class="model">';
+				html +=     '<div class="model-line">';
+				html +=         '<div class="model-title">名称: </div>';
+				html +=         '<div class="model-content">' + item.name + '</div>';
+				html +=     '</div>';
+				html +=     '<div class="model-line">';
+				html +=         '<div class="platform">';
+				html +=             '<div class="model-title">承运商: </div>';
+				html +=             '<div class="model-content">' + formatCode(CODE_TYPE_CARRIER, item.carrier) + '</div>';
+				html +=         '</div>';
+				html +=         '<div class="platform">';
+				html +=             '<div class="model-title">平台: </div>';
+				html +=             '<div class="model-content">' + (formatCode(CODE_TYPE_PLATFORM, item.platform) || "无") + '</div>';
+				html +=         '</div>';
+				html +=     '</div>';
+				html +=     '<div class="model-line">';
+				html +=         '<div class="model-title">尺寸: </div>';
+				html +=         '<div class="model-content">' + size[0] + "mm X " + size[1] + 'mm</div>';
+				html +=     '</div>';
+				html +=     '<div class="model-line describe">';
+				html +=         '<div class="model-title">描述: </div>';
+				html +=         '<div class="model-content">' + (item.describes || "未添加描述！") + '</div>';
+				html +=     '</div>';
+				html +=     '<div class="model-img">';
+				html +=         '<image class="img" src="' + imgSrc + '" onclick="showBigImg(this)"></image>';
+				html +=     '</div>';
+				html +=     '<div class="model-btn">';
+				html +=         '<button type="button" onclick="addMoel(' + item.id + ')">' + btnText + '</button>';
+				html +=     '</div>';
+				html += '</div>';
+			});
+			if(data.length == 0){
+				html += '<div class="model-empty">暂无模板</div>';
+			}
+			$("#modelContainer").html(html);
+
+			$(".img").mouseover(function(){
+				$(this).css({cursor:"url('enlarge.ico'),auto"});
+			});
+		}
+
+		function addMoel(id){
+			$.post(SERVICE.oms_model_add, {"id": id}, function(result){
+				if(result.code == "success"){
+					$.messager.show({title: '提示', msg: '添加成功！'});
+				}
+				else{
+					$.messager.alert({title: '提示', msg: result.errorMsg});
+				}
+			});
+		}
+
+		function showBigImg(img){
+			var src = img.src;
+            $("#bigimg").attr("src", src);
+
+            var windowW = $(window).width();
+            var windowH = $(window).height();
+            var realWidth = img.width;
+            var realHeight = img.height;
+            var imgWidth, imgHeight; 
+            var scale = 0.9;
+
+            imgHeight = windowH * scale;
+            imgWidth = imgHeight / realHeight * realWidth;
+            if(imgWidth > windowW * scale) {
+                imgWidth = windowW * scale;
+                imgHeight = imgWidth / realWidth * realHeight;
+            }
+
+            $("#bigimg").css("width", imgWidth);
+            var w = (windowW - imgWidth) / 2;
+            var h = (windowH - imgHeight) / 2;
+            $("#innerdiv").css({"top": h, "left": w});
+            $("#outerdiv").fadeIn("fast");
+
+			$("#outerdiv").click(function(){
+	            $(this).fadeOut("fast"); 
+	        }); 
+		}
+	</script>
+</head>
+<body>
+	<div id="modelContainer"></div>
+
+	<div id="outerdiv" style="position:fixed;top:0;left:0;background:rgba(0,0,0,0.7);z-index:2;width:100%;height:100%;display:none;">
+        <div id="innerdiv" style="position:absolute;">
+            <img id="bigimg" style="border:5px solid #fff;" src=""/>
+        </div>
+    </div>
+</body>
+</html>

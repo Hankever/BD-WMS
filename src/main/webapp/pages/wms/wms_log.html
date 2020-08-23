@@ -1,0 +1,450 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>单据作业日志</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.data.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+<script src="../../tools/easyui/datagrid-filter.js"></script>
+
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="wms.js"></script>
+
+<style type="text/css">
+    span.ion-md-download { font-size: 15px; }
+</style>
+
+
+<script type="text/javascript">
+
+SELECTED_WH = tssJS.Query.get("wh_id") || SELECTED_WH;
+
+var opno, optype_id;
+function onshow() {
+    var _opno = tssJS.Query.get("opno");
+    if( _opno && _opno !== opno ) {
+        $('#p_opno').textbox('setValue', '');
+        opno = _opno;
+    }
+
+    var _optype_id = tssJS.Query.get("type");
+    if( _optype_id && _optype_id !== optype_id ) {
+        $('#p_type').textbox('setValue', '');
+        optype_id = _optype_id;
+    }
+    
+    drawOp();
+}
+
+var OP_FIELDS = [
+    {field: "opno", title: "作业单号", zj_title: "流水号", width: '18%'},
+    {field: "optype_id", title: "作业类型", zj_title: "收支类型", width: '10%',formatter: optypeid2name},
+    {field: "qty", title: "数量", zj_title: "金额", width: '8%'},
+    {field: "status", title: "状态", width: '10%', formatter: statusFormatter},
+    {field: "createtime", title: "创建日期", zj_title: true, width: '10%', formatter: dateNoSecond},
+    {field: "creator", title: "创建人", zj_title: true, formatter:loginName2userName, width: '8%'},
+    {field: "worker", title: "作业人",formatter: formatterWorker, width: '10%'},
+    {field: "approver", title: "审核人",formatter: loginName2userName, width: '8%'},
+    {field: "udf1", title: "备注", zj_title: true, width: '10%'},
+    {field: "_fileNum", title: "照片", formatter: fileFormat}
+];
+var OPLOG_FIELDS = [
+    {field: "optype", title: "操作类型", width: "15%"},
+    {field: "operator", title: "操作人", width: "18%"},
+    {field: "remark", title: "备注", width: "15%"},
+    {field: "operatetime", title: "操作时间", width: "22%"},
+    {field: "origin", title: "终端", width: "25%"},
+];
+var OPITEM_FIELDS = [
+    {field: "sku", title: "货品名称", zj_title: "币种", width: '110px', formatter: skuCode2Name},
+    {field: "skucode", title:'货品编码', width: '80px'},
+    {field: "qty", title:'数量', zj_title: "金额", width: '70px'},
+    {field: "toqty", title:'到数量', width: '70px'},
+    {field: "loccode", title:'库位', zj_title: "账户", width: '90px', formatter: loccode2name},
+    {field: "toloccode", title:'目的库位', width: '80px', formatter: loccode2name},
+    {field: "creator", title: "创建人", formatter: formatterWorker},
+    {field: "status", title: "状态", zj_title: true, width: '50px'}
+];
+var INVLOG_FIELDS = [
+    {field: "sku_id", title: "货品ID", hidden: true},
+    {field: "sku", title: "货品名称", zj_title: "币种", width: "11%"},
+    {field: "skucode", title: "编码", width: "7%"},
+    {field: "barcode", title: "条码", width: "8%"},
+    {field: "warehouse", title: "仓库", zj_title: "公司"},
+    {field: "owner", title: "货主", zj_title: "账户", hidden: hide_ow},  
+    {field: "location", title: "库位", zj_title: "子账户", width: "7%"},  
+    {field: "qty", title: "库存数量", zj_title: "余额"},
+    {field: "qtyLocked", title: "锁定数量"},
+
+    {field: "invstatus"},
+    {field: "createdate"},
+    {field: "shelflife", title: "保质期", width:'4%'},
+    {field: "expiredate"},
+    {field: "lotatt01"},
+    {field: "lotatt02"},
+    {field: "lotatt03"},
+    {field: "lotatt04"},
+
+    {field: "guige", title: "规格"},
+    {field: "uom", title: "单位", width: "4%"}
+];
+fixLotatts(INVLOG_FIELDS);
+fixFields(INVLOG_FIELDS, "wms_sku");
+
+var INV_FIELDS = [];
+$.each(OP_FIELDS, function(i, field) {
+    field.align = field.align || "center";
+    field.sortable = true;
+});
+$.each(OPLOG_FIELDS, function(i, field) {
+    field.align = field.align || "center";  
+    field.width = field.width || "19%";
+});
+$.each(OPITEM_FIELDS, function(i, field) {
+    field.align = field.align || "center";
+    field.width = field.width || '80px';
+});
+$.each(INVLOG_FIELDS, function(i, field) {
+    field.align = field.align || "center";
+    field.width = field.width || '6%';
+});
+
+function statusFormatter(value, row, index) {
+    if(['新建', '部分完成', '已领用'].includes(value)) {
+        return value  + '&emsp;'+ `<a href="#" onclick="cancelOp('` + index + `')">取消</a>`;
+    }
+    else {
+        return value;
+    }
+}
+
+function fileFormat(value, row) {
+    if( value ) {
+        return '<a href="javascript:void(0)" onclick="manageAttach(' + row.id + ', \'wms_operation\', true)">' + value + '</a>'
+    }
+}
+
+var dg_op, dg_log, dg_opitem, dg_inv;
+$(function(){
+    var time1 = subDateS(now, 7),
+        time2 = subDateS(now, -1);
+
+    $('#p_start_date').datebox('setValue', time1);
+    $('#p_end_date').datebox('setValue', time2);
+    initContext(drawTable, 9);
+    
+    $.getJSON('/tss/param/json/combo/OpType', {}, function(data){
+        var _data = [];
+        data.each(function(i, item){
+            _data.push({id: item[0], name: item[1]})
+        })
+        $('#p_type').combobox({
+            pannelHeight: '200px',
+            editable: true,
+            data: _data,
+            textField: "name",
+            valueField: "id"
+        })
+    }, 'GET');
+
+});
+
+function drawTable(selectedWh){
+    prepareLOCs(function(){
+        prepareOperationType(function(){
+            prepareSKUs(function(){
+                SELECTED_WH = selectedWh;
+                if( isMoneyWh() ) {
+                    hide_ow = false;
+                    transToMoneyWh(OP_FIELDS, '15%');
+                    transToMoneyWh(OPITEM_FIELDS, '20%');
+                    transToMoneyWh(INVLOG_FIELDS, '12%');
+                    INVLOG_FIELDS.each(function(i, f) {
+                        if( f.zj_title === '账户' ) {
+                            f.hidden = false;
+                        }
+                    });
+                }
+
+                prepareUserPartner(function(){
+                    drawOp()
+                });
+            })
+        })
+    })
+}
+
+function prepareUserPartner(callback){
+    if(Object.getOwnPropertyNames(userPartner).length){
+        callback && callback();
+    }
+    else {
+        jQuery.getJSON("/tss/wx/api/users", {}, function(result) {
+            userPartner = result;
+            callback && callback();
+        });
+    }
+}
+
+function drawOp(manQuery) {
+    dg_op = $('#op').datagrid({
+        url: OPERATION.QUERY,
+        queryParams: getParams(manQuery),
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        pagination: true,
+        remoteSort : false,
+        sortName : "createtime",
+        sortOrder : "desc",
+        pageSize : 50,
+        pageList: [50, 100, 200],
+        toolbar: '#tb' ,
+        columns: [OP_FIELDS],
+        onLoadSuccess: function(data) {
+            if(data.total) {
+                setTimeout(function() {
+                    dg_op.datagrid("selectRow", 0);
+                }, 500);   
+            }
+            return data;
+        },
+        onSelect:function(index,row){
+            drawOpitem(row)
+            drawOplog(row.id)
+            drawInvlog(row.id)
+        }
+    });
+    // dg_op.datagrid('enableFilter'); // 和分页不兼容
+
+    // 分页栏上加按钮
+    dg_op.datagrid('getPager').pagination({
+        buttons: [
+            {
+                iconCls:'ion ion-md-download',
+                text : '导出',
+                handler:function(){
+                    _export( 'wms_operation', getParams() ); // exportDataGrid("op", "作业单");
+                }
+            }
+        ]
+    });
+}
+
+function getParams(manQuery) {
+    var param = { warehouse_id:  SELECTED_WH };
+    param.optype_id = $('#p_type').combobox('getValue');
+    param.opno      = $('#p_opno').textbox('getValue');
+
+    if( !manQuery ) {
+        param.optype_id = param.optype_id || tssJS.Query.get("type");
+        param.opno      = param.opno || tssJS.Query.get("opno");
+    }
+
+    var start_date = $('#p_start_date').datebox('getValue') || tssJS.Query.get("date1") || subDateS(now, TIME_SPAN);
+    var end_date   = $('#p_end_date').datebox('getValue')   || tssJS.Query.get("date2") || subDateS(now, -1);
+    param.updatetime = '[' + (start_date || end_date) + ',' + (end_date || start_date) + ' 23:59:59]';
+
+    $('#p_start_date').datebox('setValue', start_date);
+    $('#p_end_date').datebox('setValue', end_date);
+
+    var opIds = tssJS.Query.get("opIDs");
+    if(opIds) {
+        param.id = opIds;
+    }
+    param.sortField = "updatetime desc";
+    
+    return param;
+}
+
+function drawOpitem(row){  
+    var fields = OPITEM_FIELDS.concat();
+
+    var op_row = dg_op.datagrid("getSelections")[0];
+    var is_outbound = (op_row.optype_id == 68),
+        is_adjust   = (op_row.optype_id == 69);
+
+    dg_opitem = $('#opitem').datagrid({
+        url: OPERATIONITEM.QUERY,
+        queryParams: {operation_id: row.id},
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        columns: [fields],
+        onSelect: function(index, row) {
+            dg_inv.datagrid("clearSelections");
+
+            var rows = dg_inv.datagrid("getRows");
+            rows.each(function(i, invLog) {
+                if( invLog.inv.sku.code === row.skucode ) {
+                    dg_inv.datagrid("selectRow", i);
+                }
+            });
+        },
+        loadFilter:function(data) {
+            var hasToloc = false, hasToqty = false;
+            data.each(function(i, item) {
+                if(is_outbound) {  // 出库
+                    item.qty = item.qty * -1;
+                }
+
+                hasToqty = hasToqty || item.toqty;
+                hasToloc = hasToloc || item.toloccode;
+            })
+
+            setTimeout(function() {
+                dg_opitem.datagrid( hasToqty ? "showColumn" : "hideColumn", 'toqty');
+                dg_opitem.datagrid( hasToloc ? "showColumn" : "hideColumn", 'toloccode');
+            }, 500); 
+
+            return data;
+        }
+    });
+}
+
+function drawOplog(opid){
+    tssJS.getJSON('/tss/inv/op/log', {opId: opid}, function(data){
+        data.each(function(i,item){
+            item['optype']      = item.opType.value;
+            item['operatetime'] = item.operateTime;
+            item['operator']    = item.operatorName;
+        });
+
+        dg_log = $('#oplog').datagrid({
+            data: data,
+            fit: true,
+            fitColumns: true,
+            rownumbers: true,
+            singleSelect: true,
+            checkOnSelect: true,
+            selectOnCheck: true,
+            columns: [OPLOG_FIELDS],
+            onSelect: function(index, row) {
+                dg_inv.datagrid("clearSelections");
+
+                var rows = dg_inv.datagrid("getRows");
+                rows.each(function(i, invLog) {
+                    if( invLog.opLog.id === row.id ) {
+                        dg_inv.datagrid("selectRow", i);
+                    }
+                });
+            }
+        });
+    }, 'GET')   
+}
+
+function drawInvlog(opid){
+    tssJS.get('/tss/inv/log', {opId: opid}, function(data) {
+        dg_inv = $('#invlog').datagrid({
+            data: data,
+            fit: true,
+            fitColumns: true,
+            rownumbers: true,
+            singleSelect: false,
+            columns: [INVLOG_FIELDS],
+            loadFilter:function(data){
+                data.each(function(i, item){
+                    var inv = item.inv;
+                    var loc = item.inv.location;
+                    var sku = item.inv.sku;
+                    item['invstatus'] = inv.invstatus;
+                    item['lotatt01'] = inv.lotatt01;
+                    item['lotatt02'] = inv.lotatt02;
+                    item['lotatt03'] = inv.lotatt03;
+                    item['lotatt04'] = inv.lotatt04;
+                    item['owner'] = inv.owner.name;
+                    item['createdate'] = inv.createdate;
+                    item['expiredate'] = inv.expiredate;
+                    var locname = loc.name.replace(loc.code, '');
+                    item['location'] = locname.length ? locname+"("+ loc.code + ")" : loc.code;
+                    item['warehouse'] = loc.warehouse.name;
+                    item['sku'] = sku.name;
+                    item['brand'] = sku.brand;
+                    item['skucode'] = sku.code;
+                    item['barcode'] = sku.barcode;
+                    item['category'] = sku.category;
+                    item['brand'] = sku.brand;
+                    item['guige'] = sku.guige;
+                    item['uom'] = sku.uom;
+                    item['shelflife'] = sku.shelflife;
+                    item['qty'] = item.qty + '-->' + item.toQty;
+                    item['qtyLocked'] = item.qtyLocked + '-->' + item.toQtyLocked;
+
+                    calExpireDate(item);
+                })
+                return data;
+            }
+        });
+    })
+}
+
+function cancelOp(index) {
+    var params = {};
+    params.status = "取消";
+
+    var row = dg_op.datagrid("getRows")[index];
+    row && JQ.post(OPERATION.UPDATE + row.id, params, function(result) {
+        row.status = params.status;
+        dg_op.datagrid("refreshRow", index);
+    });
+}
+
+</script>
+
+</head>
+<body>
+<div id="init"></div>
+<div class="easyui-layout" fit="true" >
+    <div data-options="region:'north',split:false,collapsible:false" border="false"  style="height:50%;">
+        <div class="easyui-layout" fit="true">
+            <div data-options="region:'west',split:true,collapsible:false" border="false"  style="width:55%;" title="作业单">
+                <table id="op" border="false" style="height:100%"></table>
+            </div>
+            <div data-options="region:'center',split:true,collapsible:false" border="false"  style="width:46%;">
+                <div class="easyui-layout" fit="true">
+                     <div data-options="region:'north'" border="false"  style="height:60%;" title="作业明细">
+                        <table id="opitem" border="false" style="height:100%"></table>
+                    </div>
+                    <div data-options="region:'center'" border="false"  style="height:40%;" title="作业日志">
+                        <table id="oplog" border="false" style="height:100%"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div data-options="region:'center',split:false,collapsible:false" border="false"  style="height:50%;" title="库存流水">
+        <table id="invlog" border="false" style="height:100%">
+        </table>
+    </div>
+</div>
+<div id="tb" class="queryContainer" border="false" style="padding:3px 0 0 3px">
+    <label>作业单:</label><input id="p_opno" class="easyui-textbox" style="width:110px"/>
+    <label>类型:</label><input id="p_type" class="easyui-combobox" style="width:60px"/>
+    <label>操作日期:</label><input id="p_start_date" class="easyui-datebox" style="width:95px"/> - <input id="p_end_date" class="easyui-datebox" style="width:95px"/>
+    <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'ion ion-ios-search'" onclick='drawOp(true)'>查询</a>
+</div>
+
+</body>
+</html>

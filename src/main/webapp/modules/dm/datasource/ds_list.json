@@ -1,0 +1,9 @@
+[
+	[93,"数据源-Local",41,"connectionpool"],
+	[56,"数据源-BSD",41,"connpool-bsd"],
+	[52,"数据源-VF",41,"connpool-v5"],
+	[58,"数据源-OMS",41,"connpool-oms"],
+	[50,"数据源-WMS",41,"connpool-wms"],
+	[63,"数据源-WMS清洗库",41,"connpool-wms-mysql"],
+	[98,"数据源-WMS-UAT",41,"connpool-wms-uat"]
+]

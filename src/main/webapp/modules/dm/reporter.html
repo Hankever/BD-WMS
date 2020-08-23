@@ -1,0 +1,106 @@
+<!DOCTYPE HTML>
+<HTML xmlns:Tree xmlns:Grid>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>数据报表</title>
+
+<link href="../../tools/tssJS/css/boubei.css" rel="stylesheet">
+<link href="../../tools/tssJS/fonts/icons.css" rel="stylesheet" >
+<link href="../../css/css.css" rel="stylesheet">
+<link href="dm.css" rel="stylesheet">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.json2Form.js"></script>
+<script src="../../tools/tssJS/tssJS.jsonp.js"></script>
+<script src="../../tools/tssUtils.js"></script>
+
+<script src="reporter_x.js"></script>
+<script src="reporter.js"></script>
+<!-- <script src="customize.js"></script> -->
+
+<script type="text/javascript">
+ 
+URL_SOURCE_TREE = AUTH_PATH + "rp/my";
+
+if(IS_TEST) {
+    URL_SOURCE_TREE = "data/report_tree.xml?";
+}
+
+/* 页面初始化 */
+$(function() {
+    initEvents();
+    loadInitData();
+});
+
+function loadInitData() {
+    var onresult = function() {
+        var tree = $.T("tree", this.getNodeValue(XML_SOURCE_TREE));
+
+        tree.onTreeNodeActived = function(ev) {
+            var treeNode = getActiveTreeNode();
+            if( isReport() ) {
+                showReport();
+            }
+            if( isReportGroup()) {
+                treeNode.openNode(); // 打开或关闭树枝
+            }
+        }
+    }
+
+    var groupId = $.Query.get("group");
+    $.ajax({
+    	url : URL_SOURCE_TREE, 
+    	params : {"groupId": groupId},
+    	onresult : onresult
+    });
+} 
+
+</script>
+
+</head>
+
+<body>
+
+<table class="panel" >
+  <tr class="header"> <td/><td/><td/><td/> </tr>
+  <tr class="body"> 
+	<td/>
+	<td id="palette">
+	  <div>
+	  	<div class="bar">
+			<span class="icon"></span>报表树
+			<span class="search"><input id="searchKey"/><span class="icon-search"/></span>
+			<span class="refreshTreeBT"></span>
+		</div>
+		<Tree id="tree"></Tree>
+	  </div> 
+	</td>
+	<td class="groove">
+	  	<table>
+		  <tr>
+			<td id="gridTitle">
+			  <span class="icon"></span><span class="title">查询结果</span>
+<input type="button" class="tssbutton small white btDownload" value="导出数据" style="margin-left: 15px;" />
+<input type="button" class="tssbutton small white" value="查 询" onclick="openQueryForm()"/>
+			  <span class="buttonBox" id="gridToolBar"></span>
+			</td>
+		  </tr>
+		  <tr>
+			<td class="hasframe" id="gridContainer">
+			   <Grid id="grid"></Grid>
+			</td>
+		  </tr>
+		</table>				
+	</td>
+	<td/>
+  </tr>
+  <tr class="footer"> <td/><td/><td/><td/> </tr>
+</table>
+ 
+<div id="searchFormDiv"></div>
+
+<iframe id="downloadFrame" style="display:none"></iframe>
+
+</body>
+</html>

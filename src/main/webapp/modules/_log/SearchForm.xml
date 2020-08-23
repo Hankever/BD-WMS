@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <SearchLog>
+    	<xform>
+			<declare>
+				<column name="operatorName" caption="操作人" mode="string" />
+				<column name="operatorIP" caption="操作人IP" mode="string" />
+                <column name="operationCode" caption="操作方法" mode="string" />
+                <column name="operateTable"  caption="操作对象" mode="string" />
+                <column name="content"  caption="日志内容" mode="string" />
+				<column name="operateTimeFrom" caption="起始时间" mode="date"/>
+				<column name="operateTimeTo"   caption="截止时间" mode="date"/>
+			</declare>
+			<layout>
+				<TR>
+					<TD width="88"><label binding="operatorName"/></TD>
+					<TD><input binding="operatorName"/></TD>
+				</TR>
+				<TR>
+					<TD><label binding="operatorIP"/></TD>
+					<TD><input binding="operatorIP"/></TD>
+				</TR>
+				<TR>
+					<TD><label binding="operationCode"/></TD>
+					<TD><input binding="operationCode"/></TD>
+				</TR>
+				<TR>
+					<TD><label binding="operateTable"/></TD>
+					<TD><input binding="operateTable"/></TD>
+				</TR>
+				<TR>
+					<TD><label binding="content"/></TD>
+					<TD><input binding="content"/></TD>
+				</TR>
+				<TR>
+					<TD><label binding="operateTimeFrom"/></TD>
+					<TD><input binding="operateTimeFrom"/></TD>
+				</TR>
+				<TR>
+					<TD><label binding="operateTimeTo"/></TD>
+					<TD><input binding="operateTimeTo"/></TD>
+				</TR>
+			</layout>
+			<data>
+                <row/>
+			</data>
+		</xform>
+    </SearchLog>
+</Response>

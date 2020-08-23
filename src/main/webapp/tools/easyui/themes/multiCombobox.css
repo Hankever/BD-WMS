@@ -1,0 +1,64 @@
+/*全局样式*/
+* {
+    margin: 0;
+    padding: 0;
+}
+
+.btn {
+    width: 80px;
+    height: 30px;
+    border-radius: 4px;
+    outline: none;
+    background-color: #0384b5;
+    color:white;
+    margin: 5px 20px;
+}
+
+.btn:hover {
+    background-color: #23B7E5;
+    cursor: pointer;
+}
+
+.addr-choice {
+    width: 447px;
+    display: none;
+}
+.value-wrap{
+    padding: 5px 10px;
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+}
+.title-wrap li,
+.value-wrap li {
+    list-style: none;
+    display: inline-block;
+    text-align: center;
+    cursor: pointer;
+}
+
+.title-wrap li {
+    width: 120px;
+    height: 40px;
+    line-height: 40px;
+    font-size: 18px;
+}
+
+.value-wrap>li {
+    width: 83px;
+    height: 25px;
+    border-radius: 4px;
+    line-height: 25px;
+    font-size: 14px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.title-wrap>li:hover, .value-wrap>li:hover {
+    background-color: #23B7E5;
+}
+
+.selected {
+    background-color: #0384b5;
+    color: white;
+}

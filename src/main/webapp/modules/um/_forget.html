@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>忘记密码</title>
+
+<link href="../../tools/tssJS/css/boubei.css" rel="stylesheet">
+<link href="../../css/css.css" rel="stylesheet">
+<link href="_prelogin.css" rel="stylesheet">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssUtils.js"></script>
+
+<style type="text/css">
+
+  label { display: inline-block; min-width: 80px; }
+  #d3, #d1, #d2 { display: none; }
+  #resetBT { margin-top: 10px; }
+
+  .modal { width: 500px; }
+  .tssForm { line-height: 33px; width: 520px; padding: 15px 25px; font-size: 13px; }
+  .tssForm input { height: 23px; }
+
+</style>
+
+<SCRIPT LANGUAGE="JavaScript">
+<!--
+
+    /* 后台响应数据节点名称  */
+    XML_USER_ID = "UserId";
+
+    /* XMLHTTP请求地址汇总 */
+    URL_QUESTION = NO_AUTH_PATH + "getQuestion.in";
+    URL_FORGET = NO_AUTH_PATH + "getPassword.in";
+    URL_RESET  = NO_AUTH_PATH + "resetPassword.in";
+
+    if( IS_TEST ) {
+        URL_QUESTION = "data/_question.xml";
+        URL_FORGET = "data/_forget.xml";
+        URL_RESET  = "data/_success.xml";
+    }
+
+    // 如果用户输入的密码问题答案正确，则返回该用户的UserID并允许其重新设置新密码
+    function getPassword() {
+        var params = {};
+        params.loginName = $("#loginName").value();
+        params.passwordQuestion = $("#passwordQuestion").value();
+        params.passwordAnswer = $("#passwordAnswer").value();
+
+        $.ajax({
+            url : URL_FORGET,
+            headers : {"appCode": FROMEWORK_CODE, "anonymous": "true"},
+            params : params,
+            onresult : function() { 
+                var userID = this.getNodeValue(XML_USER_ID);
+                $("#userId").value(userID);
+
+                $("#d3").show(true);
+            }
+        });
+    }
+
+    /* 检测表单是否填写正确。点击“重置密码”按钮的时候触发 */
+    function checkPwdQuestion() {
+        var flag = true;
+ 
+        var loginName = $("#loginName").value();
+        var question  = $("#passwordQuestion").value();
+        var answer    = $("#passwordAnswer").value();
+
+        if( !(loginName||question||answer) ) {
+            flag = false;
+            if( !loginName ) {
+                $("#loginName").notice("登录账号不能为空");
+            }
+        }
+        
+        return flag;
+    }
+
+    /* 检测新密码 */
+    function checkNewPassword() {
+        var flag = true;
+        var password   = $("#password").value();
+        var repassword = $("#repassword").value();
+        
+        if( !password || !repassword) {
+            flag = false;
+            $("#password").notice("密码不能为空");
+        }
+        else if(password != repassword) {
+            flag = false;
+            $("#repassword").notice("两次密码输入不一致，请重新输入");
+        }
+
+        return flag;
+    }
+
+    /* 设置新密码 */
+    function setNewPassword() {
+        var params = {};
+        params.type = "reset";
+        params.userId = $("#userId").value();
+        params.password = $("#password").value();
+        params.loginName = $("#loginName").value();
+        params.ckcode = $("#sms_ckcode").value() || $("#ckcode").value();
+
+        $.ajax({
+            url : URL_RESET,
+            headers: {"appCode": FROMEWORK_CODE, "anonymous": "true"},
+            params : params,
+            onsuccess : function() { 
+                setTimeout(function(){
+                    location.href = "/tss/login.html";
+                }, 1000);
+            }
+        });
+    }
+
+    window.onload = function() {
+        $(".modal").height(410);
+    }
+
+    $.alert = function(msg) {
+        $.tssTip(msg);
+        
+        setTimeout(function(){
+            $("#tssTip").hide();
+        }, 3000);
+    }
+
+//-->
+</SCRIPT>
+
+</head>
+
+<body>
+
+<div class="modal-wrapper">
+    <div class="modal">
+        <div class="header">
+          <h1 class="sysTitle">重置密码</h1>
+          <h2 class="subTitle">可以通过注册账号时填写的手机号、邮箱或密码保护找回密码</h2>
+        </div>
+
+        <div class="tssForm">
+            <label>登录账号：</label><input id="loginName" style="width: 160px"/>
+            <span class=" required">*</span><br>
+
+            <label>重置途径：</label>
+            <INPUT name="fs" id="fs3" type="radio" value="3" checked> <label>通过手机</label>
+            <INPUT name="fs" id="fs2" type="radio" value="2"> <label>通过邮箱</label>
+            <INPUT name="fs" id="fs1" type="radio" value="1"> <label>通过密码保护问题</label> 
+            <br>
+
+            <div id="d1">
+                <input type="hidden" id="userId"/>
+
+                <label>密码保护问题：</label><input id="passwordQuestion" style="width:220px"/>
+                <br>
+                <label>密码保护答案：</label><input id="passwordAnswer" style="width:220px"/>
+                <br>
+                <a href="javascript: void(0)" class="tssbutton small blue" 
+                            onclick="if(checkPwdQuestion()) { getPassword(); }">开始重置密码</a>
+            </div>
+
+            <div id="d2">
+                <label>注册邮箱：</label>
+                <input id="email" style="width: 240px" placeholder="请输入注册时填写的邮箱"/>
+                <span class="required">*</span>
+                <button class="tssbutton blue small" id="btn1">获取验证码</button>
+                <br>
+                <label>输入验证码：</label><input id="ckcode" style="width: 90px"/>
+                <span class=" required">*</span>
+                <br>
+            </div>
+
+            <div id="d4">
+                <label>手机号码：</label>
+                <input id="telephone" style="width: 240px" placeholder="请输入注册时填写的手机号码"/>
+                <span class="required">*</span>
+                <button class="tssbutton blue small" id="btn2">获取验证码</button>
+                <br>
+                <label>输入验证码：</label><input id="sms_ckcode" style="width: 90px"/>
+                <span class=" required">*</span>
+                <br>
+            </div>
+
+            <div id="d3">
+                <label>输入新密码：</label><input id="password" type="password" style="width: 200px"/>
+                <span class=" required">*</span>
+                <br>
+                <label>新密码确认：</label><input id="repassword" type="password" style="width: 200px"/>
+                <span class=" required">*</span>
+                <br>
+                <a href="javascript: void(0)" class="tssbutton medium blue" id="resetBT" 
+                            onclick="if(checkNewPassword()) { setNewPassword(); }">重置密码</a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    function getQuestion() {
+        /* 自动获取密码提示的问题 */
+        var value = $("#loginName").value();
+        if( !value ) return;
+
+        $.ajax({
+            url: URL_QUESTION,
+            params:  {"loginName": value},
+            onexcption: function() {
+                $1("passwordQuestion").focus();
+            },
+            onresult: function(){
+                var question = this.getNodeValue("Question");  
+                $("#passwordQuestion").value(question);                         
+                $1("passwordAnswer").focus();
+            }
+        });
+    }
+
+    $("#loginName").blur( function() {
+        var val = tssJS.radioValue("fs");
+        if( val == '1' ) {
+            getQuestion();
+        }
+    } );
+    
+    $("#fs1").click(function() {
+        $("#d1").show(true);
+        $("#d2, #d4").hide();
+
+        getQuestion();
+    });
+
+    $("#fs2").click(function() {
+        $("#d2").show(true);
+        $("#d1, #d4").hide();
+    });
+
+    $("#fs3").click(function() {
+        $("#d4").show(true);
+        $("#d1, #d2").hide();
+    });
+    
+    $("#btn1").click(function(){
+        var loginName = $("#loginName").value(),
+            email     = $("#email").value();
+
+        if(!loginName) {
+            return $("#loginName").notice("账号不能为空");
+        }
+        if(!email) {
+            return $("#email").notice("邮箱不能为空");
+        }
+
+        $.ajax({
+            url : "/tss/checkEmail.in",
+            headers: {"appCode": FROMEWORK_CODE, "anonymous": "true"},
+            params : {"loginName": loginName, "email": email},
+            onsuccess : function() { 
+                $("#d3").show(true);
+            }
+        });
+    });
+
+    $("#btn2").click(function(){
+        var loginName = $("#loginName").value(),
+            telephone = $("#telephone").value();
+
+        if(!loginName) {
+            return $("#loginName").notice("账号不能为空");
+        }
+        if(!telephone) {
+            return $("#telephone").notice("手机号码不能为空");
+        }
+
+        $('#btn2').attr('disabled', true)
+        $.ajax({
+            url : "/tss/checkMobile.in",
+            headers: {"appCode": FROMEWORK_CODE, "anonymous": "true"},
+            params : {"loginName": loginName, "telephone": telephone},
+            ondata : function() { 
+                $("#d3").show(true);
+            }
+        });
+
+        var waitSeconds = 60;
+        var interval = setInterval(function(){
+            $('#btn2').text( '等待' + waitSeconds-- + '秒' );
+            if(waitSeconds <= 0){
+                $('#btn2').text("获取验证码");
+                $('#btn2').attr('disabled', false);
+                clearInterval(interval);
+            }
+        }, 1000)
+    });
+
+</script>
+
+</body>
+</html>

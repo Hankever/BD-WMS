@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>波次作业</title>
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+<script src="../../tools/easyui/datagrid-filter.js"></script>
+
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="wms.js"></script>
+<script src="order_pickup.js"></script>
+</head>
+
+<body>
+<div id="init"></div>
+
+<div id="main" class="easyui-layout" fit="true">
+    <div data-options="region:'north',split:true" border="false" style="height: 46%">
+        <div class="easyui-layout" fit="true">
+            <div data-options="region:'west',split:true,collapsible:true" style="width: 430px" border="false" title="波次列表">
+                <table id="t1" border="false"></table>
+            </div>
+            <div data-options="region:'center'" border="false" title="波次所含订单">
+                <table id="t2" border="false"></table>
+            </div>
+        </div>
+    </div>
+
+    <div data-options="region:'center'" border="false">
+        <div class="easyui-layout" fit="true">
+            <div data-options="region:'west',split:true,collapsible:true" style="width: 480px" border="false" title="波次拣货单">
+                <table id="t3" border="false"></table>
+            </div>
+            <div data-options="region:'center'" border="false" title="波次拣货单明细<input type='hidden' id='_opid_'>">
+                <table id="t_pkd" border="false"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="dlg1" class="easyui-dialog" title="查询订单" closed="true" buttons="#dlg1-buttons">
+    <table class="l">
+        <tr>
+            <td class="label">出库单号:</td>
+            <td colspan="3"><input id="query_orderno" class="easyui-textbox" style="width:410px" prompt="多个单号以逗号分隔"/></td>            
+        </tr>
+        <tr>
+            <td class="label">货主:</td>
+            <td><input id="query_owner_id" class="easyui-textbox" style="width:150px"/></td>              
+            <td class="label">货品编码:</td>
+            <td><input id="query_skucode" class="easyui-textbox" style="width:150px"/></td>              
+        </tr>
+        <tr>
+            <td class="label">货品品牌:</td>
+            <td><input id="query_sku_brand" class="easyui-textbox" style="width:150px"/></td>              
+            <td class="label">货品大类:</td>
+            <td><input id="query_sku_category" class="easyui-textbox" style="width:150px"/></td>              
+        </tr>
+        <tr>
+            <td class="label">收件人:</td>
+            <td><input id="d_receiver" class="easyui-textbox" style="width:150px"/></td>              
+            <td class="label">订单状态:</td>
+            <td><input id="query_status" class="easyui-combobox" style="width:150px"/></td>              
+        </tr>
+        <tr>
+            <td class="label">创建时间:</td>
+            <td>
+                <input id="createtime1" class="easyui-datetimebox"/> 
+            </td>  
+            <td class="label">----></td>
+            <td>
+                <input id="createtime2" class="easyui-datetimebox"/>
+            </td>              
+        </tr>
+        <tr>
+            <td class="label">下单日期:</td>
+            <td>
+                <input id="orderday1" class="easyui-datebox"/> 
+            </td>  
+            <td class="label">----></td>
+            <td>
+                <input id="orderday2" class="easyui-datebox"/>
+            </td>              
+        </tr>
+        <tr>
+            <td class="label">订单数量:</td>
+            <td>
+                <input id="qty1" class="easyui-numberbox" style="width:70px"/> --> <input id="qty2" class="easyui-numberbox" style="width:70px"/>
+            </td>  
+            <td class="label">订单品项:</td>
+            <td>
+                <input id="skus1" class="easyui-numberbox" style="width:70px"/> --> <input id="skus2" class="easyui-numberbox" style="width:70px"/>
+            </td>              
+        </tr>
+        <tr>
+            <td class="label">快捷选项:</td>
+            <td colspan="5" style="height: 80px; line-height: 26px;">
+                <div>
+                    <input type="radio" id="quickSelect0" name="quickSelect" onclick="quickSelect(0)" value="waveOrderSum" style="width:12px" checked> <label>任意订单</label>
+                    <input type="radio" id="quickSelect1" name="quickSelect" onclick="quickSelect(1)" value="1" style="width:12px"> <label>单品项订单</label>
+                    <input type="radio" id="quickSelect2" name="quickSelect" onclick="quickSelect(2)" value="2" style="width:12px"> <label>多品项订单</label>
+                </div>
+                <div>
+                    <input type="radio" id="quickSelect3" name="quickSelect" onclick="quickSelect(3)" value="3" style="width:12px"> <label>今日订单</label>
+                    <input type="radio" id="quickSelect4" name="quickSelect" onclick="quickSelect(4)" value="4" style="width:12px"> <label>今日以前订单</label>
+                    <input type="radio" id="quickSelect5" name="quickSelect" onclick="quickSelect(5)" value="5" style="width:12px"> <label>最近1小时订单</label>
+                </div>
+                <div>
+                    <input type="radio" id="quickSelect6" name="quickSelect" onclick="quickSelect(6)" value="6" style="width:12px"> <label>COD</label>
+                </div>
+            </td>              
+        </tr>
+    </table>
+</div>
+<div id="dlg1-buttons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-search" onclick="previewWave()">查询预览</a>
+</div>
+
+<div id="dlg2" class="easyui-dialog" title="查询订单" closed="true" buttons="#dlg2-buttons">
+    <table class="l">
+        <tr>
+            <td class="label">订单号:</td>
+            <td><input id="q_orderno" class="easyui-textbox" style="width:150px"/></td>
+            <td class="label">货主:</td>
+            <td><input id="q_owner_id" class="easyui-textbox" style="width:150px"/></td>               
+        </tr>
+        <tr>            
+            <td class="label">货品编码:</td>
+            <td><input id="q_skucode" class="easyui-textbox" style="width:150px"/></td>           
+            <td class="label">状态:</td>
+            <td><input id="q_status" class="easyui-combobox" style="width:150px"/></td>              
+        </tr>
+    </table>
+</div>
+<div id="dlg2-buttons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-search" onclick="_queryOrderItems()">查 询</a>
+</div>
+
+<div id="dlg3" class="easyui-dialog" title="按单添加" closed="true" buttons="#dlg3-buttons">
+    <form id="fm3" method="post" novalidate>
+        <table class='l'>
+            <tr>
+                <td class='label'>订单号</td>
+                <td colspan="5">
+                    <textarea name='orderno' id='orderno' cols="40" rows="10" required/> </textarea>
+                </td>
+            </tr>
+        </table>      
+    </form>
+</div>
+<div id="dlg3-buttons">
+    <a href="#" class="easyui-linkbutton" onclick="saveOrderToWave()">保 存</a>
+    <a href="#" class="easyui-linkbutton" onclick="closeDialog('fm3', 'dlg3')">取 消</a>
+</div>
+
+
+<div id="dlg_worker" class="easyui-dialog" closed="true" buttons="#dlg_worker-buttons" style="width: 300px; height: 400px">
+    <form id="fm_worker" method="post" novalidate>
+        <input name='worker' id='worker' border="false" required/>   
+    </form>
+</div>
+<div id="dlg_worker-buttons">
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle-outline" onclick="saveWorker()">保 存</a>
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-close-circle-outline" onclick="closeDialog('fm_worker', 'dlg_worker')">取 消</a>
+</div>
+
+
+<div id="dlgInv" class="easyui-dialog" title="选择拣货库存" style="width:960px; height:320px; padding: 0" closed="true" buttons="#dlgInv-buttons">
+    <table id="t_inv" border="false"></table>
+</div>
+<div id="dlgInv-buttons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-add-circle" onclick="selectInv()" style="width:120px">选择库存并更换</a>
+</div>
+
+<div id="dg4btn_">
+    <div data-options="iconCls:'ion-ios-shuffle'" onclick="filterPKDs(1)">单品项订单</div>
+    <div data-options="iconCls:'ion-ios-shuffle'" onclick="filterPKDs(2)">单品项订单（剔除赠品）</div>
+    <div data-options="iconCls:'ion-ios-shuffle'" onclick="filterPKDs(3)">同SKU同数量</div>
+    <div data-options="iconCls:'ion-ios-shuffle'" onclick="filterPKDs(4)">同SKU不同数量</div>
+    <div data-options="iconCls:'ion-ios-shuffle'" onclick="filterPKDs(5)">同产品类型</div>
+</div>
+
+</body>
+
+<script type="text/javascript">
+    
+var dg1, dg2, dg3, dg_pkd, dg1_selected, 
+    dg3_selected, 
+
+FIELDS_1 = [
+    {field: "code", title: "波次号", width: '80px'},
+    {field: "total", title: "订单数", width: '70px'},
+    {field: "status", title: "状态", width: '75px'},
+    {field: "creator", title: "创建人",formatter:loginName2userName, width: '75px'},
+    {field: "createtime", title: "创建时间", formatter: dateNoHour, width: '80px'}
+], 
+FIELDS_2 = [
+    {field: "orderno", title: "订单号", width: '110px'},
+    {field: "owner_id", title: "货主", formatter:ownerid2name, width: '80px', hidden: hide_ow},
+    {field: "status", title: "状态", width: '65px'},
+    {field: "skuname", title: "货品", sortable: true, align: "left", width: '15%'},
+    {field: "skucode", title: "货品编码", width: '10%'},
+    {field: "qty", title: "订单数量", width: '8%'},
+    {field: "invstatus"},
+    // {field: "createdate"},
+    // {field: "expiredate"},
+    {field: "lotatt01"},
+    {field: "lotatt02"},
+    {field: "lotatt03"},
+    {field: "lotatt04"},
+    {field: "remark", title: "备注", width: '12%'},
+    {field: "opts", title: "操作", width:'8%', styler: function(value,row,index){ return 'background-color: rgb(254, 247, 169)'; }}
+], 
+FIELDS_3 = [
+    {field: "opno", title: "拣货工单号", width: '23%'},
+    {field: "status", title: "状态", width: '15%'},
+    {field: "creator", title: "创建人",formatter:loginName2userName, width: '18%'},
+    {field: "worker", title: "作业人",formatter: formatterWorker, width: '20%'},
+    {field: "udf1", title: "备注", width: '22%'}
+], 
+FIELDS_4 = [
+    {field: 'ck', checkbox: true},
+    {field: "orderno", title: "订单号", width: '100px'},
+    {field: "inv_id", title: "库存ID", hidden: true},
+    {field: "sku_id", title: "货品ID", hidden: true},
+    {field: "skuname", title: "货品", sortable: true, align: "left", width: '12%'},
+    {field: "skucode", title: "货品编码", width: '8%'},
+    {field: "parent_loc", title: "拣货库位", width: '11%'},
+    {field: "qty", title: "拣货数量", width: '8%'},
+    {field: "lot", title: "批次", width: '15%'},
+    {field: "worker", title: "作业人", formatter: formatterWorker, width: '8%'},
+    {field: "status", title: "作业状态", width: '8%'},
+    {field: "opts",title: "操作", width: '10%', styler: function(value,row,index){ return 'cursor: pointer;'; }, align: "center"}
+];
+fixLotatts(FIELDS_2);
+// fixLotatts(FIELDS_4);
+
+$.each(FIELDS_1, function(i, field) {
+    field.align = field.align||"center";
+    field.sortable = true;
+});
+$.each(FIELDS_2, function(i, field) {
+    field.align = field.align||"center";
+    field.sortable = true;
+});
+$.each(FIELDS_3, function(i, field) {
+    field.align = field.align||"center";
+    field.sortable = true;
+});
+$.each(FIELDS_4, function(i, field) {
+    field.align = field.align||"center";
+    field.sortable = true;
+});
+
+$(function () {
+    initContext(drawTable);
+    init();
+
+    $('#query_status, #q_status').combobox({
+        textField:'value',
+        data: [{value: '新建'}, {value: '取消'}],
+        panelHeight: 'auto'
+    });
+
+    tssJS.get('/tss/xdata/json/wms_sku?fields=distinct category', {category: 'is not null'}, function(r) {
+        $('#query_sku_category').combobox({
+            data: r,
+            textField:'category',
+            valueField:'category',
+            panelHeight:'120px'
+        })
+    } );
+    tssJS.get('/tss/xdata/json/wms_sku?fields=distinct brand', {brand: 'is not null'}, function(r) {
+        $('#query_sku_brand').combobox({
+            data: r,
+            textField:'brand',
+            valueField:'brand',
+            panelHeight:'120px'
+        })
+    } );
+
+    $('#t2').datagrid({
+        fit: true,
+        fitColumns: true,
+        columns: [FIELDS_2],
+        pagination: true,
+        pageSize: 200,
+        pageList:[100, 200, 500]
+    });
+
+    dg_pkd = $('#t_pkd').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        remoteSort: false,
+        toolbar: [
+            { id: "dg4btn" },
+            '-', { text: '拆分拣货单', iconCls: 'ion ion-ios-shuffle', handler: createNewPkh, id: "_bt8", disabled: true  },
+            '-', { text: '指派拣货员', iconCls: 'ion ion-ios-person', handler: assign, id: "_bt3" },
+         // '-', { text: '打印拣货单（明细）', iconCls: 'ion ion-ios-print', handler: function() { printPkds(false); }, id: "_bt4_1", disabled: true },
+            '-', { text: '打印拣货单', iconCls: 'ion ion-ios-print', handler: function() { printPkds(true); }, id: "_bt4_2", disabled: true },
+            '-', { text: '确认拣货完成', iconCls: 'ion ion-ios-checkmark-circle-outline', handler: function() { pickup(false); }, id: "_bt5", disabled: true },
+            '-', { text: '拣货取消', iconCls: 'ion ion-ios-close-circle-outline', handler: function() { pickup(true); }, id: "_bt6", disabled: true },
+            '-', { text: '确认验货完成', iconCls: 'ion ion-ios-checkmark-circle-outline', handler: checkByPKH, id: "_bt9", disabled: true},
+            '-', { text: '按单验货', iconCls: 'ion ion-ios-shuffle', handler: gotoCheck, id: "_bt7", disabled: true}
+        ],
+        columns: [FIELDS_4],
+        data: [],
+        onClickCell: function(index, field, value) {
+            if( field == 'opts' ) {
+                dg_pkd_selected = dg_pkd.datagrid("getRows")[index];
+                queryInvs(dg_pkd_selected);
+            }          
+        },
+    }); 
+
+    dg3 = $('#t3').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        remoteSort: false,
+        onLoadSuccess: function(data) {
+            if(data.total) {
+                setTimeout(function() {
+                    dg3.datagrid("selectRow", dg3_selected || 0);
+                }, 500);   
+            }
+            else{
+                dg_pkd.datagrid({data:[]});
+            }
+            return data;
+        },
+        onSelect: function(index, row) {
+            queryPKDs(row.id);
+            dg3_selected = index;
+        },
+        columns: [FIELDS_3],
+        toolbar: [
+            { text: '打印发货单', iconCls: 'ion ion-ios-print', handler: printMD },
+            '-', { text: '打印电子面单', iconCls: 'ion ion-ios-print', handler: printDZMD }
+        ],
+        data: []
+    }); 
+
+});
+
+function drawTable(SELECTED_WH){
+    prepareSKUs(function() {
+        prepareOwners(function(){   
+            $('#query_owner_id, #q_owner_id').combobox({
+                data: OWNER_D,
+                textField: 'name',
+                valueField: 'id',
+                panelHeight: '100px'
+            })
+            SELECTED_WH = SELECTED_WH;
+            queryOrderWave();
+        })
+    });
+
+    prepareLOCs();
+}
+
+function init() {
+    $('.order_no').text('');
+}
+
+function queryOrderWave() {
+    dg1 = $('#t1').datagrid({
+        url: ORDERWAVE.QUERY,
+        queryParams: { origin: '波次作业', warehouse_id: SELECTED_WH },
+        fit: true,
+        fitColumns: true,
+        pagination: true,
+        rownumbers: true,
+        pageSize : 50,
+        pageList:[50, 100, 200],
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        remoteSort: false,
+        columns: [FIELDS_1],
+        onLoadSuccess: function(data) {
+            if(data.total) {
+                setTimeout(function() {
+                    dg1.datagrid("selectRow", dg1_selected || 0);
+                }, 500);   
+            }
+            else {
+                // dg2.datagrid({data:[]});
+            }
+            return data;
+        },
+        onSelect: function(index, row) {
+            queryOrderItems( { wave_id: row.id } );
+            queryOperation(row.id);
+            dg1_selected = index;
+
+            if( row.status == '新建' || row.status == '库存不足' ) {
+                $("#bt1").linkbutton("enable");
+                $("#bt2").linkbutton("disable");
+            } 
+            else if( row.status == '取消') {
+                $("#bt1, #bt2").linkbutton("disable");
+            }
+             else {
+                $("#bt1").linkbutton("disable");
+                $("#bt2").linkbutton("enable");
+            }
+        },
+        toolbar: [
+            { text: '创建波次', iconCls: 'ion ion-ios-search', handler: queryWaveOrders},
+            '-', { text: '取消波次', iconCls: 'ion ion-ios-close-circle-outline', handler: cancelWave },
+            '-', { text: '刷新', iconCls: 'ion ion-ios-refresh', handler: queryOrderWave }
+        ]
+    });
+}
+
+var quickValue = '0';
+function queryWaveOrders() {
+    if(quickValue == '0') {
+        var orderday1 = $('#orderday1').datebox("getValue") || subDateS(now, 3),
+        orderday2 = $('#orderday2').datebox("getValue") || subDateS(now, -1);
+
+        $('#orderday1').datebox('setValue', orderday1);
+        $('#orderday2').datebox('setValue', orderday2);
+    }
+    $('#dlg1').dialog( {"modal": true} ).dialog('open');
+}
+
+var OMS_TYPE;
+function quickSelect(value) {
+    quickValue = value;
+    var now_day = subDateS(now, 0), pre_day = subDateS(now, 1), next_day = subDateS(now, -1);
+    var time1 = (new Date(new Date().getTime() - 1*1000*60*60)).format('yyyy-MM-dd hh:mm:ss'),
+        time2 = (new Date()).format('yyyy-MM-dd hh:mm:ss');
+
+    OMS_TYPE = "";
+    $('#skus1, #skus2').numberbox('setValue', '');
+    $('#createtime1, #createtime2').datetimebox('setValue', '');
+    switch(value) {
+        case 0:
+        $('#orderday1').datebox('setValue', now_day);
+        $('#orderday2').datebox('setValue', next_day);
+            break;
+        case 1:
+        $('#skus1, #skus2').numberbox('setValue', 1);
+            break;
+        case 2:
+        $('#skus1').numberbox('setValue', 2);
+            break;
+        case 3:
+        $('#orderday1, #orderday2').datebox('setValue', now_day);
+            break;
+        case 4:
+        $('#orderday1').datebox('setValue', '');
+        $('#orderday2').datebox('setValue', pre_day);
+            break;
+        case 5: 
+        $('#orderday1, #orderday2').datebox('setValue', '');
+        $('#createtime1').datetimebox('setValue', time1);
+        $('#createtime2').datetimebox('setValue', time2);
+            break;
+        case 6: 
+        $('#orderday1').datebox('setValue', now_day);
+        $('#orderday2').datebox('setValue', next_day);
+        OMS_TYPE = 'COD';
+            break;
+        default:
+        '' 
+    } 
+}
+
+function previewWave() {
+    var params = {};
+    $('#dlg1 table:eq(0) *').each(function(i,item){
+        var id = $(item).attr('id');
+        if(id && id.indexOf('_easyui_') < 0){
+            var key = id.replace('query_', '');
+            params[key] = $('#' + id).val();
+        }
+    })
+    if(OMS_TYPE) {
+        params.query_oms = "1";
+        params.oms_type = OMS_TYPE;
+    }
+    queryOrderItems(params, 'preview');
+    closeDialog('fm1', 'dlg1');
+}
+
+function searchOrder() {
+    $('#dlg2').dialog( {"modal": true} ).dialog('open');
+}
+
+function _queryOrderItems() {
+    var params = {}, row = getSelectedWave();
+    params.wave_id = row.id;
+    $('#dlg2 table:eq(0) *').each(function(i,item){
+        var id = $(item).attr('id');
+        if(id && id.indexOf('q_') >= 0){
+            var key = id.replace('q_', '');
+            params[key] = $('#' + id).val();
+        }
+    })
+    queryOrderItems(params);
+    closeDialog('fm2', 'dlg2');
+}
+
+var itemMap = {};
+function queryOrderItems(params, type) {
+    params.whId = SELECTED_WH;
+
+    if(type == 'preview'){
+        tssJS.get(SERVICE.wave_order_sum, params, function(data) {
+            createWave(data.rows, params);
+        })
+        return
+    }
+
+    dg2 = $('#t2').datagrid({
+        url: SERVICE.wave_order_item,
+        method: 'GET',
+        queryParams: params,
+        fit: true,
+        fitColumns: true,
+        pagination: true,
+        rownumbers: true,
+        pageSize: 200,
+        pageList:[100, 200, 500],
+        singleSelect: true,
+        remoteSort: false,
+        toolbar: [
+            { text: '查找订单', iconCls: 'ion ion-ios-search', handler: searchOrder},
+            '-', { text: '按单添加', iconCls: 'ion ion-ios-add-circle-outline', handler: addByOrder, id: '_bt2', disabled: true },
+            '-', { text: '分配库存', iconCls: 'ion ion-ios-calculator', handler: allocate, id: "bt1" },
+            '-', { text: '取消分配', iconCls: 'ion ion-ios-close-circle-outline', handler: cancelAllocate, id: "bt2" }
+        ],
+        onClickCell: function(index, field, value) {
+            if(field == 'opts' && value && value.indexOf('删 除') > 0 ) {
+                removeOrderItem(index);
+            }          
+        },
+        columns: [FIELDS_2],
+        loadFilter: function(data) {
+            itemMap = {};
+            data.rows.each((i, item)=>{
+                var status = getSelectedWave().status;
+                if(status == '新建' || status == '库存不足') {
+                    item.opts = '<a href="javascript:void(0)" style="text-decoration: underline;">删 除</a>';
+                    $("#_bt2").linkbutton("enable");
+                } else {
+                    $("#_bt2").linkbutton("disable");
+                }
+                
+                var sku = SKU_M[item.sku_id];
+                item.skuname = sku.name;
+                item.skucode = sku.code;
+                item.barcode = sku.barcode;
+
+                itemMap[item.item_id] = item.orderno;
+            })
+            return data;
+        }
+    });
+}
+
+var CURRENT_OP_NO;
+function queryOperation(wave_id) {
+    tssJS.post(OPERATION.QUERY, { wave_id: wave_id }, function(data) {
+        dg3.datagrid("loadData", data);
+        if(data && data.length) {
+            CURRENT_OP_NO = data[0].opno;
+            if( data[0].status == '已完成' || data[0].status == '取消') {
+                $("#_bt6,#_bt7,#_bt9").linkbutton("enable");
+                $("#_bt5, #_bt8").linkbutton("disable");
+            } else {
+                $("#_bt6,#_bt7,#_bt9").linkbutton("disable");
+                $(" #_bt5, #_bt8").linkbutton("enable");
+            }
+            $("#_bt4_1, #_bt4_2").linkbutton("enable");
+        }
+    })
+}
+
+var pkdData = [], pkdOrderNos;
+function queryPKDs(operation_id) {
+    var oph = dg3.datagrid('getSelected');
+    if( !operation_id) {
+        operation_id = oph.id;
+    }
+    $("#_opid_").val(operation_id);
+
+    pkdOrderNos = [];
+    tssJS.post('/tss/inv/queryOpi2', { opId: operation_id }, function(oph) {
+        oph.items.each(function(i, item) {
+            var sku = SKU_C[item.skucode];
+            item.sku_id = sku.id;
+            item.skuname = sku.name;
+            item.barcode = sku.barcode;
+
+            var parent_loc = LOC_C[item.loccode].parent_id ? LOC_I[LOC_C[item.loccode].parent_id].code : '';
+            item.parent_loc = (parent_loc ? parent_loc + ' / ' : '') + item.loccode
+
+            item.qty = Math.max(item.qty, 0);
+
+            if( item.orderitem ) {
+                var oItemId = item.orderitem.id;
+                item.orderno = itemMap[oItemId];
+                if( !item.orderno ) {
+                    item.orderno = item.orderitem.orderno;
+                    itemMap[oItemId] = item.orderno;
+                }
+
+                if( !pkdOrderNos.includes(item.orderno) ) {
+                    pkdOrderNos.push(item.orderno);
+                }
+            }
+
+            if( item.status != '已完成' ) {
+                item.opts = '<a href="javascript:void(0)" style="text-decoration: underline;">更换拣货库存</a>';
+            }
+        });
+
+        pkdData = oph.items;
+        dg_pkd.datagrid("loadData", oph.items);
+        $("#dg4btn").menubutton( { text: "快速筛选", iconCls: 'ion-ios-shuffle', menu: "#dg4btn_" } );
+
+        if(oph.items.length) {
+            var list = [];
+            FIELDS_4.each( function(i, f) {
+                list.push( {field: f.field, type: 'text'} );
+            } );
+            dg_pkd.datagrid('enableFilter', list);
+        }
+
+        if( oph.status == '已完成' ) {
+            $("#_bt6,#_bt7,#_bt9").linkbutton("enable");
+            $("#_bt5").linkbutton("disable");
+        } 
+        else if( oph.status != '新建' ) {
+            $("#_bt6,#_bt7,#_bt9").linkbutton("enable");
+            $("#_bt5").linkbutton("enable");
+        }
+        else {
+            $("#_bt6,#_bt7,#_bt9").linkbutton("disable");
+            $("#_bt5").linkbutton("enable");
+        }
+    })
+}
+
+function createWave(data, params) {
+    var order_num = data[0].order_num;
+    if( order_num == 0 ) {
+        $('#dlg1').dialog( {"modal": true} ).dialog('open');
+        return $.messager.show({ title: '提示', msg: '按当前过滤条件没有查到任何出库单数据'});
+    }
+
+    var msg = '共查询到【' + order_num + '】个待出库订单，其中<br>单品项订单【' + (data[0].single || 0) + '】个；<br>多品项订单【' + (data[0].multi || 0) + '】个';
+    return $.messager.confirm('是否生成波次', msg, function(confirmed){
+        if(confirmed) {
+            tssJS.post(SERVICE.wave_create, {whId: SELECTED_WH, order_ids: data[0].order_ids}, queryOrderWave);
+        } else {
+            closeDialog('fm2', 'dlg2');
+        }
+    }) 
+}
+
+function cancelWave() {
+    var row = getSelectedWave();
+    tssJS.post(SERVICE.wave_cancel + '/' + row.id, {}, function(result){
+        queryOrderWave();
+    })
+}
+
+function allocate() {
+    var oRow = getSelectedWave();
+    if( oRow.total == 0 ) {
+        return $.messager.alert('异常提示', '当前波次没有包含任何订单');
+    }
+
+    $.post( SERVICE.wave_allocate + '/' + oRow.id, {}, function(ophs) {
+        if(ophs[0].errorMsg) {
+            $.messager.alert('分配失败提示', ophs[0].errorMsg);
+        }
+        queryOrderWave();
+
+        var oph = ophs[0], rule = '系统默认波次规则';
+        oph.wave.rules.each( function(i, r) {
+            if( r.type == 'WAVE_RULE' ) {
+                rule = r.name;
+            }
+        } );
+        $.messager.show({ title: '波次生成提示', msg: '本次使用波次生成规则为【' +rule+ "】<br>可为不同仓库或货主设置不同的波次生成规则"});
+    })
+}
+
+function cancelAllocate() {
+    tssJS.confirm("确定要取消分配吗", "确认取消分配", function(reason) {
+        var row = getSelectedWave();
+        tssJS.post(SERVICE.wave_cancelAllocate + row.id, {}, function(oh) {
+            console.log(oh)
+            row["status"] = oh[0].status;
+
+            dg1.datagrid("refreshRow", dg1_selected);
+            dg1.datagrid("selectRow", dg1_selected); // 模拟 onSelect，触发onSelect事件以更新按钮状态
+        });
+    });
+}
+
+function addByOrder() {
+    $('#dlg3').dialog( {"modal": true} ).dialog('open');
+}
+
+function saveOrderToWave() {
+    var orderno = $('#orderno').val().trim().replace(/\ +/g, ',').replace(/\，+/g, ','), row = getSelectedWave();
+
+    tssJS.getJSON(ORDER.QUERY, {orderno: orderno}, function(data) {
+        if(data && data.length) {
+            var has_wave = false, _orderno = [];
+            for(var i = 0; i < data.length; i++) {
+                if(data[i].wave_id) {
+                    has_wave = true;
+                    _orderno.push(data[i].orderno)
+                }
+            }
+            if(has_wave) {
+                return $.messager.show({ title: '提示', msg: "订单【" + orderno + "】中【" +  _orderno.join(',') + "】，已经被其它波次抢先据有"});
+            }
+            var ids = $.map(data, function(item, i){
+                return item.id
+            });
+            closeDialog('fm3', 'dlg3');
+            tssJS.confirm("您确定要添加订单【" + orderno + "】到波次【" + row.code + "】吗", "确定添加", 
+                function() {
+                    updateOrderWave(ids, 'add');
+                },
+                function() { /* 取消 */ }
+            );
+        } else {
+            $.messager.show({ title: '提示', msg: '当前系统不存在【' + orderno +'】订单'});
+        }    
+    });
+}
+
+function removeOrderItem(index) {
+    var row = dg2.datagrid('getRows')[index];
+    if(row.order_id) {
+        tssJS.confirm("您确定要把订单【" + row.orderno + "】从波次中删除吗", "确定删除", 
+            function() {
+                updateOrderWave(row.order_id, 'delete');
+            },
+            function() { /* 取消 */ }
+        );
+    }   
+}
+
+function updateOrderWave( id, type ) {
+    var row = getSelectedWave();
+    JQ.post(SERVICE.wave_order_change, {waveId: row.id, oIds: id + '', type: type}, function(result) {
+        queryOrderWave();
+    })
+}
+
+function assign() {
+    chooseWorker( $("#_worder_").val() );
+}
+
+function saveWorker() {
+    var row_1 = getSelectedWave(), 
+        row_3 = dg3.datagrid("getRows")[dg3_selected],
+        rows = dg_pkd.datagrid("getSelections"), id_list = [];
+
+    if(rows.length == 0) {
+        rows = dg_pkd.datagrid("getRows");
+    }
+    if(rows.length == 0) {
+        return $.messager.show({ title: '提示', msg: '请选择拣货明细'});
+    }
+
+    rows.each(function(i,item) {
+        id_list.push(item.id);
+    })
+
+    var params_ = {}; 
+    params_.pkhId = row_3.id;
+    params_.pkdIds = id_list.join(',');
+    params_.worker = getChoosedWorkers();
+
+    if( params_.worker === $("#_worder_").val() ) return;
+
+    JQ.post(SERVICE.wave_assign, params_, function(res) {
+        $.messager.show({ title: '提示', msg: '指派完成'});
+
+        queryOrderWave();
+    })
+}
+
+
+var globalV = {};
+function printPkds(combined) {
+    globalV.combined = combined;
+    globalV.data = dg_pkd.datagrid("getSelections");
+    if( globalV.data.length == 0 ) { 
+        globalV.data = dg_pkd.datagrid("getRows");
+    }
+
+    globalV.pkhno = CURRENT_OP_NO;
+    globalV.worker = userCode2userName( dg3.datagrid("getRows")[dg3_selected].worker );
+    tssJS.openIframePanel("panel-1", " - 拣货指导单打印", 800, 540, "wave_pkd_print.html");
+}
+
+function getPKHOrders() {
+    var pkds = dg_pkd.datagrid("getRows");
+    var ordernos = []
+    
+    pkds.each( function(i, item) {
+        var orderno = item.orderitem.orderno;
+        if( !ordernos.contains(orderno) ) {
+            ordernos.push(orderno);
+        }
+    } )
+
+    return ordernos;
+}
+
+function filterPKDs(type) {
+    getOpiAndSplit(type);
+}
+
+function getOpiAndSplit(type) {
+    var rows_2 = dg2.datagrid('getRows'), rows = pkdData, data_list = []; // dg_pkd.datagrid("getRows")
+
+    var map = {};
+    rows.each(function(i,item) {
+        var key, sku_list = [];
+        if([1, 2].includes(type)) { key = item.orderitem.id }
+        if([3, 4].includes(type)) { key = item.orderno }
+        if(type == 5) { key = SKU_M[item.sku_id].category }
+        if(!map[key]) {
+            map[key] = [];
+            map[key].push(item);
+        } else {
+            map[key].push(item);
+        }
+    })
+
+    var sku_map = {}, max_qty = 0;
+    if([3, 4, 5].includes(type)) {
+        for(key in map) {
+            var value = map[key];
+            var qty = eval(value.map(e => e.qty).join('+'));
+            var _key = type == 5 ? key : (arrayList(value,'skucode').join(',') + (type == 3 ? (';' + qty) : ''));
+            if(!sku_map[_key]) {
+                sku_map[_key] = [];
+                sku_map[_key].data = [];
+                sku_map[_key].data = (sku_map[_key].data).concat(value);
+                sku_map[_key].qty = qty;
+                sku_map[_key].num = 1;
+            } else {
+                (sku_map[_key].data) = (sku_map[_key].data).concat(value);
+                sku_map[_key].qty = qty;
+                sku_map[_key].num++;
+            }
+            if(max_qty < qty && (sku_map[_key].num > 1 || type == 5)) { max_qty = qty; } 
+        }
+    }
+    // console.log(rows, map, sku_map)
+
+    if([1, 2].includes(type)) {
+        rows_2.each(function(i,item) {
+            if(item.skus == 1 && map[item.item_id] && map[item.item_id].length) {
+                if(type == 1) {
+                    data_list = data_list.concat(map[item.item_id]);
+                } 
+                if (type == 2 && SKU_M[item.sku_id].category != '赠品') {
+                    data_list = data_list.concat(map[item.item_id]);
+                }
+            }
+        })
+        var nums = data_list.length;
+        if( nums == 0 ) {
+            dg_pkd.datagrid("loadData", []);
+            return
+        } 
+        dg_pkd.datagrid("loadData", data_list);
+    } 
+    if([3, 4, 5].includes(type)) {
+        var more_num = false;
+        for(key in sku_map) {
+            var _sku = sku_map[key];
+            if(max_qty == _sku.qty) {
+                data_list = _sku.data;
+            } 
+            if(_sku.num > 1) {
+                more_num = true;
+            }
+        }
+        var nums = data_list.length;
+        if( nums == 0 || ([3, 4].includes(type) && !more_num)) {
+            dg_pkd.datagrid("loadData", []);
+            return
+        } 
+        dg_pkd.datagrid("loadData", data_list);
+    }
+}
+
+function arrayList(data, key) {
+    var list = [];
+    data.each(function(i,item) {
+        if(!list.includes(item[key])) {
+            list.push(item[key]);
+        }
+    })
+    return list;
+}
+
+function createNewPkh() {
+    var row_3 = dg3.datagrid("getRows")[dg3_selected],
+        rows = dg_pkd.datagrid("getSelections"), id_list = [], orderno_list = [];
+
+    if(rows.length == 0) {
+        return $.messager.show({ title: '提示', msg: '请选择拣货明细'});
+    }
+    rows.each(function(i,item) {
+        id_list.push(item.id);
+        if(!orderno_list.includes(item.orderno)) {
+            orderno_list.push(item.orderno)
+        }
+    })
+
+    var params_ = {}; 
+    params_.opId = row_3.id;
+    // params_.opItemIds = id_list.join(',');
+    params_.ordernos = orderno_list.join(',');
+
+    $.messager.confirm("操作确认", "当前拣货单共" + pkdOrderNos.length + "个订单，其中" + orderno_list.length + "个订单将被拆分到新拣货单，是否拆分？", function (flag) {
+        flag && JQ.post(SERVICE.wave_split_pkh, params_, function(res) {
+            $.messager.show({ title: '提示', msg: '拆分完成'});
+
+            queryOrderWave();
+        })
+    });
+}
+
+function printMD() {
+    var orders = getPKHOrders();
+    var orderItems = {};
+    
+    var pkds = dg_pkd.datagrid("getRows");
+    pkds.each( function(i, item) {
+        var oItemId = item.orderitem.id;
+        var skuId = item.sku_id;
+        var orderno = itemMap[oItemId];
+        if(!orderItems[orderno]){
+            orderItems[orderno] = {};
+        }
+        if(!orderItems[orderno][skuId]){
+            orderItems[orderno][skuId] = {};
+            orderItems[orderno][skuId]["qty"] = 0;
+        }
+        orderItems[orderno][skuId]["name"] = item.skuname;
+        orderItems[orderno][skuId]["skucode"] = item.skucode;
+        orderItems[orderno][skuId]["barcode"] = item.barcode;
+        orderItems[orderno][skuId]["qty"] += item.qty;
+    });
+    globalV.data = orders;
+    globalV.orderItems = orderItems;
+
+    tssJS.openIframePanel("panel-2", " - 发货单打印", 800, 540, "wave_md_print.html");
+}
+
+function printDZMD() {
+    window.parent.globalPrintV = {};
+    window.parent.globalPrintV.data = getPKHOrders();
+    var timestamp = new Date().getTime();
+    addTab('url', '电子面单', '/tss/pages/oms/order_manage.html?tag=jump&timestamp=' + timestamp);
+}
+
+function checkByPKH() {
+    var wave_id = getSelectedWave().id;
+    var opId = $("#_opid_").val();
+
+    $.messager.confirm('验货确认', '是否确认【验货完成】当前拣货单', function(confirmed){
+        if(confirmed) {
+            JQ.post( SERVICE.wave_check + '/' + opId, {}, function() {
+                queryOrderWave();
+                $.messager.show( { title: '验货完成提示', msg: '拣货单验货完成'} );
+            })
+        }
+    }) 
+}
+
+function gotoCheck() {
+    addTab('url', '验货（封箱）', '/tss/pages/wms/order_checkout.html');
+}
+
+function getSelectedWave(){
+    return dg1.datagrid("getRows")[dg1_selected] || getSelectedRow("t1");
+}
+
+</script>
+
+</html>

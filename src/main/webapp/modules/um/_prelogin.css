@@ -1,0 +1,40 @@
+body { background-color: rgba(0,0,0,.65); background: url(../../images/login_bg.jpg) no-repeat center; background-size : contain; }
+h1, h2, h3 { margin: 0; font: inherit; }
+
+.modal-wrapper {
+  box-sizing: border-box;
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  z-index: 203;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background-color: rgba(0,0,0,.65);
+}
+
+.modal {
+  position: relative;
+  z-index: 1;
+  width: 440px; height: 0px;
+  margin-right: auto;
+  margin-left: auto;
+  outline: 0;
+  border-radius: 2px;
+  box-shadow: 0 5px 20px 0 rgba(0,34,77,.5);   
+  background: #fff;
+  transition: height .8s ease;  
+}
+div.header { padding: 24px 0 28px; background: #049cdb; }
+.sysTitle { height: 40px; font-size: 24px; color: #fff; text-align: center; }
+.subTitle { margin-top:4px; font-size: 14px; color: #fff; text-align: center; }
+
+.modal .bts { padding-left: 150px; padding-top: 10px; }
+.modal h2 { font-size: 120%; }

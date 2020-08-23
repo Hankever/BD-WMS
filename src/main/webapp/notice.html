@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>通知公告</title>
+<link rel="shortcut icon" href="images/tss.ico">
+<link rel="Bookmark" href="images/tss.ico">
+
+<link href="tools/tssJS/css/boubei.css" rel="stylesheet">
+
+<script src="tools/tssJS/tssJS.all.js"></script>
+<script src="tools/portlet.js"></script>
+
+<style>
+
+html, body { height: 100%; }
+
+.portlet { padding:10px; font-size:14px; line-height:143%;}
+.portlet .title{ font-size: 12px; text-align:left; }
+.portlet .label{ padding-left:3px; font-size:14px; font-weight:bold;}
+.portlet .attach{ padding-left:3px; width:100%; background-color:#eee;
+    border-top:1px solid #566DB1; border-bottom:1px solid #566DB1; }
+
+.portlet .attach a { padding: 0 12px;  }
+.portlet .content { width:97%; padding-left:10px; padding-right:10px; }
+
+</style>
+
+<script type="text/javascript">
+
+$(function(){
+    var articleId =  $.Query.get("articleId") || 1;
+
+    var request = new $.HttpRequest();
+    request.url = "/tss/auth/article/xml/" + articleId ;
+    request.method = "GET";
+    request.onresult = function(){
+        var articleNode = this.getNodeValue("ArticleInfo");
+        var id = $("Article>id", articleNode).text();
+        var title = $("Article>title", articleNode).text();
+        var content = $("Article>content", articleNode).text();
+        var issueDate = $("Article>issueDate", articleNode).text();
+        var author = $("Article>author", articleNode).text();
+        var attachments = $("Article>Attachments>Attachment", articleNode);
+
+        // 附件
+        var extendStr = "";
+        if( attachments.length ) {
+            var str = [];
+            attachments.each(function(i, attach){
+                var name = $("name", attach).text();
+                var url = $("url", attach).text();
+                url = url.substring( url.indexOf('/tss') ); // 转成相对地址
+                str[str.length] = "<a href='" + url + "'>" + (i+1) + ". " + name + "</a> ";
+            });
+            extendStr += "<div class='attach'>相关附件: " + str.join(" | ") + "</div>";
+        }
+
+        // 文章内容
+        var html = [];
+        html[html.length] = "<div>";
+        html[html.length] = "<div>";
+        html[html.length] = "   <h6> 发布时间：" + issueDate + "， 出处："+ author + "</h6><hr><br>";
+        html[html.length] = "   <div class='content'>" + (content||"") + "</div><br>";
+        html[html.length] = "</div>";
+        html[html.length] = extendStr;
+        html[html.length] = "</div>";
+
+        $("div.portlet").html( html.join("") );
+
+        setTimeout( fixPic, 100);
+    }
+    request.onexception = function(){
+        alert("内容错误: [" + this.getResponseText() + "]");
+    }
+    request.send();
+
+    // 调整大图片尺寸
+    var fixPic = function(){
+        var imgs = $("div.portlet img");
+        imgs.each(function(i, img){
+            if( img.width > 760 ){
+                img.width = "760";
+                img.title = "点击查看大图";
+                img.style.cursor = "pointer";
+                img.onclick = function(){
+                    window.open(img.src);
+                }
+            }
+        });
+    }
+});
+
+tssJS && tssJS(function() {
+    var scriptNode = tssJS.createElement("script");
+    scriptNode.src = "http://s95.cnzz.com/z_stat.php?id=1257821228&web_id=1257821228";
+    scriptNode.async = false;
+    tssJS('head').appendChild(scriptNode);
+});
+
+</script>
+
+</head>
+
+<body>
+ 
+<div class="portlet">
+   内容加载中,请稍候...
+</div>
+
+</body>
+</html>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sqls>
+
+	<sql code="warehouseList" name="仓库列表，调拨时需要看到其它仓库">
+		<![CDATA[
+		select * from wms_warehouse where domain = '${DOMAIN}'
+		]]>
+	</sql>
+
+	<sql code="skuList" name="获取SKU列表">
+		<![CDATA[
+		select id, name, code, barcode, barcode2, price0, price, price2, shelflife, uom, brand, guige, category, owner_id, udf1
+		from wms_sku
+		<#if ids??> 
+			where id in (${ids})
+		<#elseif codes??> 
+			where code in (${codes})
+		<#else>
+			where 1=1
+			<#if status??> and status in (${status}) </#if>
+			<#if owner_id??> and (owner_id = ${owner_id} or owner_id is null) </#if>
+			<#if code??> and code like '%${code}%' </#if>
+			<#if name??> and name like '%${name}%' </#if>
+			<#if barcode??> and '${barcode}' in (barcode, barcode2) </#if>
+			<#if category??> and category like '%${category}%' </#if>
+			<#if brand??> and brand like '%${brand}%' </#if>
+			<#if udf1??> and udf1 like '%${udf1}%' </#if>
+		</#if>
+			and domain = '${DOMAIN}'
+		order by id desc
+		]]>
+	</sql>
+	
+	<sql code="domainBusinessConfig" name="获取域级配置，无则取演示域的配置">
+		<![CDATA[
+		select id, udf1 from x_domain where domain in ('${DOMAIN}', 'G36') order by id desc
+		]]>
+	</sql>
+	
+	<sql code="recordField" name="获取体验域的自定义字段配置作为其它域的默认配置">
+		<![CDATA[
+		select * from dm_record_field where domain = 'G36' <#if tbl??> and tbl = '${tbl}' </#if> order by id
+		]]>
+	</sql>
+	
+	<sql code="skux" name="获取SKU的组合信息">
+		<![CDATA[
+		 select t.sku_id as skuId, t.weight, sku.name skuName, sku.barcode, sku.code skuCode, sku.guige, sku.uom 
+		 	from wms_skux t, wms_sku sku 
+		 	where t.sku_id = sku.id and t.parent_id = ${skuId}
+		]]>
+	</sql>
+	
+	<sql code="codeScan" name="手持端智能扫码">
+		<![CDATA[
+		SELECT 'sku' as type, status as status, null as x, null as y, null worker FROM wms_sku where '${code}' in (barcode, barcode2) and domain = '${DOMAIN}' 
+		union all
+		SELECT 'loc', status, null, null, null  from wms_location where code = '${code}' and warehouse_id = ${whId} and domain = '${DOMAIN}' 
+		union all
+		select 'asn', status, qty, skus, worker from wms_asn where asnno = '${code}' and warehouse_id = ${whId} and domain = '${DOMAIN}'
+		union all
+		select 'order', status, qty, skus, worker from wms_order where orderno = '${code}' and warehouse_id = ${whId} and domain = '${DOMAIN}'
+		union all
+		select 'op', status, null, null, worker from wms_operation where opno = '${code}' and warehouse_id = ${whId} and domain = '${DOMAIN}'
+		union all
+		select 'box', null, null, null, null from wms_box b, wms_order o where b.order_id = o.id and b.boxno = '${code}' and o.warehouse_id = ${whId} and o.domain = '${DOMAIN}'
+		]]>
+	</sql>
+	
+</sqls>

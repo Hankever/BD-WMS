@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>库存盘点</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.data.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="wms.js"></script>
+<style type="text/css">
+    #queryContainerForm input{
+        width:95px;
+    }
+</style>
+
+<script type="text/javascript">
+
+SELECTED_WH = tssJS.Query.get("wh_id") || SELECTED_WH;
+var justQuery = tssJS.Query.get("justQuery") == 'true';
+
+var FIELDS_1, dg, dg3, containLocked;
+
+$(function(){
+    initContext(drawTable)
+});
+
+function drawTable(){
+    var functionList = [prepareOwners, prepareSKUs, prepareLOCs];
+    var initFunc = functionList.length;
+    functionList.each( (i, func) => {
+        func(function(){
+            initFunc--
+            !initFunc && init()
+        })
+    })
+}
+function init(){
+    
+    // 货主、库位的下拉列表需要 prepareOwners、prepareLOCs 执行后，所以FIELDS_1在此申明
+    FIELDS_1 = [
+        {field: "id", title: "id", hidden:true},
+        {field: "skucode", title: "货品编码", width:'6%', styler: linkStyler},
+        {field: "skuname", title: "货品名称", width:'10%'},
+        {field: "barcode", title: "条码", width:'7%'},
+        {field: "category", title: "大类", width:'5%'},
+        {field: "guige", title: "规格", width:'6%'},
+        {field: "uom", title: "单位", width:'3%'},
+        {field: "owner_id", title: "货主", editor: {type: 'combobox', options: {data:OWNER_D, textField:'name', valueField:'id', panelHeight:'100px'}}, formatter:ownerid2name, styler: cursorHand, hidden: hide_ow
+        },
+        {field: "brand", title: "品牌", width:'5%'},
+        {field: "location_code", title: "库位编码", hidden:true},
+        {field: "location_id", title: "库位", editor: {type:'combobox', options: {data:LOC_D, textField:'code', valueField:'id'}},
+            formatter:locid2name3, styler: frozenStyler, width:'8%'
+        },
+        {field: "invstatus", editor: "textbox"},
+        {field: "createdate", editor: "datebox"},
+        {field: "shelflife", title: "保质期", width:'4%'},
+        {field: "expiredate", editor: "datebox"},
+        {field: "lotatt01", editor: "textbox"},
+        
+        {field: "lotatt03", editor: "textbox"},
+        {field: "lotatt04", editor: "textbox"},
+
+        {field: "price", title: "单价(元)", hidden: hide_money, align: "right", width:'4%'},
+        {field: "money", title: "货值(元)", hidden: hide_money, align: "right", width:'5%'},
+        {field: "lotatt02", editor: {type:'numberbox'}},
+        {field: "qty_uom", title: qty_uom_label, width:'4%', hidden: !show_qty_uom},
+        {field: "qty_locked", title: "冻结数量"},
+        {field: "qty", title: "总数量", styler: cursorHand},
+        {field: "qty_actual", title: "实际数量", editor: {type: "numberbox", options: qty_precision}, styler: cursorHand, hidden: true},
+        {field: "opts",title: "操作", width:'5%', styler: linkStyler, notexport: true, hidden: true}
+    ];
+    fixLotatts(FIELDS_1);
+    initColumn(FIELDS_1);
+    fixFields(FIELDS_1, "wms_sku");
+
+    tssJS.get('/tss/xdata/json/wms_sku?fields=distinct category', {'category': 'is not null'}, function(r) {
+        $('#category, #_category').combobox({
+            data: r,
+            textField:'category',
+            valueField:'category',
+            panelHeight:'120px'
+        })
+    } );
+
+    tssJS.get('/tss/xdata/json/wms_sku?fields=distinct brand', {'brand': 'is not null'}, function(r) {
+        $('#brand, #_brand').combobox({
+            data: r,
+            textField:'brand',
+            valueField:'brand',
+            panelHeight:'120px'
+        })
+    } );
+
+    $('#locationId, #ownerId, #_owner_id').combobox({
+        textField:'name',
+        valueField:'id',
+        panelHeight:'150px'
+    })
+    $('#locationId').combobox({
+        textField:'code',
+        data:LOC_D,
+        panelHeight:'250px'
+    })
+    $('#ownerId, #_owner_id').combobox({
+        data:OWNER_D
+    })
+    $('#inv_type').combobox({
+        data: [{value: 0, text: '暗盘'}, {value: 1, text: '明盘'}],
+        panelHeight: 'auto',
+        editable: false
+    });
+    $('#inv_rounds').combobox({
+        data: [ {value: 1, text: '单轮盘点'}, {value: 2, text: '初盘+复盘'}, {value: 3, text: '初盘+复盘+终盘'} ],
+        panelHeight: 'auto',
+        editable: false
+    });
+    $('#inv_rounds').combobox('setValue', 1);
+
+    queryInv(true);
+    querySKUs();
+}
+
+function getParams() {
+    var params = getFormData("queryContainerForm");
+    tssJS.each(params, function(key, val){
+        if(!val) delete params[key];
+    })
+
+    params.warehouseId = SELECTED_WH;
+    if(!$("input[name='showZero']").is(':checked')) {
+        params.qtyfrom = 0;
+    }
+
+    containLocked = $("input[name='containLocked']").is(':checked');
+    if( containLocked ) {
+        params.qtyLocked = 0;
+    }
+
+    params.warehouseId = SELECTED_WH;
+    
+    var owner_id = tssJS.Query.get("owner_id"),
+        sku_id   = tssJS.Query.get("sku_id");
+
+    if( owner_id ) params.ownerId = owner_id;
+    if( sku_id )   params.skuId = sku_id;
+
+    if( params.locationId ) {
+        if( !tssJS.Data.isInt(params.locationId) ) {
+            params.loccode = params.locationId; // 手动输入
+            delete params["locationId"];
+        }
+    }
+    
+    return params;
+}
+var editIndex = undefined;
+function queryInv(firstLoad) {
+
+    var toolbar; 
+    if(justQuery) {
+        toolbar = [ 
+            '-', { text: '导出数据', iconCls: 'ion ion-md-cloud-download', handler: function(){ _export(); }, id:'btn6'}
+        ];
+    }
+    else if(!inv_check_approve) {
+        toolbar = [ 
+            '-', { text: '打印盘点单', iconCls: 'ion ion-ios-print', handler: _print},
+            '-', { text: '录入盘点结果', iconCls: 'ion ion-md-create', handler: beginCheckInv, disabled: true, id:'btn2'}, 
+            '-', { text: '自动填充', iconCls: 'ion ion-ios-keypad', handler: function(){ setQtyActual();}, disabled: true, id:'btn3'},
+            '-', { text: '全部清零', iconCls: 'ion ion-ios-keypad', handler: function(){ setQtyActual(true);}, disabled: true, id:'btn7'},
+            '-', { text: '新增库存记录', iconCls: 'ion ion-ios-add-circle-outline', handler: addItems, disabled: true, id:'btn4'},
+            '-', { text: '修改批次', iconCls: 'ion ion-md-create', handler: beginModifyLot, disabled: true, id:'btn8'}, 
+            '-', { text: '保存盘点结果', iconCls: 'ion ion-ios-save', handler: saveData, disabled: true, id:'btn5'},
+            '-', { text: '导出数据', iconCls: 'ion ion-md-cloud-download', handler: function(){ _export(); }, id:'btn6'}
+        ];
+    }
+    else{
+        toolbar = [ 
+            '-', { text: '导出数据', iconCls: 'ion ion-md-cloud-download', handler: function(){ _export(); }, id:'btn6'},
+            '-', { text: '创建盘点单', iconCls: 'ion ion-md-create', handler: createInvCheck},
+            '-', { text: '进入盘点管理', iconCls: 'ion ion-ios-shuffle', handler: gotoInvCheck},
+            '-', { text: '修改批次', iconCls: 'ion ion-md-create', handler: beginModifyLot, disabled: true, id:'btn8'}, 
+            '-', { text: '保存修改', iconCls: 'ion ion-ios-save', handler: saveData, disabled: true, id:'btn5'}
+        ];
+    }
+
+    dg = $('#t1').datagrid({
+        url: SERVICE.inv_query,
+        method: 'POST',
+        queryParams: getParams(),
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        remoteSort : false,
+        showFooter:true, 
+        pagination: true,
+        pageList:[100, 200, 500, 1000],
+        pageSize: 100,
+        toolbar: toolbar,
+        onClickCell: function(index, field, value){
+            if(field == 'opts' && value) {
+                if( value.indexOf('删除') >= 0 ) {
+                    removeItem(index);
+                }
+                if( value.indexOf('复制') >= 0 ) {
+                    copyItem(index);
+                }
+            } 
+            else{
+                var row = dg.datagrid('getRows')[index];
+                
+                var editable = (modifyLotTag && LOTATT_CODES.contains(field) ) || ['qty_actual'].contains(field)  || !row.id;
+                if (endEditing() && editable ){
+                    $(this).datagrid('selectRow', index).datagrid('editCell', {index:index, field:field});
+                    editIndex = index;
+                }
+            }
+        },
+        onDblClickCell: function(index, field, value){
+            if(field == 'skucode') {
+                queryInvHistory(SELECTED_WH, null, SKU_C[value].id, null);
+            }
+            if(field == 'location_id') {
+                queryInvHistory(SELECTED_WH, null, null, value);
+            }
+            if(field == 'qty') {
+                var row = dg.datagrid('getRows')[index];
+                queryInvHistory(SELECTED_WH, row.id, null, null);
+            }
+        },
+        onDblClickRow: function(index, row) {
+            // queryInvHistory(SELECTED_WH, row.id, null, null);
+        },
+        onRowContextMenu: function(e, index, row) {
+            e.preventDefault(); // 阻止浏览器捕获右键事件
+            $(this).datagrid("clearSelections");  //取消所有选中项
+            $(this).datagrid("selectRow", index); //根据索引选中该行
+            $('#menu').menu('show', { left: e.pageX, top: e.pageY, itemHeight: 33 });
+        },
+        onAfterEdit: function(index,field, changes) {
+            var row = dg.datagrid('getRows')[index];
+            var createdate = row.createdate, expiredate = row.expiredate,  shelflife = row.shelflife;
+            if( createdate && shelflife ) {
+                createdate = toDate(createdate);
+                shelflife = parseFloat(shelflife);
+                expiredate = subDateS( createdate, shelflife*-1 );
+
+                row.expiredate = expiredate;
+                dg.datagrid('refreshRow', index);
+            }
+        },
+        columns: [FIELDS_1],
+        loadFilter: function(data){
+            var _qty = 0, _qty_uom = 0, _qty_locked = 0, _money = 0;
+            data.rows.each((i, item)=>{
+                if(item.sku){
+                    item.skuname = item.sku.name;
+                    item.sku_id = item.sku.id;
+                    item.skucode = item.sku.code;
+                    item.barcode = item.sku.barcode;
+                    item.brand = item.sku.brand;
+                    item.sku_name = item.sku.name;
+                    item.guige = item.sku.guige;
+                    item.uom = item.sku.uom;
+                    item.shelflife = item.sku.shelflife;
+                    item.category = item.sku.category;
+                    item.price = item.sku.price2 || item.sku.price || item.sku.price0 || 0;
+                    item.money = round(item.qty * item.price, 2);
+                    item.price = item.price || '-';
+                }
+                calExpireDate(item);
+
+                if(item.location){
+                    item.location_id = item.location.id;
+                    item.location_code = item.location.code;
+                    item.frozen = item.location.frozen;
+                }
+                if(item.owner){
+                    item.owner_id = item.owner.id;
+                    item.owner_name = item.owner.name;
+                }
+                if(item.wh){
+                    item.wh_id = item.wh.id;
+                    item.wh_name = item.wh.name;
+                }
+                item.opts = '<a href="javascript:void(0)">复制</a>';
+
+                _qty += item.qty;
+                _qty_uom += item.qty_uom;
+                _qty_locked += item.qty_locked;
+                _money += item.money;
+                item.money = item.money ? tssJS.Data.number_format(item.money, 2) : '-';
+            })
+
+            data.footer = [ 
+                {
+                    "skuname": "本页合计", 
+                    "qty": round(_qty, 2), 
+                    "qty_uom": round(_qty_uom, 2), 
+                    "qty_locked": round(_qty_locked,2), 
+                    "money": round(_money,2)
+                } 
+            ];
+            return data;
+        }
+    });
+
+    removeEdit(firstLoad);
+
+    dg.datagrid('gotoCell', {
+        index: 0,
+        field: 'qty_actual'
+    });
+
+    if( !containLocked ) {
+        dg.datagrid('hideColumn', 'qty_locked');
+    } else {
+        dg.datagrid('showColumn', 'qty_locked');
+    }
+}
+
+// 释放冻结库存
+var dg4;
+function viewLockedInfo() {
+    $('#dlg3').dialog( {"modal": true} ).dialog('open');
+
+    var row = dg.datagrid('getSelected');
+
+    dg4 = $('#t4').datagrid({
+        url: SERVICE.inv_locked_info, 
+        queryParams: {invId: row.id},
+        method: 'GET',
+        fit: true,
+        pagination: false,
+        singleSelect: true,
+        columns: [
+            [
+                {field: "订单号", title: "订单号", width: "13%", align: "center"},
+                {field: "下单日期", title: "下单日期", width: "12%", align: "center"},
+                {field: "订单状态", title: "订单状态", width: "10%", align: "center"},
+                {field: "锁定时间", title: "锁定时间", width: "14%", align: "center"},
+                {field: "锁定人", title: "锁定人", width: "10%", align: "center"},
+                {field: "工单号", title: "工单号", width: "13%", align: "center"},
+                {field: "锁定量", title: "锁定量", width: "8%", align: "center"},
+                {field: "opts",title: "操作", width: '8%', styler: hrefStyler, align: "center"}
+            ]
+        ],
+        loadFilter: function(data){
+            data.each((i, item) => {
+                item.opts = '<a href="javascript:void(0)">释 放</a>';
+            })
+
+            return data;
+        },
+        onClickCell: function(index, field, value) {
+            if(field == 'opts') {
+                var row = dg4.datagrid("getRows")[index];
+                unLock(row.id, row["锁定量"], index+1);
+            }           
+        }
+    });
+}
+
+function unLock(invId, qty_locked, index) {
+    if( !invId ) {
+        var row = dg.datagrid("getSelected");
+        invId = row.id;
+        qty_locked  = row.qty_locked;
+    }
+
+    qty_locked && $.messager.confirm('操作确认','您确定要释放【' +qty_locked+ '】个此库存的锁定量吗？建议优先通过取消相关单据来释放锁定量', function(confirmed) {
+        confirmed &&  tssJS.post(SERVICE.inv_unlock + invId, { qty_unlock: qty_locked }, function(data){
+            queryInv();
+            index && dg4.datagrid('deleteRow', index-1);
+        })
+    })
+}
+
+function showInvHistory() {
+    var row = dg.datagrid('getSelected');
+    queryInvHistory(SELECTED_WH, row.id, null, null);
+}
+
+function copyItem(index){
+    var row = dg.datagrid('getRows')[index];
+    var copy_row = cloneObj(row);
+    copy_row.id = null;
+    copy_row.opts = '<a href="javascript:void(0)">删除</a>';
+
+    dg.datagrid("insertRow", {index: index + 1, row: copy_row});
+}
+
+function removeEdit(firstLoad) {
+    firstLoad && FIELDS_1.each(function(i, item){
+        if(item.editor) {
+            dg.datagrid('removeEditor', item.field)
+        }
+    })
+    $('#btn2, #btn8').linkbutton("enable")
+    $('#btn3,#btn7,#btn4,#btn5').linkbutton("disable")
+}
+
+function addEdit() {
+    FIELDS_1.each(function(i, item){
+        if(item.editor) {
+            dg.datagrid('addEditor', {field: item.field, editor: item.editor});
+        }
+    })
+    dg.datagrid('gotoCell', {
+        index: 0,
+        field: 'qty_actual'
+    });
+
+    $('#btn2').linkbutton("disable")
+    $('#btn3,#btn7,#btn4,#btn5').linkbutton("enable")
+}
+
+function endEditing(){
+    if (editIndex == undefined){return true}
+    if (dg.datagrid('validateRow', editIndex)){
+        dg.datagrid('endEdit', editIndex);
+        editIndex = undefined;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function beginCheckInv(){
+    if( inv_check_approve ) {
+        dg.datagrid('hideColumn', 'qty_actual');
+        dg.datagrid('hideColumn', 'opts');
+    } else {
+        dg.datagrid('showColumn', 'qty_actual');
+        dg.datagrid('showColumn', 'opts');
+    }
+    
+    addEdit();
+    modifyLotTag = false;
+}
+
+var modifyLotTag = false;
+function beginModifyLot() {
+    $('#btn5').linkbutton('enable');
+    $('#btn8').linkbutton("disable")
+
+    FIELDS_1.each(function(i, item){
+        if( item.editor && LOTATT_CODES.contains(item.field) ) {
+            dg.datagrid('addEditor', {field: item.field, editor: item.editor});
+        }
+    })
+    
+    dg.datagrid('gotoCell', {
+        index: 0,
+        field: 'lotatt02'
+    });
+    modifyLotTag = true;
+}
+
+function setQtyActual(clearInv) {
+    var rows = dg.datagrid('getRows');
+    rows.each(function(i,item){
+        dg.datagrid('updateRow', {
+            index: i,
+            row: {
+                qty_actual: item.qty && !clearInv ? item.qty - 0 : 0,
+            }
+        });
+    })
+}
+
+function addItems() {
+    $('#dlg2').dialog( {"modal": true} ).dialog('open');
+}
+
+function removeItem(index) {
+    var row = dg.datagrid('getRows')[index];
+    if( !row.id ) {
+        dg.datagrid('deleteRow', index);
+    }    
+}
+
+function saveData() {    
+    for(var i = 0; i < 1000; i++) {
+        $('#t1').datagrid("endEdit", i);
+    }
+    removeEdit();
+    
+    var if_save = true;
+    var save_items = [];
+
+    var changed_rows = $('#t1').datagrid('getChanges')
+    changed_rows.each(function(i, item){
+        var the_item = {};
+        if(item.id) {
+            the_item['inv_id'] = item.id;
+            the_item['qty_actual'] = item.qty_actual;
+            LOTATT_CODES.each(function(i, lot) {
+                the_item[lot] = item[lot];
+            });
+        }
+        else {
+            if( hide_ow ) {
+                item.owner_id = OWNER_D[0].id;
+            }
+            var need_obj = {owner_id:'货主', location_id:'库位', skucode:'货品'};
+            for(var key in need_obj) {
+                if( !item[key] ) {
+                    if_save = false;
+                    $.messager.alert('提示','新增库存需填写：' + need_obj[key])
+                    break;
+                }
+                the_item[key] = item[key]
+            }
+            
+            var lots = ['qty_actual','createdate','expiredate','invstatus','lotatt01','lotatt02','lotatt03','lotatt04'];
+            lots.each(function(i, lot){
+                the_item[lot] = item[lot]
+            })
+        }
+        save_items.push(the_item)
+    })
+
+    if(if_save){
+        $.messager.confirm('确认调整库存', '您确定要对库存进行调整吗?', function(flag){
+            flag && JQ.post(SERVICE.inv_adjust, {whId: SELECTED_WH, items: JSON.stringify(save_items)}, function(result) {
+                dg.datagrid('reload');
+                dg.datagrid('hideColumn', 'qty_actual');
+                dg.datagrid('hideColumn', 'opts');
+                $.messager.show({ title: '提示', msg: '库存调整成功'});
+            }) 
+        })
+    }
+    else{
+        addEdit();
+    }
+}
+
+/* 导出数据 */
+function _export() {
+    var data = [];
+    $.each( $('#t1').datagrid("getRows"), function(index, row) {
+        var obj = cloneObj(row);
+        obj.owner_id = OWNER_I[row.owner_id].name;
+        obj.location_id = row.location_code;
+        delete obj["opts"];
+        data.push(obj);
+    });
+
+    if(data.length == 0) {
+        $.messager.show({ title: '提示', msg: '没有任何数据可以导出，请先查询' });
+    }
+
+    var export_fields = [];
+    FIELDS_1.each(function(i, item) {
+        if( !item.notexport && !item.hidden ) {
+            export_fields.push(item)
+        }
+    })
+    tssJS.Data.data2CSV("库存明细", export_fields, data);
+}
+
+function createInvCheck() {
+    $('#dlg4').dialog( {"modal": true} ).dialog('open');
+}
+
+function _createInvCheck() {
+    var _params = getParams(), type = $('#inv_type').val() || 0, rounds = $('#inv_rounds').val() * 1;
+    _params.page = 1;
+    _params.rows = 99999;
+    tssJS.post(SERVICE.inv_query, _params, function(data) {
+        var dg_rows = data.rows, save_items = [], _owner_id, if_error = false;
+
+        for(var i = 0; i < dg_rows.length; i++) {
+            var item = dg_rows[i]; 
+            _owner_id = dg_rows[0].owner.id;
+
+            if(item.owner.id != _owner_id) {
+                if_error = true;
+                $.messager.alert('提示','请选择同一货主，进行操作');
+                break;
+            }
+            if(item.location.holding == 1) {
+                if_error = true;
+                $.messager.alert('提示','创建盘点单的库存信息中，存在已锁定库位的信息，请核实');
+                break;
+            }
+
+            save_items.push({inv_id: item.id})
+        }
+
+        if(if_error) return;
+
+        var ckparams = {whId: SELECTED_WH, ownerId: _owner_id, items: JSON.stringify(save_items), type: type, rounds: rounds, round: 1};
+        JQ.post(SERVICE.inv_check_create, ckparams, 
+            function(result) {
+                dg.datagrid('reload');
+                closeDialog('fm4', 'dlg4');
+                $.messager.show({ title: '提示', msg: '创建盘点单成功'});
+            }
+        ) 
+    })
+}
+
+function gotoInvCheck() {
+    var url = '/tss/pages/wms/inv_check.html';
+    addTab('url', '盘点管理', url);
+}
+
+var globalV = {};
+function _print() {
+    globalV.data = dg.datagrid("getRows");
+    tssJS.openIframePanel("panel-1", " - 库存盘点单打印", 800, 480, "inv_print.html");
+}
+
+</script>
+
+</head>
+<body>
+<div id="init"></div>
+<div id="main" class="easyui-layout" fit="true">
+    <div class="queryContainer" data-options="region:'north'" border="false">
+        <form id='queryContainerForm'>
+            <!-- <label>编码:</label><input name="skuCode" class="easyui-textbox" style="width:80px"/>        -->
+            <label>名称:</label><input name="skuName" class="easyui-textbox" style="width:80px"/>
+            <label>编码:</label><input name="barCode" class="easyui-textbox" style="width:80px"/>
+            <label>货主:</label><input id="ownerId" name="ownerId" class="easyui-combobox"/>
+            <label>品牌:</label><input name="brand" id="brand" class="easyui-textbox" style="width: 65px;" />
+            <label>大类:</label><input name="category" id="category" class="easyui-textbox" style="width: 65px;" />
+            <label>库区:</label><input name="zone" class="easyui-textbox" style="width: 40px;"/> 
+            <label>库位:</label><input id="locationId" name="locationId" class="easyui-combobox"/> 
+            <label>批号:</label><input name="lotatt01" class="easyui-textbox" style="width: 60px;"/>
+            <label>含零库存:</label><input type="checkbox" name="showZero" style="width:15px">
+            <label>含冻结量:</label><input type="checkbox" name="containLocked" style="width:15px">
+            <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'ion ion-ios-search'" onclick='queryInv()'>查询</a>
+        </form>
+    </div>
+    
+    <div id="dataContainer" data-options="region:'center'" border="false" title="库存列表">
+        <table id="t1" border="false"></table>
+    </div>
+</div>
+
+<div id="dlg2" class="easyui-dialog" title="选择货品" style="width:1080px;height:500px;padding: 0" closed="true" buttons="#dlg2-buttons">
+    <div id="main" class="easyui-layout" fit="true">
+        <div class="queryContainer" data-options="region:'north'" border="false" style="display:none">
+            <label>编码:</label><input id="_skucode" class="easyui-textbox" style="width:90px"/>
+            <label>名称:</label><input id="_skuname" class="easyui-textbox" style="width:90px"/>
+            <label>条码:</label><input id="_barcode" class="easyui-textbox" style="width:90px"/>
+            <label>大类:</label><input id="_category" class="easyui-textbox" style="width:80px"/>
+            <label>货主:</label><input id="_owner_id" class="easyui-textbox" style="width:100px"/>
+            <label>品牌:</label><input id="_brand" class="easyui-textbox" style="width:70px"/>
+            <label>自定义1:</label><input id="_udf1" class="easyui-textbox" style="width:80px"/>
+
+            <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'ion ion-ios-search'" onclick="querySKUs(true)">查 询</a>
+        </div>
+        <div id="dataContainer" data-options="region:'center'" border="false" title="货品列表">
+            <table id="t3" border="false"></table>
+        </div>
+    </div>
+</div>
+<div id="dlg2-buttons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-add-circle-outline" onclick="selectSKUs(dg)">添加到库存</a>
+</div>
+
+<div id="menu" class="easyui-menu" style="width: 50px; ">
+    <div data-options="iconCls:'icon-search'" onclick="showInvHistory()">查看库存日志<br></div>
+    <div class="menu-sep"></div>
+    <div data-options="iconCls:'icon-search'" onclick="viewLockedInfo()">查看锁定信息</div>
+    <div data-options="iconCls:'icon-unlock'" onclick="unLock()">释放锁定数量</div>
+</div>
+
+<div id="dlg3" class="easyui-dialog" title="冻结明细" style="width:960px; height:250px;padding: 0" closed="true">
+    <table id="t4" border="false"></table>
+</div>
+
+<div id="dlg4" class="easyui-dialog" title="创建盘点单" closed="true" buttons="#dlg4-buttons">
+    <form id="fm4" method="post" novalidate>
+        <table class='l'>
+            <tr>
+                <td class='label'>盘点类型</td>
+                <td>
+                    <input id="inv_type" class="easyui-combobox" required />
+                </td>
+                <td class='label'>盘点轮数</td>
+                <td>
+                    <input id="inv_rounds" class="easyui-combobox" required/>
+                </td>
+            </tr>
+        </table>      
+    </form>
+</div>
+<div id="dlg4-buttons">
+    <a href="#" class="easyui-linkbutton" onclick="_createInvCheck()">保 存</a>
+    <a href="#" class="easyui-linkbutton" onclick="closeDialog('fm4', 'dlg4')">取 消</a>
+</div>
+
+</body>
+</html>

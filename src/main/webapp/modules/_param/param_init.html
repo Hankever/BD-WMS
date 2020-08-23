@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>系统参数初始化</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/datagrid-groupview.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<script src="../../tools/util_date.js"></script>
+
+<STYLE type="text/css">
+    html, body { height: 100%; }
+    iframe { width:100%; height: 99.5%; padding-top: 1px;}
+    #if2 { padding-top: 0; }
+
+</STYLE>
+
+<script type="text/javascript">
+var FIELDS = [
+            {title:'id',field:'id',hidden:true},
+            {title:'分组',field:'group',width:'6%', hidden: true},
+            {title:'参数名称',field:'name',width:'12%', editor: "text"},
+            {title:'参数code',field:'code',width:'12%',styler:codeStyle},
+            {title:'参数值',field:'value',width:'38%', editor: "text"},
+            {title:'说明',field:'content',width:'34%'}
+        ];
+$.each(FIELDS, function(i, field) {
+    field.align = field.align || "left";
+}); 
+function codeStyle(value,row,index){
+    if(param_list[index].require){
+        return 'background-color:#eee'
+    }
+}
+
+var dg;
+var param_list = [
+        {group:'初始设置', code:'sysTitle',content:'登陆页大标题',name:'标题',require:true},
+        {group:'初始设置', code:'subTitle',content:'登陆页小标题',name:'小标题',require:false},
+        {group:'初始设置', code:'index_logo',content:'默认: images/logo.png',name:'LOGO路径'}, 
+        {group:'初始设置', code:'regable', content:'填true或false，false为关闭注册，默认为true',name:'是否允许注册'},
+        {group:'初始设置', code:'regableDev',content:'填true或false，false为关闭开发者注册，默认为true',name:'是否允许开发者注册'},
+        {group:'初始设置', code:'TEMP_EXPORT_PATH',content:'用于报表导出及数据表的附件上传等，示例：/home/tssbi/temp', require:true},
+        {group:'初始设置', code:'MAX_XLSX_SIZE', name: "导入XLSX文件大小上限", content:'输入数字，单位K，默认为1024K'},
+
+        {group:'安全设置', code:'session.cyclelife', name: '会话有效期', content:'输入数字，单位（秒），默认为1800秒'},
+        {group:'安全设置', code:'passwd.cyclelife',  name: '密码有效期', content:'输入数字，单位（天），默认为180天'},
+        {group:'安全设置', code:'ip.white.list',content:'名单内的ip允许跨域访问系统的服务和资源'},
+        {group:'安全设置', code:'url.white.list',content:'白名单内的资源允许【匿名访问】url.white.list = login.html,_register.html.....'},
+        {group:'安全设置', code:'LOGIC_DEL', content:'true|false, 数据表是否只做逻辑删除'},
+        
+        {group:'邮件设置', code:'email.sys',name:'邮件服务器（系统）',content:'示例: 邮件服务器地址|发件人|收件人|服务器认证账号|服务器认证密码'},
+        {group:'邮件设置', code:'email.default',name:'邮件服务器（业务）',content:'示例: smtpdm.aliyun.com|tss@boubei.com|jk@163.com|tss@boubei.com|xxxxxx'},
+        {group:'邮件设置', code:'email.port.sys',name:'邮件服务器（系统）端口', content:'默认25，具体查看邮件服务器，例：阿里云邮件服务器为80或443'},
+        {group:'邮件设置', code:'email.port.default',name:'邮件服务器（系统）端口',content:'默认25，具体查看邮件服务器，例：阿里云邮件服务器为80或443'},
+        {group:'邮件设置', code:'Monitoring-Receivers',name:'系统管理员邮箱',content:'填写email地址，多个以英文逗号分隔，接受系统异常告警等邮件'},
+
+        {group:'其它设置', code:'class.name.SMS',name:'短信接口',content:'示例：com.boubei.tssx.sms.AliyunSMS'},
+        {group:'其它设置', code:'REPORT_CACHE', name:'缓存报表数据', content:'true|false, 报表服务是否启用三分钟缓存，正式环境需启用，测试环境可禁用'},
+        {group:'其它设置', code:'log_flush_max_size', name:'日志缓存条数阈值', content:'日志缓冲池最多可存日志条数的参数'},
+         
+        // {code:'report_export_url',content:'导出数据分流机器, 前台页面报表导出时用到'},
+        // {code:'report.template.dir',content:'报表自定义展示页上传目录'},
+        // {code:'userdefinedParams',content:'用户自定义的参与Freemarker解析参数'},
+        // {code:'error.keyword',content:'对含有此处配置的关键字的错误异常进行邮件提醒'},
+        // {code:'oa.ldap.url',content:'LDAP认证地址'},
+        // {code:'sso.index.page',content:'如果是从其它系统单点登录到平台（TSS），则自动转到配置的门户首页地址'},
+        // {code:'TOP_REPORT_LOG_DAYS',content:'读取最新、最热门、最近访问报表时，选取的日志天数，日志量大的，不宜取太多天。默认3天'},
+        // {code:'ADMIN_ROLE',content:'可以指定一个系统管理员之外的角色为超级管理员'},
+        // {code:'MAX_QUERY_REQUEST',content:'QueryCache支持的最大等待线程数量，没有配置默认100'},
+    ];
+
+var codes = [], require_codes = [], result = [], exist_params = {};
+$(document).ready(function () {
+    $.each(param_list,function(i,item){
+        codes.push(item.code);
+        if(item.require) {
+            require_codes.push(item.code);
+        }
+    })
+        
+    init(true); 
+});
+
+function init(enableCellEditing){
+    result = [], exist_params = {};
+    tssJS.getJSON('/tss/param/init/query', { codes: codes.join(',') }, function(data){  
+        $.each(data,function(i,item){
+            exist_params[item.code] = item;
+        });
+
+        var parentid;
+        $.each(param_list, function(i, item) {
+            item['name'] = item['name'] || item['code'];
+            var param_old = exist_params[item.code];
+
+            if(param_old) {
+                parentid = parentid || param_old.parentid;
+                result.push(param_old);
+                result[i]['content'] = item.content;
+                result[i]['group'] = item.group;
+                result[i]['parentId'] = param_old.parentid;
+                delete result[i]['parentid']
+            }
+            else{
+                result.push(item);
+            }
+        })
+        $.each(result,function(i,item){
+            item.parentId = item.parentId || parentid;
+        })
+        dg = $('#table').datagrid({
+            fit: true,
+            fitColumns: true,
+            rownumbers: true,
+            singleSelect: true,
+            checkOnSelect: true,
+            selectOnCheck: true,
+            nowrap: false, 
+            view: groupview,
+            groupField: 'group',
+            groupFormatter: function(value, rows) {
+                return value;
+            },
+            toolbar: [ 
+                { text: '保存参数', iconCls: 'icon-save', handler: saveData},
+                { text: '更多参数设置', iconCls: 'icon-redo', handler: function() { $("#tabs").tabs("select", 1); }}
+            ],
+            columns: [FIELDS],
+            data: result
+        });  
+        enableCellEditing && dg.datagrid('enableCellEditing');
+    })
+}
+
+function saveData(){
+    var save_params = {};
+    $.each(param_list, function(i, item) {
+        save_params[item.code] = exist_params[item.code] || item;
+    });
+
+    for(var i = 0; i < param_list.length; i++) {
+        $('#table').datagrid("endEdit", i);
+    }
+    var rows = $('#table').datagrid('getChanges');
+    for(var i = rows.length-1; i >= 0; i--) {
+        if(!rows[i].value && !exist_params[rows[i].code]) { // 没有填写值且原先也没有设置的，忽略
+            rows.splice(i, 1);
+            continue;
+        }
+        if( !rows[i].id ) { // 新增Param
+            rows[i].lockversion = 0;
+            rows[i].disabled = 0;
+            rows[i].hidden = 0;
+            rows[i].modality = 0;
+            rows[i].type = 1;
+        }
+    }
+
+    var rows_obj = {};
+    $.each(rows, function(i, item) {
+        rows_obj[item.code] = item;
+    });
+
+    var checked = true;
+    $.each(require_codes, function(i,item){
+        if( rows_obj[item] ){
+            if(!rows_obj[item].value){
+                $.messager.alert('提示','请将必填项（参数code列背景颜色为灰色）填写完整后保存！');
+                checked = false;
+                return false;
+            }
+        }
+        else if(save_params[item] && !save_params[item].value){
+            $.messager.alert('提示','请将必填项（背景颜色为灰色）填写完整后保存！');
+            checked = false;
+            return false;
+        }
+    })
+    if(checked) {
+        $.post('/tss/param/init/save', {json: JSON.stringify(rows)}, function(data){
+            $.messager.alert('提示',data ? '保存失败：' +data.errorMsg : '保存成功！');
+            init();
+        })
+    }
+}
+
+
+</script>
+
+</head>
+<body>
+
+   <div class="easyui-tabs" data-options="fit:true" border="false" id="tabs">
+        <div border="false" title="常用系统配置">
+            <table id="table" border="false" style="height:100%"></table>
+        </div>
+        <div border="false" title="更多参数配置">
+            <iframe scrolling="auto" frameborder="0" id="if2"></iframe>
+        </div>
+        <div border="false" title="菜单配置">
+            <iframe scrolling="auto" frameborder="0" id="if3"></iframe>
+        </div>
+        <div border="false" title="定时Job配置">
+            <iframe scrolling="auto" frameborder="0" id="if4"></iframe>
+        </div>
+        <div border="false" title="ETL任务配置">
+            <iframe scrolling="auto" frameborder="0" id="if5"></iframe>
+        </div>
+        <div border="false" title="功能模块配置">
+            <iframe scrolling="auto" frameborder="0" id="if6"></iframe>
+        </div>
+        <div border="false" title="令牌配置">
+            <iframe scrolling="auto" frameborder="0" id="if7"></iframe>
+        </div>
+    </div>
+</body>
+
+<script type="text/javascript">
+    // 使得 easyui-tabs 高度自适应
+　　$("#tabs").tabs({ 
+　　　　width:  $("#tabs").parent().width(), 
+　　　　height: $("#tabs").parent().height() 
+　　}); 
+
+    var urls = [
+        null, 
+        'param.htm',
+        '../portal/navigator.html',
+        encodeURI('../dm/recorder.html?rcname=component_job_def'), 
+        encodeURI('../dm/recorder.html?rcname=dm_etl_task'),
+        encodeURI('../dm/recorder.html?rcname=cloud_module_def'),
+        encodeURI('../dm/recorder.html?rcname=um_user_token')
+    ];
+
+    for(var i=6; i >= 1; i--) {
+        $("#tabs").tabs("select", i); 
+        $("#if" + (i+1)).height(document.body.clientHeight-33).attr("src", urls[i]);
+    }
+    $("#tabs").tabs("select", 0); 
+    
+    var isAdmin = tssJS.Cookie.decode("userHas")[1].contains(-1);
+    if( !isAdmin ) {
+        $("#tabs").tabs("disableTab", 0); 
+        $("#tabs").tabs("close", 1); 
+        $("#tabs").tabs("close", 1); 
+        $("#tabs").tabs("close", 4); 
+    }
+
+</script>
+
+</html>

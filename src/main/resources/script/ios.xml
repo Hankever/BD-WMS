@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sqls>
+	<sql code="sku_ios" name="多维度IOS">
+		<![CDATA[
+
+-- 3、粒度：WH + dimension( Owner + Sku + 批次 )
+select inv.warehouse_id ${dimension} <#if dimension_f??>${dimension_f}</#if>,     
+      round(sum(case when firstLog.id is null then inv.qty  else firstLog.qty end), 2) beginQty,    
+      round(sum(case when lastLog.id is null then inv.qty  else 
+               (case when lastLog.createtime > ('${endDate}' + interval 1 day) then lastLog.qty else lastLog.Toqty end) end), 2) endQty,
+      round(sum(inv.inQty), 2) inQty, 
+      round(sum(inv.outQty), 2) outQty, 
+      round(sum(inv.adjustQty), 2) adjustQty,
+      round(sum(inCube), 2) inCube,
+      round(sum(outCube), 2) outCube,
+      round(sum(inWeight), 2) inWeight,
+      round(sum(outWeight), 2) outWeight,
+      '${fromDate}' as _day
+from (
+-- 2、粒度：INV，firstTLogId，lastTLogId, tempTLogId
+select inv.wh_id warehouse_id ${dimension},
+      inv.id, inv.qty,sum(tlog.inQty) inQty, sum(tlog.outQty) outQty, sum(tlog.adjustQty) adjustQty, 
+      min(tlog.id) firstTLogId, max(tlog.id) lastTLogId,
+      (select min(log.id) from wms_inventory_log log where log.inv_Id = inv.id and log.createtime > ('${endDate}' + interval 1 day)) tempTLogId,
+	  sum(ifnull(sku.cube,0) * tlog.inQty) inCube,
+	  sum(ifnull(sku.cube,0) * tlog.outQty) outCube,  
+      sum(ifnull(sku.weight,0) * tlog.inQty) inWeight,
+      sum(ifnull(sku.weight,0) * tlog.outQty) outWeight
+from wms_inv inv 
+left join wms_sku sku on inv.sku_id = sku.id
+left join (
+-- 1、粒度：TLog
+select t.inv_id, t.id, 
+       case when p.text in ('入库') then (t.toqty - t.qty) end as inQty, 
+       case when p.text in ('出库') then (t.toqty - t.qty) * -1 end as outQty, 
+       case when p.text in ('调整') then (t.toqty - t.qty) end as adjustQty   
+from  wms_inventory_log t, wms_operation_log d, wms_operation op, component_param p
+where t.opLog_id = d.id and d.operation_id = op.id and d.opType_id = p.id
+and d.createtime >= '${fromDate}' and d.createtime < ('${endDate}' + interval 1 day) and op.warehouse_id in (${wh_id})     
+-- 1 END -----------------------------------------------------------------------------------------------------          
+) tlog on inv.ID = tlog.inv_id  
+where (inv.qty > 0 or inv.updatetime >= '${fromDate}')
+      and inv.wh_id in (${wh_id}) 
+      <#if owner_id??> and inv.owner_id in ( ${owner_id} ) </#if>
+      <#if sku_id??> and inv.sku_id in ( ${sku_id} ) </#if>
+	  <#if location_id??> and inv.location_id in ( ${location_id} )</#if>
+group by inv.wh_id ${dimension}, inv.ID, inv.qty
+-- 2 END -----------------------------------------------------------------------------------------------------
+) inv 
+left join wms_inventory_log firstLog on (case when inv.firstTLogId is null then inv.tempTLogId else inv.firstTLogId end) = firstLog.Id
+left join wms_inventory_log lastLog on (case when inv.lastTLogId is null then inv.tempTLogId else inv.lastTLogId end) = lastLog.Id
+group by inv.warehouse_id ${dimension} <#if dimension_f??>${dimension_f}</#if>
+order by inv.warehouse_id ${dimension}
+-- 3 END -----------------------------------------------------------------------------------------------------
+
+		]]>
+	</sql>
+	
+	<sql code="dayInvIO" name="每日出入库汇总(小程序)"  noLog="true">
+		<![CDATA[
+select date_format(olog.operateTime, '%m-%d') day, w.name 仓库, group_concat(distinct u.userName) opers,
+	round(sum(case when p.text = '入库' then ilog.toqty - ilog.qty else 0 end), 2) as 本期入,
+    round(sum(case when p.text = '出库' then ilog.qty - ilog.toqty else 0 end), 2) as 本期出,
+    round(sum(case when p.text = '调整' then ilog.toqty - ilog.qty else 0 end), 2) as 本期调整
+from wms_inventory_log ilog, wms_operation_log olog, wms_operation op, wms_inv inv, wms_warehouse w, wms_sku sku, component_param p, um_user u
+where ilog.opLog_id = olog.id
+  and olog.operation_id = op.id and op.optype_id = p.id 
+  and olog.operator = u.id
+  and ilog.inv_id = inv.id and inv.sku_id = sku.id 
+  and inv.wh_id = w.id
+  <#if wh_id??> and inv.wh_id in (${wh_id}) </#if>
+  <#if owner_id??> and inv.owner_id = ${owner_id} </#if>
+  <#if owner_id??> and inv.owner_id = ${owner_id} </#if>
+  <#if skucode??> and '${skucode}' in (sku.code, sku.barcode) </#if>
+  <#if sku_id??> and inv.sku_id = ${sku_id} </#if>
+  and olog.operateTime >= '${date_from}' and olog.operateTime < '${date_to}' + interval 1 day
+group by date_format(olog.operateTime, '%m-%d') -- , w.name
+order by date_format(olog.operateTime, '%y-%m-%d') -- , 仓库
+		]]>
+	</sql>
+	
+	<sql code="asn_ios" name="入库单">
+		<![CDATA[
+		select w.name 仓库, ow.name as 货主, a.asnno 入库单号, DATE_FORMAT(ifnull(a.inbound_date, a.createtime), '%Y-%m-%d') 入库日期, max(a.remark) 备注,
+				round(sum(ai.qty_actual), 2) 数量,
+				round(sum(ifnull(sku.cube,0) * ai.qty), 2) 体积,
+			    round(sum(ifnull(sku.weight,0) * ai.qty), 2) 重量
+		from wms_asn_item ai, wms_asn a, wms_sku sku, wms_owner ow, wms_warehouse w
+		where ai.asn_id = a.id and ai.sku_id = sku.id and a.owner_id = ow.id and a.warehouse_id = w.id
+				and a.status in ('部分入库', '已完成', '关闭') and ai.qty_actual > 0
+		        and ifnull(a.inbound_date, a.createtime) between '${fromDate}' and ('${endDate}' + interval 1 day)
+		        <#if wh_id??> and w.id in (${wh_id}) </#if>
+		        <#if owner_id??> and ow.id in (${owner_id}) <#else> and a.domain = '${DOMAIN}' </#if>
+		        <#if skucode??> and sku.code in (${skucode}) </#if>
+		        <#if skuIds??> and sku.id in (${skuIds}) </#if>
+		        <#if type??> and a.type like '${type}%' </#if>
+		group by 仓库, 货主, 入库日期, 入库单号 
+		order by 仓库, 货主, 入库日期
+		]]>
+	</sql>
+	
+	<sql code="order_ios" name="出库单">
+		<![CDATA[
+		select w.name 仓库, ow.name as 货主, a.orderno 出库单号, DATE_FORMAT(ifnull(a.outbound_date, a.createtime), '%Y-%m-%d') 出库日期, max(a.remark) 备注,
+				round(sum(ai.qty_send), 2) 数量,
+				round(sum(ifnull(sku.cube,0) * ai.qty), 2) 体积,
+			    round(sum(ifnull(sku.weight,0) * ai.qty), 2) 重量
+		from wms_order_item ai, wms_order a, wms_sku sku, wms_owner ow, wms_warehouse w
+		where ai.order_id = a.id and ai.sku_id = sku.id and a.owner_id = ow.id and a.warehouse_id = w.id
+				and a.status in ('部分入库', '已完成', '关闭') and ai.qty_send > 0
+		        and ifnull(a.outbound_date, a.createtime) between '${fromDate}' and ('${endDate}' + interval 1 day)
+		        <#if wh_id??> and w.id in (${wh_id}) </#if>
+		        <#if owner_id??> and ow.id in (${owner_id}) <#else> and a.domain = '${DOMAIN}' </#if>
+		        <#if skucode??> and sku.code in (${skucode}) </#if>
+		        <#if skuIds??> and sku.id in (${skuIds}) </#if>
+		        <#if type??> and a.type like '${type}%' </#if>
+		group by 仓库, 货主, 出库日期, 出库单号 
+		order by 仓库, 货主, 出库日期
+		]]>
+	</sql>
+	
+</sqls>

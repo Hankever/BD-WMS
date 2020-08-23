@@ -1,0 +1,209 @@
+//
+// Variables
+// --------------------------------------------------
+
+
+// Global values
+// --------------------------------------------------
+@fontFamily: Arial, Helvetica, '微软雅黑', sans-serif;
+@fontSize: 12px;
+
+// Grays
+// -------------------------
+@black:                 #000;
+@grayDarker:            #222;
+@grayDark:              #333;
+@gray:                  #555;
+@grayLight:             #999;
+@grayLight2:            #ccc;
+@grayLighter:           #eee;
+@white:                 #fff;
+@lightgrey:             lightgrey;
+@highlight:             #FEF7A9;
+
+
+// Accent colors
+// -------------------------
+@blue:                  #049cdb;
+@blueDark:              #0064cd;
+@blueLight:             #E0ECFF;
+@red:                   #9d261d;
+@yellow:                #ffc40d;
+@orange:                #f89406;
+@tiered:                #e36f5f;
+@green:                 #8bcf7b;
+
+
+// Scaffolding
+// -------------------------
+@bodyBackground:        @white;
+@textColor:             @gray;
+@disabled:              #A6A6A6;
+@borderColor:           #95B8E7;
+@barColor:              #BEC6EE;
+@inputBgColor:          #F7FBFC;
+@hrColor:               rgba(0, 0, 0, 0.1);
+
+// Links
+// -------------------------
+@linkColor:             #08c;
+@linkColorHover:        darken(@linkColor, 15%);
+
+
+
+html { box-sizing: content-box; }
+html, body { height: 100%; }
+body { overflow: hidden; background-color: @white; color: @textColor; }
+table { 
+    width:100%; height:100%;
+}
+ 
+.panel { border-top: 1px solid #95B8E7; }
+.panel>tbody>tr>td:nth-child(1), 
+.panel>tbody>tr>td:nth-child(4) { width: 0px; display: none; }
+.panel .header,
+.panel .footer { height: 0px; display: none; }
+
+/* FireFox：TD显式给高度，TD里面的元素设置height：100%才有效 */
+.panel .body td.groove { 
+    position: relative; vertical-align: top; height: 100%; 
+
+    & .hasframe { height: 100%; }
+    & #ws .hastree { vertical-align: top; }
+    & WorkSpace\:Page { border: 0; }
+}
+#gridContainer { 
+    vertical-align: top; height: 100%; 
+}
+#gridTitle button.tssbutton > span {
+    font-size: 14px; vertical-align: middle;
+}
+
+/* 左栏 */
+#palette { 
+    box-sizing: border-box;
+    width: 250px; min-width: 250px;
+    vertical-align: top;
+
+    &>div { 
+        position: relative; width: 100%; height: 100%; max-width: 250px;
+        border-left: 1px solid @borderColor;
+        border-right: 1px solid @borderColor;  
+
+        & .bar { 
+            height: 25px; padding: 4px 0 0 4px; line-height: 18px;
+            background-color: @blueLight; 
+            border-bottom: 1px solid @borderColor;
+            color: @textColor; font-weight: bold;  
+
+            & .search { 
+                & #searchKey { width: 80px; height: 17px; text-indent: 2px; margin-left: 8px; }
+                & .icon-search { 
+                    font-size: 14px; width: 16px; height: 16px; display: inline-block; margin-left: 4px; cursor: pointer;
+                    vertical-align: middle; 
+                    &:hover { color: blue; font-size: 15px; }
+                }
+            }
+            & .icon { 
+                display: inline-block;
+                width: 8px; height: 8px; margin-right: 6px;  
+                background: url(../images/icon_title.gif) no-repeat center;
+            }
+            & .refreshTreeBT { 
+                position: absolute; top: 4px; right: 2px; font-size: 16px;
+                width: 16px; height: 15px; cursor: pointer;  
+                
+                &:hover { color: blue; font-size: 18px; }
+            }
+        }       
+    }
+
+    & #tree { 
+        height: auto; min-height: 90%; 
+        max-width: 248px;
+        background-color: @white; 
+    }
+}
+
+.loading { width: 53px; height: 20px; background: url(../images/loading.gif) no-repeat 3px 3px; }
+
+/* 用户组、用户、角色关系维护 */
+.l { border-left:  1px solid @borderColor; }
+.t { border-top:   1px solid @borderColor; }
+.b { border-bottom:1px solid @borderColor; }
+.r { border-right: 1px solid @borderColor; }
+.titleBox { height: 20px; background-color: @blueLight; }
+.btnBox { 
+    height: 50px; background-color: @blueLight; 
+    & td { vertical-align: top; }
+    & WorkSpace\:PageStep { padding: 2px 0; }
+}
+td.mbar { 
+    width: 20px; background-color: @blueLight; 
+    & input { 
+        margin-bottom: 100px;   
+        width: 20px;
+        border: 0;
+        line-height: 30px;
+        background-color: @blue;
+        color: #fff; 
+
+        &:hover { cursor: pointer; background-color: orange; }
+    }
+} 
+
+/* 弹层相关 */
+.dialog { 
+    position: absolute; top: 100px; margin: 0 auto; 
+    padding-bottom: 5px; overflow: auto; 
+    background-color: @white; 
+    border-radius: 0 0 5px 5px;
+    box-shadow: @gray 0px 0px 100px;
+
+    & h2 {
+        width: 100%; height: 22px; line-height: 22px; 
+        font-size: 13px; text-indent: 10px; 
+        background-color: @blue; color: @white; 
+    }
+    & .tssForm { padding: 3px 0;}
+    & Tree { height: 80%; }
+    & .bts { 
+        padding: 5px 0 5px 20px;
+        text-align: center;
+        & input { margin-right: 10px; }
+    }
+}
+
+#popupForm { padding: 12px 40px; }
+
+.popupItem { 
+    & h2 { padding-top: 1px; }   
+}
+span.search {
+    & input[id^="sk"] { width: 80px; height: 15px; text-indent: 2px; margin: 0 3px; }
+    & button { padding: .1em .5em .1em; }
+} 
+
+.hiddenWS {
+    display: none;
+    position: absolute;
+    bottom: 0;
+    min-height: 100px;
+    z-index: 100;
+}
+
+.fileUpload {
+    height: 236px; width: 300px; 
+    position: relative;
+    background: url(../images/upload.png) no-repeat 25px bottom;
+
+    & input[type='file'] {
+        height: 236px; width: 256px;
+        overflow: hidden;
+        position: absolute;
+        cursor: pointer;
+        opacity:0; filter:alpha(opacity=0);
+    }
+}
+#importDiv input[type='button'] { margin-left: 80px; margin-top: 1px; }
+

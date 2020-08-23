@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sqls>
+
+	<sql code="domain_groups" name="企业域分组">
+		<![CDATA[
+			select id as value, name as text from um_group where domain = '企业域'
+		]]>
+	</sql>
+	
+	<sql code="get_module" name="按Code查询模块">
+		<![CDATA[
+			select * from cloud_module_def where code = '${code}'
+		]]>
+	</sql>
+	
+	<sql code="backupRegUser" name="归档注册用户">
+		<![CDATA[
+		SELECT u.id, userName name, loginName phone, u.createTime, lastLogonTime, logonCount, g.domain, g.id gid, g.name gname
+		FROM um_user u, um_group g, um_groupuser gu
+		where u.id = gu.userId and gu.groupId = g.id
+			and g.id = 2
+			and lastLogonTime < DATE_SUB(now(), INTERVAL 31 DAY) and u.id > 0
+		union
+		SELECT u.id, userName name, loginName phone, u.createTime, lastLogonTime, logonCount, g.domain, g.id gid, g.name gname
+		FROM um_user u, um_group g, um_groupuser gu
+		where u.id = gu.userId and gu.groupId = g.id
+			and g.domain not in ('G1') 
+		    and u.userName = g.name
+			and lastLogonTime < DATE_SUB(now(), INTERVAL 31 DAY) and u.id > 0	
+		]]>
+	</sql>
+	
+	<sql code="clearRegDomain" name="清除废弃企业域">
+		<![CDATA[
+		SELECT g.domain, g.id gid, g.name gname, min(loginName) phone, 
+			min(u.createTime) firstLogonTime, max(lastLogonTime) lastLogonTime, sum(logonCount) logonCount 
+		FROM um_user u, um_group g, um_groupuser gu
+		where u.id = gu.userId and gu.groupId = g.id
+			and g.domain not in (
+				SELECT distinct g.domain
+					FROM um_user u, um_group g, um_groupuser gu
+					where u.id = gu.userId and gu.groupId = g.id
+					  and lastLogonTime > DATE_SUB(now(), INTERVAL 31 DAY) and u.id > 0
+				union 
+				SELECT distinct g.domain
+					FROM  um_sub_authorize sa, um_user u, um_group g, um_groupuser gu
+					where sa.buyerId = u.id and u.id = gu.userId and gu.groupId = g.id
+				  	 and  sa.endDate > now()
+		    )
+		    and g.id > 0
+		group by g.domain
+		order by logonCount asc, lastLogonTime asc
+		]]>
+	</sql>
+	
+	<sql code="collect1" name="collect1">
+		<![CDATA[
+			select id, concat(operatorName, ' ', operateTime, ' ', operateTable, ' ', operationCode) x1 
+			from component_log where operateTime > '2020-02-07' order by id desc limit 0, 100;
+		]]>
+	</sql>
+		
+</sqls>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<PermissionMatrix>
+		<actionSet>
+			<options>
+				<option>
+					<operationId>opt101</operationId>
+					<operationName>增加组</operationName>
+					<dependId>opt104</dependId>
+					<dependParent>2</dependParent>
+				</option>
+				<option>
+					<operationId>opt102</operationId>
+					<operationName>删除组</operationName>
+					<dependId>opt104</dependId>
+					<dependParent>3</dependParent>
+				</option>
+				<option>
+					<operationId>opt103</operationId>
+					<operationName>修改组</operationName>
+					<dependId>opt104</dependId>
+				</option>
+				<option>
+					<operationId>opt104</operationId>
+					<operationName>查看组</operationName>
+					<dependId></dependId>
+					<dependParent>2</dependParent>
+				</option>
+				<option>
+					<operationId>opt105</operationId>
+					<operationName>查看用户</operationName>
+					<dependId>opt104</dependId>
+				</option>
+				<option>
+					<operationId>opt106</operationId>
+					<operationName>启/停用</operationName>
+					<dependId>opt104</dependId>
+					<dependParent>3</dependParent>
+				</option>
+				<option>
+					<operationId>opt107</operationId>
+					<operationName>组移动</operationName>
+					<dependId>opt104</dependId>
+				</option>
+				<option>
+					<operationId>opt108</operationId>
+					<operationName>组排序</operationName>
+					<dependId>opt104</dependId>
+				</option>
+				<option>
+					<operationId>opt109</operationId>
+					<operationName>组拷贝</operationName>
+					<dependId>opt104</dependId>
+				</option>
+
+			</options>
+			<treeNode id="r1" name="资源1" pstate="2">
+				<treeNode id="r1.0" name="资源1.0" pstate="2">
+					<treeNode id="r1.0.1" name="资源1.0.1--长长长长长长长长长长长长长长长长长长长长长长长" pstate="2"/>
+					<treeNode id="r1.0.2" name="资源1.0.2" pstate="2"/>
+					<treeNode id="r1.0.3" name="资源1.0.3" pstate="2">
+						<treeNode id="r1.0.3.1" name="资源1.0.3.1" pstate="2"/>
+						<treeNode id="r1.0.3.2" name="资源1.0.3.2--长长长长长长长长长长长长长长长长长长长长长" pstate="2"/>
+						<treeNode id="r1.0.3.3" name="资源1.0.3.3" pstate="2">
+							<treeNode id="r1.0.3.3.1" name="资源1.0.3.3.1--长长长长长长长长长长长长长长长长长长长长长" pstate="2"/>
+						</treeNode>
+					</treeNode>
+				</treeNode>
+				<treeNode id="r1.1" name="资源1.1" pstate="2"/>
+				<treeNode id="r1.11" name="资源1.11" pstate="2"/>
+			</treeNode>
+			<treeNode id="r2" name="资源2" pstate="2">
+				<treeNode id="r2.1" name="资源2.1" pstate="2"/>
+				<treeNode id="r2.9" name="资源2.9" pstate="2"/>
+				<treeNode id="r2.13" name="资源2.13" pstate="2"/>
+			</treeNode>
+
+			<treeNode id="r2" name="资源2" pstate="2" opt103="1">
+				<treeNode id="r2.1" name="资源2.1--长长长长长长长长长长长长长长长长长长长长长长长" pstate="2" opt104="1"/>
+			</treeNode>
+			<treeNode id="r3" name="资源3" opt101="1" opt102="1" opt103="1" opt104="1" opt105="1" opt108="1" opt109="1" />
+
+		</actionSet>
+	</PermissionMatrix>
+</Response>

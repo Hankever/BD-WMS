@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<GroupTree>
+		<actionSet>
+			<treeNode id="111" name="角色组1" icon="images/role_group_0.gif" roleGroupState="1"/>
+			<treeNode id="112" name="角色组2" icon="images/role_group_0.gif" roleGroupState="0"/>
+			<treeNode id="113" name="角色组3" icon="images/role_group_0.gif" roleGroupState="1"/>
+		</actionSet>
+	</GroupTree>
+</Response>

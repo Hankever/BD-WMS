@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sqls>
+	
+	<sql code="myOperationLogs" name="我的作业日志">
+		<![CDATA[
+		select distinct op_id, 作业时间, 作业类型, 货品, round(作业量,2) 作业量, 状态, 起始库位, 目的库位, 批次 from (
+		select olog.id, op.id op_id, date_format(olog.operateTime, '%m-%d %k:%i:%s') 作业时间, p.text 作业类型, 
+		concat( sku.name, ' ', ifnull(sku.guige,''), ' ', ifnull(sku.uom, '') ) 货品, 
+			(case when p.text = '调整' then opi.toqty - opi.qty else abs(opi.qty) end)  作业量, 
+		    op.status 状态, opi.loccode 起始库位, opi.toloccode 目的库位, 
+		concat_ws(',',opi.lotatt01,opi.lotatt02,opi.lotatt03,opi.lotatt04,opi.invstatus,
+		date_format(opi.createdate,'%Y-%m-%d'),date_format(opi.expiredate,'%Y-%m-%d')) 批次
+		from wms_operation_log olog, wms_operation op, wms_operation_item opi, wms_sku sku,
+			component_param p, um_user u
+		where 1=1
+		  and olog.operation_id = op.id and op.optype_id = p.id and op.id = opi.operation_id 
+		  and opi.skucode = sku.code and sku.domain = '${DOMAIN}'
+		  and olog.operator = u.id
+		  and abs(olog.createtime - opi.createtime) <= 2
+		  <#if wh_id??> and op.warehouse_id = ${wh_id} </#if>
+		  and u.loginName = '${userCode}'
+		  <#if opType??> and p.text = '${opType}' </#if>
+		  and olog.operateTime >= '${date_from}' and olog.operateTime < '${date_to}' + interval 2 day
+		order by olog.id desc ) t
+		]]>
+	</sql>
+	
+	<sql code="queryOpBySku" name="按照SKU查找作业单">
+		<![CDATA[
+		select op.id from wms_operation_item opi, wms_operation op 
+		where opi.operation_id = op.id
+			and warehouse_id in ( ${wh_id} )
+			<#if owner_id??> and owner_id in ( ${owner_id} ) </#if>
+			<#if skucode??> and skucode = '${skucode}' </#if>
+			and op.createTime >= '${date1}' and op.createTime < '${date2}' + interval 1 day
+		]]>
+	</sql>
+	
+	<sql code="jobCard" name="查询作业工单">
+		<![CDATA[
+			select * from 
+				(select op.id operation_id, opno, op.optype_id, p.text optype, ifnull(op.qty, sum(opi.qty)) qty, 
+					op.createtime, date_format(op.createtime,'%Y-%m-%d') opdate, 
+					op.creator assigner, op.worker, op.status, op.warehouse_id, op.wave_id
+				  from wms_operation op
+				  left join wms_operation_item opi on op.id = opi.operation_id
+				  join component_param p on op.optype_id = p.id
+				where 1 = 1
+					and op.domain = '${DOMAIN}'
+					<#if wh_id??> and op.warehouse_id = ${wh_id} </#if>
+					<#if date_from??> and op.createtime >= '${date_from}' </#if> 
+					<#if date_to??> and op.createtime < '${date_to}' + interval 2 day </#if>
+					<#if approver??> 
+						-- '${approver}'
+						<#if userCode??> and find_in_set('${userCode}', op.approver) > 0 </#if> 
+					<#else>
+						<#if userCode??> and find_in_set('${userCode}', op.worker) > 0 </#if>
+					</#if>
+					<#if status??> and find_in_set(op.status, '${status}') > 0 </#if>
+					<#if opno??> and op.opno = '${opno}' </#if>
+					group by op.id
+				) t
+			 where 1 = 1
+			 <#if approver??> and t.optype in ('入库', '出库', '移库', '上架')  -- '${approver}'
+			 <#else> and t.optype in ('入库', '分配', '拣货', '波次拣货', '出库', '盘点', '调整', '装卸') </#if>
+				order by 
+					case t.optype 
+						when '入库' then 1 
+						when '分配' then 2 
+						when '拣货' then 3 
+						when '波次拣货' then 4 
+						when '出库' then 5 
+						else optype_id end, 
+					case t.status 
+						when '新建' then 1 
+						when '已领用' then 2 
+						when '部分完成' then 3 
+						when '已完成' then 4 
+						when '拒绝' then 5 
+						else 6 end, 
+					t.opdate desc, t.operation_id desc
+		]]>
+	</sql>
+	
+	<sql code="jobRate" name="查询作业进度">
+		<![CDATA[
+			select op.id operation_id, opno, op.optype_id, p.text optype, 
+					round(ifnull(op.qty, sum(abs(opi.qty)))) qty, 
+					round(sum(abs( case when op.status = '已完成' then opi.qty else 0 end ))) qty_actual,  
+					op.createtime, date_format(op.createtime,'%Y-%m-%d') opdate, 
+					op.creator assigner, op.worker, op.status, op.warehouse_id, op.wave_id, op.udf1
+				  from wms_operation op
+				  left join wms_operation_item opi on op.id = opi.operation_id
+				  join component_param p on op.optype_id = p.id
+				where 1 = 1
+					and op.domain = '${DOMAIN}'
+					<#if wh_id??> and op.warehouse_id = ${wh_id} </#if>
+					<#if date_from??> and op.createtime >= '${date_from}' </#if> 
+					<#if date_to??> and op.createtime < '${date_to}' + interval 1 day </#if>
+					<#if optype_id??> and op.optype_id = ${optype_id} </#if>
+					<#if opno??> and find_in_set(op.opno, '${opno}') > 0 </#if>
+					<#if opId??> and op.id in (${opId}) </#if>
+					group by op.id
+		]]>
+	</sql>
+	
+	<sql code="jobWorkQty" name="查询作业量">
+		<![CDATA[
+			select * from 
+				(select ifnull(opi.creator, op.worker) creator, sum(abs(opi.qty)) qty_actual, op.optype_id, p.text optype,
+					    count( distinct ifnull(opi.udf2, op.opno)) as opnum
+				  from wms_operation op
+				  join wms_operation_item opi on op.id = opi.operation_id
+				  join component_param p on op.optype_id = p.id
+				where 1 = 1
+					and op.domain = '${DOMAIN}'
+					<#if wh_id??> and op.warehouse_id = ${wh_id} </#if>
+					<#if date_from??> and op.createtime >= '${date_from}' </#if> 
+					<#if date_to??> and op.createtime < '${date_to}' + interval 1 day </#if>
+					<#if optype_id??> and op.optype_id = ${optype_id} </#if>
+					<#if opno??> and find_in_set(op.opno, '${opno}') > 0 </#if>
+					<#if opId??> and op.id in (${opId}) </#if>
+					group by ifnull(opi.creator, op.worker), op.optype_id
+				  ) t
+			 order by qty_actual desc
+		]]>
+	</sql>	
+	
+	<sql code="jobAsnItem" name="查询入库工单明细">
+		<![CDATA[
+			select opi.id opi_id, opi.opinv_id, opi.loccode, opi.qty,
+				asni.sku_id, opi.skucode, sku.name skuname, sku.barcode, 
+				opi.lotatt01, opi.lotatt02, opi.lotatt03, opi.lotatt04, opi.invstatus,
+				date_format(opi.createdate,'%Y-%m-%d') createdate, date_format(opi.expiredate,'%Y-%m-%d') expiredate,
+				concat_ws(',',opi.lotatt01,opi.lotatt02,opi.lotatt03,opi.lotatt04,opi.invstatus,
+				date_format(opi.createdate,'%Y-%m-%d'),date_format(opi.expiredate,'%Y-%m-%d')) lot, opi.status opi_status
+			from wms_operation_item opi, wms_asn_item asni, wms_sku sku
+				where opi.asnitem_id = asni.id
+				and asni.sku_id = sku.id
+				and opi.operation_id = ${operation_id}
+		]]>
+	</sql>
+	
+	<sql code="jobOrderItem" name="查询出库工单明细">
+		<![CDATA[
+			select opi.id opi_id, opi.opinv_id, opi.loccode, opi.qty,
+				odi.sku_id, opi.skucode, sku.name skuname, sku.barcode, 
+				opi.lotatt01, opi.lotatt02, opi.lotatt03, opi.lotatt04, opi.invstatus,
+				date_format(opi.createdate,'%Y-%m-%d') createdate, date_format(opi.expiredate,'%Y-%m-%d') expiredate,
+				concat_ws(',',opi.lotatt01,opi.lotatt02,opi.lotatt03,opi.lotatt04,opi.invstatus,
+				date_format(opi.createdate,'%Y-%m-%d'),date_format(opi.expiredate,'%Y-%m-%d')) lot, opi.status opi_status, opi.worker
+			from wms_operation_item opi, wms_order_item odi, wms_sku sku
+				where opi.orderitem_id = odi.id
+				and odi.sku_id = sku.id
+				and opi.operation_id = ${operation_id}
+		]]>
+	</sql>
+	
+	<sql code="jobItem" name="查询工单明细">
+		<![CDATA[
+			select opi.id opi_id, opi.opinv_id, opi.loccode,opi.toloccode, abs(opi.qty) qty, opi.toqty,
+				sku.id sku_id, opi.skucode, sku.name skuname, sku.barcode, 
+				opi.lotatt01, opi.lotatt02, opi.lotatt03, opi.lotatt04, opi.invstatus,
+				date_format(opi.createdate,'%Y-%m-%d') createdate, date_format(opi.expiredate,'%Y-%m-%d') expiredate,
+				concat_ws(',',opi.lotatt01,opi.lotatt02,opi.lotatt03,opi.lotatt04,opi.invstatus,
+				date_format(opi.createdate,'%Y-%m-%d'),date_format(opi.expiredate,'%Y-%m-%d')) lot, opi.status opi_status,
+				op.worker
+			from wms_operation_item opi, wms_sku sku, wms_operation op
+				where opi.skucode = sku.code
+				and opi.domain = sku.domain
+				and opi.operation_id = op.id
+				and opi.operation_id = ${operation_id}
+		]]>
+	</sql>
+	
+	<sql code="opException" name="查询异常反馈明细">
+		<![CDATA[
+			select op.opno, op.id op_id, op.warehouse_id, wh.name warehouse,
+				opi.id opi_id, opi.opinv_id, opi.loccode, opi.qty,
+				sku.name skuname, sku.code skucode, sku.id skuid, sku.barcode,
+				opi.lotatt01, opi.lotatt02, opi.lotatt03, opi.lotatt04, opi.invstatus,
+				date_format(opi.createdate,'%Y-%m-%d') createdate, date_format(opi.expiredate,'%Y-%m-%d') expiredate,
+				concat_ws(',',opi.lotatt01,opi.lotatt02,opi.lotatt03,opi.lotatt04,opi.invstatus,
+					date_format(opi.createdate,'%Y-%m-%d'),date_format(opi.expiredate,'%Y-%m-%d')) lot, 
+				ope.id ope_id, ope.type ope_type, 
+				ope.content, ope.creator assiner, ope.createtime  assin_time, ope.remark, 
+				ope.status ope_status, ope.result ope_result
+			from wms_op_exception ope
+			left join wms_operation_item opi on ope.opitem_id = opi.id
+			left join wms_operation op on ifnull(ope.operation_id, opi.operation_id) = op.id
+			left join wms_sku sku on opi.skucode = sku.code and opi.domain=sku.domain
+			left join wms_warehouse wh on op.warehouse_id = wh.id
+				where 1 = 1
+				<#if date_from??> and ope.createtime >= '${date_from}' </#if>
+				<#if date_to??> and ope.createtime < '${date_to}' + interval 1 day </#if>
+				<#if opeId??> and ope.id in (${opeId}) </#if>
+				<#if userCode??> and (ope.creator = '${userCode}' or '${userCode}' = '-1') </#if>
+				<#if wh_id??> and op.warehouse_id = ${wh_id} </#if>
+				<#if op_id??> and op.id = ${op_id} </#if>
+				<#if opno??> and find_in_set(op.opno, '${opno}') > 0 </#if>
+				<#if opi_id??> and opi.id = ${opi_id} </#if>
+				<#if status??> and ope.status = '${status}' </#if>
+				<#if type??> and ope.type = '${type}' </#if>
+			order by ope.status desc, ope.createtime
+		]]>
+	</sql>
+	
+	<sql code="invCheck" name="查询盘点单明细及汇总数据">
+		<![CDATA[
+			select 
+			<#if detail == '0'> 
+				check_id, t.code, type, locs, qtys, t.skus, t.status, rounds, t.creator, t.createtime, 
+				op_id, now_op_id, op.opno now_opno, op.worker now_worker,
+				t.worker1, t.worker2, t.worker3,
+				count(*) qty1, sum(case when toqty1 is not null then 1 else 0 end) toqty1,
+				sum(case when op2_id is not null then 1 else 0 end) qty2, sum(case when toqty2 is not null then 1 else 0 end) toqty2,
+				sum(case when op3_id is not null then 1 else 0 end) qty3, sum(case when toqty3 is not null then 1 else 0 end) toqty3
+			<#else> 
+				t.*, sku.barcode, sku.barcode2, sku.name skuname, sku.uom, sku.guige 
+			</#if>
+			from 
+			(
+				select ic.id check_id, ic.domain, ic.creator, ic.createtime, ic.code, ic.type, ic.locs, ic.qtys, ic.skus, ic.status, ic.rounds, 
+				case ic.rounds when 1 then ic.round1_id when 2 then ic.round2_id else ic.round3_id end op_id,
+				ifnull(oi3.operation_id, ifnull(oi2.operation_id, ic.round1_id)) now_op_id,
+				ic.round1_id op1_id, oi2.operation_id op2_id, oi3.operation_id op3_id, 
+				oi1.opinv_id inv1_id, oi2.opinv_id inv2_id, oi3.opinv_id inv3_id, 
+				oi1.id opi_id1, oi2.id opi_id2, oi3.id opi_id3, 
+				case ic.rounds when 1 then oi1.udf1 when 2 then oi2.udf1 else oi3.udf1 end opi_udf1,
+				o1.worker worker1, o2.worker worker2, o3.worker worker3, 
+				oi1.skucode, oi1.owner_id, oi1.loccode location_code,
+				oi1.invstatus, oi1.createdate, oi1.expiredate, oi1.lotatt01, oi1.lotatt02, oi1.lotatt03, oi1.lotatt04, inv.qty_locked,
+				oi1.qty qty1, oi2.qty qty2, oi3.qty qty3, 
+				oi1.toqty toqty1, oi2.toqty toqty2, oi3.toqty toqty3
+			 from wms_inv_check ic
+			 join wms_operation_item oi1 on ic.round1_id = oi1.operation_id
+			 join wms_inv inv on oi1.opinv_id = inv.id
+			 left join wms_operation_item oi2 on ic.round2_id = oi2.operation_id and oi1.opinv_id = oi2.opinv_id
+			 left join wms_operation_item oi3 on ic.round3_id = oi3.operation_id and oi1.opinv_id = oi3.opinv_id
+			 join wms_operation o1 on ic.round1_id = o1.id
+			 left join wms_operation o2 on ic.round2_id = o2.id
+			 left join wms_operation o3 on ic.round3_id = o3.id
+				where 1 = 1
+				and ic.warehouse_id = ${whId}
+				<#if id??> and ic.id = ${id} </#if>
+				<#if code??> and ic.code = '${code}' </#if>
+				<#if type??> and ic.type = ${type} </#if>
+				<#if status??> and ic.status = '${status}' </#if>
+				<#if owner_id??> and oi1.owner_id = ${owner_id} </#if>
+				<#if skucode??> and oi1.skucode = '${skucode}' </#if>
+				<#if loccode??> and oi1.loccode = '${loccode}' </#if>
+				<#if opId??> and (oi3.operation_id = ${opId} or oi2.operation_id = ${opId} or ic.round1_id = ${opId}) </#if> 
+				<#if compareType??> -- '${compareType}'
+					<#if compareType == '01'> and oi1.qty != oi1.toqty -- 原始 初盘
+					<#elseif compareType == '02'> and oi2.qty != oi2.toqty -- 原始 复盘
+					<#elseif compareType == '03'> and oi3.qty != oi3.toqty -- 原始 终盘
+					<#elseif compareType == '12'> and oi1.toqty != oi2.toqty -- 初盘 复盘
+					<#elseif compareType == '13'> and oi1.toqty != oi3.toqty -- 初盘 终盘
+					<#elseif compareType == '23'> and oi2.toqty != oi3.toqty -- 复盘 终盘
+					</#if>
+				</#if>
+				<#if round2??>
+					and oi2.id is not null -- '${round2}'
+				</#if>
+				<#if round3??> 
+					and oi3.id is not null -- '${round3}' 
+				</#if>
+			) t, wms_operation op, wms_sku sku
+			where t.now_op_id = op.id
+			and t.skucode = sku.code
+			and t.domain = sku.domain
+			<#if barcode??> and sku.barcode = '${barcode}' </#if>
+			<#if detail == '0'> group by check_id </#if>
+			order by check_id desc		
+		]]>
+	</sql>
+	
+</sqls>

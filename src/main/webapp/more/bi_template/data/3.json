@@ -1,0 +1,1877 @@
+[
+    {
+        "parent": "北京",
+        "name": "北京",
+        "value": 15762
+    },
+    {
+        "parent": "上海",
+        "name": "上海",
+        "value": 14501
+    },
+    {
+        "parent": "浙江省",
+        "name": "杭州",
+        "value": 8410
+    },
+    {
+        "parent": "广东省",
+        "name": "广州",
+        "value": 8367
+    },
+    {
+        "parent": "广东省",
+        "name": "深圳",
+        "value": 7934
+    },
+    {
+        "parent": "四川省",
+        "name": "成都",
+        "value": 7283
+    },
+    {
+        "parent": "湖北省",
+        "name": "武汉",
+        "value": 6853
+    },
+    {
+        "parent": "重庆",
+        "name": "重庆",
+        "value": 6776
+    },
+    {
+        "parent": "湖南省",
+        "name": "长沙",
+        "value": 4918
+    },
+    {
+        "parent": "江苏省",
+        "name": "南京",
+        "value": 4909
+    },
+    {
+        "parent": "天津",
+        "name": "天津",
+        "value": 4605
+    },
+    {
+        "parent": "浙江省",
+        "name": "宁波",
+        "value": 4564
+    },
+    {
+        "parent": "江苏省",
+        "name": "苏州",
+        "value": 4412
+    },
+    {
+        "parent": "河南省",
+        "name": "郑州",
+        "value": 4169
+    },
+    {
+        "parent": "陕西省",
+        "name": "西安",
+        "value": 4037
+    },
+    {
+        "parent": "福建省",
+        "name": "福州",
+        "value": 3684
+    },
+    {
+        "parent": "云南省",
+        "name": "昆明",
+        "value": 3271
+    },
+    {
+        "parent": "山东省",
+        "name": "济南",
+        "value": 2855
+    },
+    {
+        "parent": "浙江省",
+        "name": "温州",
+        "value": 2753
+    },
+    {
+        "parent": "福建省",
+        "name": "厦门",
+        "value": 2682
+    },
+    {
+        "parent": "广西壮族自治区",
+        "name": "南宁",
+        "value": 2670
+    },
+    {
+        "parent": "黑龙江省",
+        "name": "哈尔滨",
+        "value": 2667
+    },
+    {
+        "parent": "贵州省",
+        "name": "贵阳",
+        "value": 2616
+    },
+    {
+        "parent": "江西省",
+        "name": "南昌",
+        "value": 2586
+    },
+    {
+        "parent": "安徽省",
+        "name": "合肥",
+        "value": 2566
+    },
+    {
+        "parent": "山东省",
+        "name": "青岛",
+        "value": 2473
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "乌鲁木齐",
+        "value": 2431
+    },
+    {
+        "parent": "江苏省",
+        "name": "无锡",
+        "value": 2359
+    },
+    {
+        "parent": "河北省",
+        "name": "石家庄",
+        "value": 2346
+    },
+    {
+        "parent": "辽宁省",
+        "name": "沈阳",
+        "value": 2329
+    },
+    {
+        "parent": "广东省",
+        "name": "东莞",
+        "value": 2303
+    },
+    {
+        "parent": "山西省",
+        "name": "太原",
+        "value": 2281
+    },
+    {
+        "parent": "浙江省",
+        "name": "金华",
+        "value": 2247
+    },
+    {
+        "parent": "辽宁省",
+        "name": "大连",
+        "value": 2230
+    },
+    {
+        "parent": "吉林省",
+        "name": "长春",
+        "value": 2043
+    },
+    {
+        "parent": "广东省",
+        "name": "佛山",
+        "value": 2030
+    },
+    {
+        "parent": "浙江省",
+        "name": "嘉兴",
+        "value": 1894
+    },
+    {
+        "parent": "浙江省",
+        "name": "绍兴",
+        "value": 1892
+    },
+    {
+        "parent": "江苏省",
+        "name": "常州",
+        "value": 1729
+    },
+    {
+        "parent": "浙江省",
+        "name": "台州",
+        "value": 1549
+    },
+    {
+        "parent": "福建省",
+        "name": "泉州",
+        "value": 1485
+    },
+    {
+        "parent": "内蒙古自治区",
+        "name": "呼和浩特",
+        "value": 1464
+    },
+    {
+        "parent": "甘肃省",
+        "name": "兰州",
+        "value": 1427
+    },
+    {
+        "parent": "江苏省",
+        "name": "南通",
+        "value": 1409
+    },
+    {
+        "parent": "山东省",
+        "name": "烟台",
+        "value": 1396
+    },
+    {
+        "parent": "河北省",
+        "name": "保定",
+        "value": 1240
+    },
+    {
+        "parent": "广东省",
+        "name": "珠海",
+        "value": 1232
+    },
+    {
+        "parent": "河北省",
+        "name": "唐山",
+        "value": 1220
+    },
+    {
+        "parent": "海南省",
+        "name": "海口",
+        "value": 1220
+    },
+    {
+        "parent": "江苏省",
+        "name": "徐州",
+        "value": 1180
+    },
+    {
+        "parent": "江苏省",
+        "name": "扬州",
+        "value": 1094
+    },
+    {
+        "parent": "山东省",
+        "name": "潍坊",
+        "value": 1063
+    },
+    {
+        "parent": "河北省",
+        "name": "廊坊",
+        "value": 988
+    },
+    {
+        "parent": "江西省",
+        "name": "赣州",
+        "value": 957
+    },
+    {
+        "parent": "广西壮族自治区",
+        "name": "柳州",
+        "value": 955
+    },
+    {
+        "parent": "广西壮族自治区",
+        "name": "桂林",
+        "value": 954
+    },
+    {
+        "parent": "广东省",
+        "name": "中山",
+        "value": 953
+    },
+    {
+        "parent": "河南省",
+        "name": "洛阳",
+        "value": 951
+    },
+    {
+        "parent": "山东省",
+        "name": "济宁",
+        "value": 942
+    },
+    {
+        "parent": "贵州省",
+        "name": "遵义",
+        "value": 941
+    },
+    {
+        "parent": "浙江省",
+        "name": "湖州",
+        "value": 914
+    },
+    {
+        "parent": "广东省",
+        "name": "惠州",
+        "value": 894
+    },
+    {
+        "parent": "湖南省",
+        "name": "株洲",
+        "value": 889
+    },
+    {
+        "parent": "江苏省",
+        "name": "镇江",
+        "value": 867
+    },
+    {
+        "parent": "河北省",
+        "name": "秦皇岛",
+        "value": 857
+    },
+    {
+        "parent": "宁夏回族自治区",
+        "name": "银川",
+        "value": 846
+    },
+    {
+        "parent": "江苏省",
+        "name": "盐城",
+        "value": 842
+    },
+    {
+        "parent": "内蒙古自治区",
+        "name": "包头",
+        "value": 835
+    },
+    {
+        "parent": "河南省",
+        "name": "新乡",
+        "value": 811
+    },
+    {
+        "parent": "山东省",
+        "name": "临沂",
+        "value": 800
+    },
+    {
+        "parent": "广东省",
+        "name": "汕头",
+        "value": 799
+    },
+    {
+        "parent": "江苏省",
+        "name": "泰州",
+        "value": 786
+    },
+    {
+        "parent": "河北省",
+        "name": "沧州",
+        "value": 784
+    },
+    {
+        "parent": "湖南省",
+        "name": "岳阳",
+        "value": 781
+    },
+    {
+        "parent": "河北省",
+        "name": "邯郸",
+        "value": 779
+    },
+    {
+        "parent": "山东省",
+        "name": "淄博",
+        "value": 776
+    },
+    {
+        "parent": "江西省",
+        "name": "上饶",
+        "value": 774
+    },
+    {
+        "parent": "湖北省",
+        "name": "宜昌",
+        "value": 773
+    },
+    {
+        "parent": "四川省",
+        "name": "绵阳",
+        "value": 763
+    },
+    {
+        "parent": "浙江省",
+        "name": "舟山",
+        "value": 750
+    },
+    {
+        "parent": "福建省",
+        "name": "漳州",
+        "value": 743
+    },
+    {
+        "parent": "湖南省",
+        "name": "湘潭",
+        "value": 740
+    },
+    {
+        "parent": "吉林省",
+        "name": "吉林",
+        "value": 737
+    },
+    {
+        "parent": "广东省",
+        "name": "湛江",
+        "value": 728
+    },
+    {
+        "parent": "湖南省",
+        "name": "衡阳",
+        "value": 715
+    },
+    {
+        "parent": "山西省",
+        "name": "晋中",
+        "value": 682
+    },
+    {
+        "parent": "浙江省",
+        "name": "丽水",
+        "value": 664
+    },
+    {
+        "parent": "福建省",
+        "name": "宁德",
+        "value": 659
+    },
+    {
+        "parent": "江西省",
+        "name": "九江",
+        "value": 649
+    },
+    {
+        "parent": "湖南省",
+        "name": "常德",
+        "value": 648
+    },
+    {
+        "parent": "湖北省",
+        "name": "荆州",
+        "value": 648
+    },
+    {
+        "parent": "山西省",
+        "name": "大同",
+        "value": 637
+    },
+    {
+        "parent": "安徽省",
+        "name": "芜湖",
+        "value": 635
+    },
+    {
+        "parent": "湖北省",
+        "name": "襄阳",
+        "value": 634
+    },
+    {
+        "parent": "广东省",
+        "name": "江门",
+        "value": 614
+    },
+    {
+        "parent": "河南省",
+        "name": "南阳",
+        "value": 595
+    },
+    {
+        "parent": "云南省",
+        "name": "红河哈尼族彝族自治州",
+        "value": 591
+    },
+    {
+        "parent": "内蒙古自治区",
+        "name": "赤峰",
+        "value": 590
+    },
+    {
+        "parent": "江苏省",
+        "name": "连云港",
+        "value": 588
+    },
+    {
+        "parent": "山东省",
+        "name": "东营",
+        "value": 588
+    },
+    {
+        "parent": "黑龙江省",
+        "name": "大庆",
+        "value": 582
+    },
+    {
+        "parent": "河北省",
+        "name": "张家口",
+        "value": 579
+    },
+    {
+        "parent": "河南省",
+        "name": "商丘",
+        "value": 575
+    },
+    {
+        "parent": "福建省",
+        "name": "南平",
+        "value": 573
+    },
+    {
+        "parent": "陕西省",
+        "name": "咸阳",
+        "value": 563
+    },
+    {
+        "parent": "四川省",
+        "name": "南充",
+        "value": 559
+    },
+    {
+        "parent": "四川省",
+        "name": "德阳",
+        "value": 542
+    },
+    {
+        "parent": "江苏省",
+        "name": "淮安",
+        "value": 532
+    },
+    {
+        "parent": "山西省",
+        "name": "长治",
+        "value": 532
+    },
+    {
+        "parent": "河南省",
+        "name": "开封",
+        "value": 527
+    },
+    {
+        "parent": "浙江省",
+        "name": "衢州",
+        "value": 522
+    },
+    {
+        "parent": "辽宁省",
+        "name": "锦州",
+        "value": 521
+    },
+    {
+        "parent": "山东省",
+        "name": "威海",
+        "value": 507
+    },
+    {
+        "parent": "江西省",
+        "name": "宜春",
+        "value": 506
+    },
+    {
+        "parent": "河南省",
+        "name": "焦作",
+        "value": 502
+    },
+    {
+        "parent": "山东省",
+        "name": "泰安",
+        "value": 497
+    },
+    {
+        "parent": "广东省",
+        "name": "茂名",
+        "value": 493
+    },
+    {
+        "parent": "河北省",
+        "name": "邢台",
+        "value": 492
+    },
+    {
+        "parent": "福建省",
+        "name": "三明",
+        "value": 486
+    },
+    {
+        "parent": "湖南省",
+        "name": "郴州",
+        "value": 484
+    },
+    {
+        "parent": "云南省",
+        "name": "玉溪",
+        "value": 480
+    },
+    {
+        "parent": "河南省",
+        "name": "安阳",
+        "value": 480
+    },
+    {
+        "parent": "安徽省",
+        "name": "阜阳",
+        "value": 478
+    },
+    {
+        "parent": "辽宁省",
+        "name": "鞍山",
+        "value": 478
+    },
+    {
+        "parent": "陕西省",
+        "name": "榆林",
+        "value": 477
+    },
+    {
+        "parent": "云南省",
+        "name": "曲靖",
+        "value": 476
+    },
+    {
+        "parent": "湖北省",
+        "name": "黄冈",
+        "value": 470
+    },
+    {
+        "parent": "湖南省",
+        "name": "益阳",
+        "value": 469
+    },
+    {
+        "parent": "贵州省",
+        "name": "毕节地区",
+        "value": 466
+    },
+    {
+        "parent": "湖北省",
+        "name": "孝感",
+        "value": 464
+    },
+    {
+        "parent": "福建省",
+        "name": "莆田",
+        "value": 458
+    },
+    {
+        "parent": "山东省",
+        "name": "菏泽",
+        "value": 452
+    },
+    {
+        "parent": "四川省",
+        "name": "泸州",
+        "value": 451
+    },
+    {
+        "parent": "贵州省",
+        "name": "黔南布依族苗族自治州",
+        "value": 450
+    },
+    {
+        "parent": "山西省",
+        "name": "临汾",
+        "value": 444
+    },
+    {
+        "parent": "内蒙古自治区",
+        "name": "鄂尔多斯",
+        "value": 442
+    },
+    {
+        "parent": "河南省",
+        "name": "周口",
+        "value": 442
+    },
+    {
+        "parent": "安徽省",
+        "name": "滁州",
+        "value": 433
+    },
+    {
+        "parent": "广西壮族自治区",
+        "name": "玉林",
+        "value": 432
+    },
+    {
+        "parent": "河南省",
+        "name": "平顶山",
+        "value": 431
+    },
+    {
+        "parent": "河南省",
+        "name": "濮阳",
+        "value": 430
+    },
+    {
+        "parent": "四川省",
+        "name": "宜宾",
+        "value": 430
+    },
+    {
+        "parent": "黑龙江省",
+        "name": "牡丹江",
+        "value": 429
+    },
+    {
+        "parent": "河南省",
+        "name": "许昌",
+        "value": 429
+    },
+    {
+        "parent": "江西省",
+        "name": "吉安",
+        "value": 426
+    },
+    {
+        "parent": "青海省",
+        "name": "西宁",
+        "value": 425
+    },
+    {
+        "parent": "湖南省",
+        "name": "怀化",
+        "value": 424
+    },
+    {
+        "parent": "四川省",
+        "name": "乐山",
+        "value": 424
+    },
+    {
+        "parent": "山西省",
+        "name": "运城",
+        "value": 423
+    },
+    {
+        "parent": "安徽省",
+        "name": "蚌埠",
+        "value": 422
+    },
+    {
+        "parent": "河南省",
+        "name": "信阳",
+        "value": 418
+    },
+    {
+        "parent": "江苏省",
+        "name": "宿迁",
+        "value": 415
+    },
+    {
+        "parent": "福建省",
+        "name": "龙岩",
+        "value": 415
+    },
+    {
+        "parent": "广西壮族自治区",
+        "name": "百色",
+        "value": 411
+    },
+    {
+        "parent": "山东省",
+        "name": "滨州",
+        "value": 407
+    },
+    {
+        "parent": "山东省",
+        "name": "聊城",
+        "value": 406
+    },
+    {
+        "parent": "云南省",
+        "name": "大理白族自治州",
+        "value": 403
+    },
+    {
+        "parent": "湖南省",
+        "name": "邵阳",
+        "value": 403
+    },
+    {
+        "parent": "广东省",
+        "name": "肇庆",
+        "value": 402
+    },
+    {
+        "parent": "湖南省",
+        "name": "永州",
+        "value": 402
+    },
+    {
+        "parent": "湖南省",
+        "name": "娄底",
+        "value": 399
+    },
+    {
+        "parent": "江西省",
+        "name": "抚州",
+        "value": 398
+    },
+    {
+        "parent": "湖北省",
+        "name": "黄石",
+        "value": 397
+    },
+    {
+        "parent": "湖北省",
+        "name": "恩施土家族苗族自治州",
+        "value": 396
+    },
+    {
+        "parent": "广西壮族自治区",
+        "name": "北海",
+        "value": 384
+    },
+    {
+        "parent": "黑龙江省",
+        "name": "齐齐哈尔",
+        "value": 380
+    },
+    {
+        "parent": "安徽省",
+        "name": "安庆",
+        "value": 379
+    },
+    {
+        "parent": "河北省",
+        "name": "承德",
+        "value": 375
+    },
+    {
+        "parent": "广东省",
+        "name": "清远",
+        "value": 374
+    },
+    {
+        "parent": "陕西省",
+        "name": "汉中",
+        "value": 371
+    },
+    {
+        "parent": "贵州省",
+        "name": "安顺",
+        "value": 369
+    },
+    {
+        "parent": "广东省",
+        "name": "潮州",
+        "value": 363
+    },
+    {
+        "parent": "山东省",
+        "name": "枣庄",
+        "value": 360
+    },
+    {
+        "parent": "广东省",
+        "name": "韶关",
+        "value": 359
+    },
+    {
+        "parent": "四川省",
+        "name": "达州",
+        "value": 357
+    },
+    {
+        "parent": "辽宁省",
+        "name": "葫芦岛",
+        "value": 357
+    },
+    {
+        "parent": "海南省",
+        "name": "三亚",
+        "value": 356
+    },
+    {
+        "parent": "江西省",
+        "name": "景德镇",
+        "value": 356
+    },
+    {
+        "parent": "山西省",
+        "name": "晋城",
+        "value": 356
+    },
+    {
+        "parent": "山东省",
+        "name": "德州",
+        "value": 346
+    },
+    {
+        "parent": "贵州省",
+        "name": "黔东南苗族侗族自治州",
+        "value": 342
+    },
+    {
+        "parent": "四川省",
+        "name": "凉山彝族自治州",
+        "value": 342
+    },
+    {
+        "parent": "安徽省",
+        "name": "宿州",
+        "value": 340
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "伊犁哈萨克自治州",
+        "value": 330
+    },
+    {
+        "parent": "山西省",
+        "name": "吕梁",
+        "value": 327
+    },
+    {
+        "parent": "陕西省",
+        "name": "宝鸡",
+        "value": 325
+    },
+    {
+        "parent": "湖北省",
+        "name": "十堰",
+        "value": 324
+    },
+    {
+        "parent": "山东省",
+        "name": "日照",
+        "value": 317
+    },
+    {
+        "parent": "吉林省",
+        "name": "延边朝鲜族自治州",
+        "value": 316
+    },
+    {
+        "parent": "陕西省",
+        "name": "延安",
+        "value": 313
+    },
+    {
+        "parent": "广东省",
+        "name": "揭阳",
+        "value": 312
+    },
+    {
+        "parent": "河南省",
+        "name": "驻马店",
+        "value": 312
+    },
+    {
+        "parent": "四川省",
+        "name": "眉山",
+        "value": 308
+    },
+    {
+        "parent": "陕西省",
+        "name": "渭南",
+        "value": 308
+    },
+    {
+        "parent": "湖北省",
+        "name": "咸宁",
+        "value": 307
+    },
+    {
+        "parent": "广东省",
+        "name": "梅州",
+        "value": 307
+    },
+    {
+        "parent": "内蒙古自治区",
+        "name": "呼伦贝尔",
+        "value": 307
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "克拉玛依",
+        "value": 305
+    },
+    {
+        "parent": "广西壮族自治区",
+        "name": "梧州",
+        "value": 303
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "巴音郭楞蒙古自治州",
+        "value": 302
+    },
+    {
+        "parent": "山西省",
+        "name": "忻州",
+        "value": 299
+    },
+    {
+        "parent": "广东省",
+        "name": "阳江",
+        "value": 294
+    },
+    {
+        "parent": "贵州省",
+        "name": "六盘水",
+        "value": 294
+    },
+    {
+        "parent": "安徽省",
+        "name": "马鞍山",
+        "value": 294
+    },
+    {
+        "parent": "广西壮族自治区",
+        "name": "钦州",
+        "value": 292
+    },
+    {
+        "parent": "贵州省",
+        "name": "黔西南布依族苗族自治州",
+        "value": 292
+    },
+    {
+        "parent": "辽宁省",
+        "name": "盘锦",
+        "value": 291
+    },
+    {
+        "parent": "安徽省",
+        "name": "宣城",
+        "value": 286
+    },
+    {
+        "parent": "安徽省",
+        "name": "淮南",
+        "value": 286
+    },
+    {
+        "parent": "辽宁省",
+        "name": "抚顺",
+        "value": 285
+    },
+    {
+        "parent": "云南省",
+        "name": "西双版纳傣族自治州",
+        "value": 283
+    },
+    {
+        "parent": "四川省",
+        "name": "攀枝花",
+        "value": 282
+    },
+    {
+        "parent": "四川省",
+        "name": "自贡",
+        "value": 280
+    },
+    {
+        "parent": "辽宁省",
+        "name": "营口",
+        "value": 277
+    },
+    {
+        "parent": "安徽省",
+        "name": "亳州",
+        "value": 275
+    },
+    {
+        "parent": "云南省",
+        "name": "普洱",
+        "value": 274
+    },
+    {
+        "parent": "内蒙古自治区",
+        "name": "乌海",
+        "value": 274
+    },
+    {
+        "parent": "安徽省",
+        "name": "六安",
+        "value": 273
+    },
+    {
+        "parent": "内蒙古自治区",
+        "name": "巴彦淖尔",
+        "value": 271
+    },
+    {
+        "parent": "湖北省",
+        "name": "荆门",
+        "value": 270
+    },
+    {
+        "parent": "云南省",
+        "name": "文山壮族苗族自治州",
+        "value": 268
+    },
+    {
+        "parent": "黑龙江省",
+        "name": "佳木斯",
+        "value": 266
+    },
+    {
+        "parent": "四川省",
+        "name": "雅安",
+        "value": 265
+    },
+    {
+        "parent": "内蒙古自治区",
+        "name": "锡林郭勒盟",
+        "value": 259
+    },
+    {
+        "parent": "云南省",
+        "name": "昭通",
+        "value": 257
+    },
+    {
+        "parent": "湖南省",
+        "name": "湘西土家族苗族自治州",
+        "value": 257
+    },
+    {
+        "parent": "内蒙古自治区",
+        "name": "通辽",
+        "value": 256
+    },
+    {
+        "parent": "广西壮族自治区",
+        "name": "贵港",
+        "value": 255
+    },
+    {
+        "parent": "贵州省",
+        "name": "铜仁地区",
+        "value": 255
+    },
+    {
+        "parent": "云南省",
+        "name": "丽江",
+        "value": 254
+    },
+    {
+        "parent": "广西壮族自治区",
+        "name": "河池",
+        "value": 254
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "石河子",
+        "value": 248
+    },
+    {
+        "parent": "河北省",
+        "name": "衡水",
+        "value": 243
+    },
+    {
+        "parent": "四川省",
+        "name": "遂宁",
+        "value": 240
+    },
+    {
+        "parent": "江西省",
+        "name": "鹰潭",
+        "value": 239
+    },
+    {
+        "parent": "四川省",
+        "name": "内江",
+        "value": 236
+    },
+    {
+        "parent": "辽宁省",
+        "name": "铁岭",
+        "value": 236
+    },
+    {
+        "parent": "甘肃省",
+        "name": "天水",
+        "value": 235
+    },
+    {
+        "parent": "吉林省",
+        "name": "四平",
+        "value": 235
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "昌吉回族自治州",
+        "value": 234
+    },
+    {
+        "parent": "江西省",
+        "name": "新余",
+        "value": 228
+    },
+    {
+        "parent": "黑龙江省",
+        "name": "绥化",
+        "value": 228
+    },
+    {
+        "parent": "山西省",
+        "name": "阳泉",
+        "value": 226
+    },
+    {
+        "parent": "河南省",
+        "name": "三门峡",
+        "value": 226
+    },
+    {
+        "parent": "辽宁省",
+        "name": "本溪",
+        "value": 221
+    },
+    {
+        "parent": "陕西省",
+        "name": "安康",
+        "value": 221
+    },
+    {
+        "parent": "四川省",
+        "name": "广安",
+        "value": 220
+    },
+    {
+        "parent": "广西壮族自治区",
+        "name": "贺州",
+        "value": 220
+    },
+    {
+        "parent": "辽宁省",
+        "name": "阜新",
+        "value": 218
+    },
+    {
+        "parent": "辽宁省",
+        "name": "朝阳",
+        "value": 217
+    },
+    {
+        "parent": "河南省",
+        "name": "漯河",
+        "value": 215
+    },
+    {
+        "parent": "广东省",
+        "name": "河源",
+        "value": 212
+    },
+    {
+        "parent": "四川省",
+        "name": "资阳",
+        "value": 212
+    },
+    {
+        "parent": "江西省",
+        "name": "萍乡",
+        "value": 209
+    },
+    {
+        "parent": "山西省",
+        "name": "朔州",
+        "value": 208
+    },
+    {
+        "parent": "辽宁省",
+        "name": "辽阳",
+        "value": 208
+    },
+    {
+        "parent": "安徽省",
+        "name": "淮北",
+        "value": 206
+    },
+    {
+        "parent": "吉林省",
+        "name": "通化",
+        "value": 200
+    },
+    {
+        "parent": "内蒙古自治区",
+        "name": "乌兰察布",
+        "value": 198
+    },
+    {
+        "parent": "甘肃省",
+        "name": "酒泉",
+        "value": 197
+    },
+    {
+        "parent": "四川省",
+        "name": "广元",
+        "value": 197
+    },
+    {
+        "parent": "云南省",
+        "name": "楚雄彝族自治州",
+        "value": 196
+    },
+    {
+        "parent": "广西壮族自治区",
+        "name": "防城港",
+        "value": 194
+    },
+    {
+        "parent": "安徽省",
+        "name": "黄山",
+        "value": 193
+    },
+    {
+        "parent": "云南省",
+        "name": "德宏傣族景颇族自治州",
+        "value": 188
+    },
+    {
+        "parent": "云南省",
+        "name": "临沧",
+        "value": 185
+    },
+    {
+        "parent": "云南省",
+        "name": "保山",
+        "value": 180
+    },
+    {
+        "parent": "吉林省",
+        "name": "松原",
+        "value": 180
+    },
+    {
+        "parent": "西藏自治区",
+        "name": "拉萨",
+        "value": 179
+    },
+    {
+        "parent": "甘肃省",
+        "name": "庆阳",
+        "value": 173
+    },
+    {
+        "parent": "湖南省",
+        "name": "张家界",
+        "value": 168
+    },
+    {
+        "parent": "广西壮族自治区",
+        "name": "崇左",
+        "value": 166
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "哈密地区",
+        "value": 160
+    },
+    {
+        "parent": "广东省",
+        "name": "云浮",
+        "value": 158
+    },
+    {
+        "parent": "辽宁省",
+        "name": "丹东",
+        "value": 158
+    },
+    {
+        "parent": "黑龙江省",
+        "name": "鸡西",
+        "value": 157
+    },
+    {
+        "parent": "广东省",
+        "name": "汕尾",
+        "value": 154
+    },
+    {
+        "parent": "四川省",
+        "name": "巴中",
+        "value": 148
+    },
+    {
+        "parent": "湖北省",
+        "name": "潜江",
+        "value": 148
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "塔城地区",
+        "value": 148
+    },
+    {
+        "parent": "黑龙江省",
+        "name": "双鸭山",
+        "value": 147
+    },
+    {
+        "parent": "河南省",
+        "name": "鹤壁",
+        "value": 145
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "阿克苏地区",
+        "value": 143
+    },
+    {
+        "parent": "广西壮族自治区",
+        "name": "来宾",
+        "value": 142
+    },
+    {
+        "parent": "吉林省",
+        "name": "白城",
+        "value": 140
+    },
+    {
+        "parent": "安徽省",
+        "name": "池州",
+        "value": 138
+    },
+    {
+        "parent": "甘肃省",
+        "name": "张掖",
+        "value": 138
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "喀什地区",
+        "value": 137
+    },
+    {
+        "parent": "安徽省",
+        "name": "铜陵",
+        "value": 130
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "阿勒泰地区",
+        "value": 129
+    },
+    {
+        "parent": "湖北省",
+        "name": "鄂州",
+        "value": 128
+    },
+    {
+        "parent": "黑龙江省",
+        "name": "黑河",
+        "value": 126
+    },
+    {
+        "parent": "宁夏回族自治区",
+        "name": "吴忠",
+        "value": 124
+    },
+    {
+        "parent": "湖北省",
+        "name": "随州",
+        "value": 122
+    },
+    {
+        "parent": "湖北省",
+        "name": "仙桃",
+        "value": 119
+    },
+    {
+        "parent": "黑龙江省",
+        "name": "伊春",
+        "value": 117
+    },
+    {
+        "parent": "河南省",
+        "name": "济源",
+        "value": 109
+    },
+    {
+        "parent": "内蒙古自治区",
+        "name": "兴安盟",
+        "value": 106
+    },
+    {
+        "parent": "海外",
+        "name": "海外",
+        "value": 105
+    },
+    {
+        "parent": "甘肃省",
+        "name": "白银",
+        "value": 104
+    },
+    {
+        "parent": "甘肃省",
+        "name": "陇南",
+        "value": 101
+    },
+    {
+        "parent": "黑龙江省",
+        "name": "鹤岗",
+        "value": 97
+    },
+    {
+        "parent": "吉林省",
+        "name": "白山",
+        "value": 96
+    },
+    {
+        "parent": "甘肃省",
+        "name": "定西",
+        "value": 96
+    },
+    {
+        "parent": "山东省",
+        "name": "莱芜",
+        "value": 94
+    },
+    {
+        "parent": "甘肃省",
+        "name": "平凉",
+        "value": 93
+    },
+    {
+        "parent": "宁夏回族自治区",
+        "name": "石嘴山",
+        "value": 93
+    },
+    {
+        "parent": "海南省",
+        "name": "儋州",
+        "value": 92
+    },
+    {
+        "parent": "甘肃省",
+        "name": "武威",
+        "value": 88
+    },
+    {
+        "parent": "陕西省",
+        "name": "商洛",
+        "value": 84
+    },
+    {
+        "parent": "湖北省",
+        "name": "天门",
+        "value": 82
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "吐鲁番地区",
+        "value": 81
+    },
+    {
+        "parent": "陕西省",
+        "name": "铜川",
+        "value": 80
+    },
+    {
+        "parent": "吉林省",
+        "name": "辽源",
+        "value": 78
+    },
+    {
+        "parent": "甘肃省",
+        "name": "金昌",
+        "value": 77
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "博尔塔拉蒙古自治州",
+        "value": 75
+    },
+    {
+        "parent": "四川省",
+        "name": "阿坝藏族羌族自治州",
+        "value": 73
+    },
+    {
+        "parent": "云南省",
+        "name": "怒江傈僳族自治州",
+        "value": 71
+    },
+    {
+        "parent": "四川省",
+        "name": "甘孜藏族自治州",
+        "value": 70
+    },
+    {
+        "parent": "宁夏回族自治区",
+        "name": "中卫",
+        "value": 66
+    },
+    {
+        "parent": "云南省",
+        "name": "迪庆藏族自治州",
+        "value": 64
+    },
+    {
+        "parent": "黑龙江省",
+        "name": "七台河",
+        "value": 63
+    },
+    {
+        "parent": "甘肃省",
+        "name": "嘉峪关",
+        "value": 62
+    },
+    {
+        "parent": "海南省",
+        "name": "琼海",
+        "value": 61
+    },
+    {
+        "parent": "宁夏回族自治区",
+        "name": "固原",
+        "value": 59
+    },
+    {
+        "parent": "甘肃省",
+        "name": "临夏回族自治州",
+        "value": 55
+    },
+    {
+        "parent": "内蒙古自治区",
+        "name": "阿拉善盟",
+        "value": 54
+    },
+    {
+        "parent": "海南省",
+        "name": "文昌",
+        "value": 52
+    },
+    {
+        "parent": "海南省",
+        "name": "陵水黎族自治县",
+        "value": 51
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "五家渠",
+        "value": 50
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "和田地区",
+        "value": 49
+    },
+    {
+        "parent": "青海省",
+        "name": "海西蒙古族藏族自治州",
+        "value": 48
+    },
+    {
+        "parent": "海南省",
+        "name": "万宁",
+        "value": 45
+    },
+    {
+        "parent": "海南省",
+        "name": "东方",
+        "value": 40
+    },
+    {
+        "parent": "西藏自治区",
+        "name": "林芝地区",
+        "value": 36
+    },
+    {
+        "parent": "青海省",
+        "name": "海东地区",
+        "value": 34
+    },
+    {
+        "parent": "海南省",
+        "name": "五指山",
+        "value": 34
+    },
+    {
+        "parent": "海南省",
+        "name": "澄迈县",
+        "value": 34
+    },
+    {
+        "parent": "黑龙江省",
+        "name": "大兴安岭地区",
+        "value": 33
+    },
+    {
+        "parent": "海南省",
+        "name": "乐东黎族自治县",
+        "value": 30
+    },
+    {
+        "parent": "甘肃省",
+        "name": "甘南藏族自治州",
+        "value": 27
+    },
+    {
+        "parent": "海南省",
+        "name": "昌江黎族自治县",
+        "value": 23
+    },
+    {
+        "parent": "香港特别行政区",
+        "name": "新界",
+        "value": 20
+    },
+    {
+        "parent": "台湾省",
+        "name": "高雄",
+        "value": 19
+    },
+    {
+        "parent": "海南省",
+        "name": "保亭黎族苗族自治县",
+        "value": 19
+    },
+    {
+        "parent": "海南省",
+        "name": "琼中黎族苗族自治县",
+        "value": 18
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "阿拉尔",
+        "value": 18
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "克孜勒苏柯尔克孜自治州",
+        "value": 18
+    },
+    {
+        "parent": "海南省",
+        "name": "临高县",
+        "value": 18
+    },
+    {
+        "parent": "海南省",
+        "name": "屯昌县",
+        "value": 15
+    },
+    {
+        "parent": "西藏自治区",
+        "name": "山南地区",
+        "value": 14
+    },
+    {
+        "parent": "海南省",
+        "name": "定安县",
+        "value": 12
+    },
+    {
+        "parent": "香港特别行政区",
+        "name": "九龙",
+        "value": 12
+    },
+    {
+        "parent": "西藏自治区",
+        "name": "昌都地区",
+        "value": 11
+    },
+    {
+        "parent": "青海省",
+        "name": "黄南藏族自治州",
+        "value": 10
+    },
+    {
+        "parent": "西藏自治区",
+        "name": "日喀则地区",
+        "value": 10
+    },
+    {
+        "parent": "海南省",
+        "name": "白沙黎族自治县",
+        "value": 9
+    },
+    {
+        "parent": "青海省",
+        "name": "果洛藏族自治州",
+        "value": 7
+    },
+    {
+        "parent": "湖北省",
+        "name": "神农架林区",
+        "value": 7
+    },
+    {
+        "parent": "青海省",
+        "name": "海北藏族自治州",
+        "value": 7
+    },
+    {
+        "parent": "台湾省",
+        "name": "新北",
+        "value": 5
+    },
+    {
+        "parent": null,
+        "name": null,
+        "value": 4
+    },
+    {
+        "parent": "青海省",
+        "name": "海南藏族自治州",
+        "value": 4
+    },
+    {
+        "parent": "台湾省",
+        "name": "台中",
+        "value": 4
+    },
+    {
+        "parent": "新疆维吾尔自治区",
+        "name": "图木舒克",
+        "value": 4
+    },
+    {
+        "parent": "西藏自治区",
+        "name": "那曲地区",
+        "value": 4
+    },
+    {
+        "parent": "香港特别行政区",
+        "name": "香港岛",
+        "value": 3
+    },
+    {
+        "parent": "青海省",
+        "name": "玉树藏族自治州",
+        "value": 3
+    },
+    {
+        "parent": "台湾省",
+        "name": "台南",
+        "value": 3
+    },
+    {
+        "parent": "台湾省",
+        "name": "台北",
+        "value": 2
+    },
+    {
+        "parent": "台湾省",
+        "name": "嘉义县",
+        "value": 2
+    },
+    {
+        "parent": "海南省",
+        "name": "中沙群岛的岛礁及其海域",
+        "value": 1
+    },
+    {
+        "parent": "西藏自治区",
+        "name": "阿里地区",
+        "value": 1
+    },
+    {
+        "parent": "台湾省",
+        "name": "新竹",
+        "value": 1
+    },
+    {
+        "parent": "MALI",
+        "name": "MALI",
+        "value": 1
+    }
+]

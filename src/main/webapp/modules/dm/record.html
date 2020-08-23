@@ -1,0 +1,273 @@
+<!DOCTYPE HTML>
+<HTML xmlns:Tree xmlns:Grid>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>数据（录入）表维护</title>
+
+<link href="../../tools/tssJS/css/boubei.css" rel="stylesheet">
+<link href="../../tools/tssJS/fonts/icons.css" rel="stylesheet" >
+<link href="../../css/css.css" rel="stylesheet">
+<link href="dm.css" rel="stylesheet">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.json2Form.js"></script>
+<script src="../../tools/tssJS/tssJS.jsonp.js"></script>
+<script src="../../tools/tssUtils.js"></script>
+
+<script src="dm.js"></script>
+<script src="record.js"></script>
+
+<style>
+
+.bts { padding-left: 10px; padding-top: 10px; text-align: center; }
+
+.Formbox { display:none; background-color:#E0ECFF; border-radius: 5px; }
+
+#recordFormDiv { width: 96%; height: 100%; padding: 10px; display: none; overflow-y: auto;}
+
+#recordDefinesDiv { width: 700px; height: 395px; padding: 5px; }
+#recordDefinesDiv Tree, #defineForm { background-color: #fff; display:inline-block; }
+#recordDefinesDiv Tree { width:202px; height:90%; overflow-y: auto; }
+#recordDefinesDiv .bts { margin-left: 10px; padding-top: 5px; position:absolute; bottom: 2px; left:0; }
+
+#defineForm { width:473px; height:95.5%; padding: 5px 5px; position: absolute; top:5px; left:222px; }
+#defineForm .required { color: red; width: 10px; display: inline-block; text-align: right; }
+#defineForm td:nth-child(odd) { 
+	color: #999; width: 60px; display: inline-block; text-align: right; line-height: 32px; 
+}
+#defineForm td:nth-child(2) { width: 180px; }
+#defineForm input[type=text] {
+    width: 140px;
+    height: 20px;
+    border: 1px solid #95B8E7;
+    border-radius: 2px;
+    padding-left: 2px;
+}
+#defineForm input[type=range] { width: 120px; margin-right: 5px; }
+#defineForm select { height: 20px; border: 1px solid #95B8E7; border-radius: 2px; }
+#manual {
+	position: absolute;
+    bottom: 10px;
+    left: 222px;
+    padding: 0 10px;
+    text-indent: 22px;
+    color: #999;
+    line-height: 20px;
+}
+
+textarea.fullscreenable, .fullscreenable {  width:95%; height:300px; margin-left: 2%; padding-left: 3px;}
+textarea.halfscreenable {  width:45%; height:300px; margin-left: 2%; padding-left: 3px;}
+.tss-textarea > div > a { right: -1%; }
+#designerForm { display: inline-block; width: 49%;
+    height: 300px;
+    border: 1px dashed #95B8E7;
+    margin-left: 1%; 
+}
+#moreConfig1,#moreConfig2 { height:325px; margin-left: 2%; padding-left: 35px; line-height: 30px; vertical-align: top; }
+#moreConfig1 label, #moreConfig2 label { display: inline-block; width: 90px; }
+
+#recordForm tr { height: 30px; }
+#recordForm td>p { color: #ccc; margin:4px 10px 0 2%; height:18px;}
+
+#tabmenu { height: 44px; }
+#tabmenu ul { 
+	width: 95%; height: 22px; margin-left: 2%; padding-top: 4px;
+	list-style-type: none; border-bottom: 1px solid #95B8E7;
+}
+#tabmenu li { 
+	text-align: center; 
+	float:left;
+	width: 100px; 
+	line-height: 21px;
+	background-color: #EDF6FC;
+	cursor:pointer;
+	margin-left: 8px;
+	border-radius: 4px 4px 0 0;
+	border: 1px solid #95B8E7;
+	border-bottom: 0;
+}
+#tabmenu li.selected { background-color: #FFF; color: #000; cursor: default; height: 22px; }
+
+#t12 { width: 96%; height: 300px; table-layout: fixed; margin-left: 2%; }
+#t12 tr { height: 25px; }
+#t12 tr:hover { background-color: #FEF7A9; }
+#t12 th, #t12 td { text-align: left; border-bottom: 1px solid #f9f9f9; padding: 0 2px; }
+#t12 thead { background: linear-gradient(#f9f9f9 0px, #efefef 100%) repeat-x; }
+#t12 thead th { font-weight: normal; }
+#t12 tbody { background-color: #fff; }
+#t12 tbody td { overflow: hidden; text-overflow: ellipsis; word-break: break-all; white-space: nowrap; }
+</style>
+
+</head>
+
+<body>
+
+<table class="panel" >
+  <tr class="header"> <td/><td/><td/><td/> </tr>
+  <tr class="body"> 
+	<td/>
+	<!-- 左栏 开始 -->
+	<td id="palette">
+	  <div>
+	  	<div class="bar">
+			<span class="icon"></span>数据表 
+            <span class="search"><input id="searchKey"/><span class="icon-search"></span></span>
+			<span class="refreshTreeBT"></span>
+		</div>
+		<Tree id="tree" moveable="true"><div class="loading"></div></Tree>
+	  </div> 
+	</td>
+	<td class="groove">
+        <div id="recordFormDiv">
+            <div id="recordForm"></div>
+            <div class="bts">
+                <input type="button" class="tssbutton medium blue" value="保 存" id="sourceSave"/> &nbsp;&nbsp;&nbsp;
+                <input type="button" class="tssbutton medium blue" value="关 闭" id="closeRecordForm"/>
+            </div>
+        </div>	
+	</td>
+	<td/>
+  </tr>
+  <tr class="footer"> <td/><td/><td/><td/> </tr>
+</table>
+
+<div id="recordDefinesDiv" class="dialog Formbox">
+	<Tree id="fieldTree" moveable="true"></Tree>
+	<table id="defineForm">
+		<tr>
+			<td>字段名称：</td>
+			<td><input type="text" id="_label" autocomplete="off"/><em class="required">*</em></td>
+			<td>字段编码：</td>
+			<td>
+				<input type="text" id="_code" autocomplete="off" placeholder="一律小写字母或数字"/>
+				<em class="required">*</em>
+			</td>
+		</tr>
+		<tr>
+			<td>字段类型：</td>
+			<td>
+				<select id="_type" style="width: 100px;">
+					<option value="string">字符串</option>
+					<option value="number">数字(小数)</option>
+					<option value="int">数字(整数)</option>
+					<option value="date">日期</option>
+					<option value="datetime">日期时间</option>
+					<option value="file">附件图片</option>
+		            <option value="hidden">隐藏</option>
+				</select> 	
+			</td>
+			<td>是否必填：</td>
+			<td>
+				<input name="_nullable" id="_nullable" type="checkbox" value="true" style="margin-right:20px">
+				<span class="nonumber nofile nohidden">
+					唯一性约束：
+					<input name="_unique" id="_unique" type="checkbox" value="true">
+				</span>
+			</td>
+		</tr>
+		<tr class="nofile">
+			<td>默认值：</td>
+			<td>
+				<input type="text" id="_defaultValue" placeholder="添加一个默认值"/>
+			</td>
+			<td>作为条件：</td>
+			<td>
+				<input name="_isparam" id="_isparam" type="checkbox" value="true" style="margin-right:20px">
+				<span class="nofile nohidden">
+					是否只读：
+					<input name="_readonly" id="_readonly" type="checkbox" value="true">
+				</span>
+			</td>
+		</tr>
+		<tr class="nohidden" id="regpattern">
+			<td>校验正则：</td> <td> <input type="text" id="_checkReg"/> </td>
+			<td>输入提示：</td> <td> <input type="text" id="_errorMsg"/> </td>
+		</tr>
+		<tr class="nohidden">
+			<td>格式化：</td> <td> <input type="text" id="_pattern" placeholder="例: ##,###.00"/> </td>
+			<td>列表展示：</td> <td><input name="show" id="_show" type="checkbox" value="false"></td>
+		</tr>
+		<tr class="nohidden">
+			<td>谁能编辑：</td> <td> <select id="_role1" style="width: 140px;"></select> </td>
+			<td>谁能查看：</td> <td> <select id="_role2" style="width: 140px;"></select> </td>
+		</tr>
+		<tr class="nohidden">
+			<td>列对齐：</td>
+			<td>
+				<select id="_calign" style="width: 100px;">
+					<option value="center">居中对齐</option>
+					<option value="left">左对齐</option>
+					<option value="right">右对齐</option>
+				</select> 
+			</td>
+			<td>表格列宽：</td>
+			<td>
+				<input type="text" id="_cwidth" placeholder="例:70px或10%"/> 
+			</td>
+		</tr>
+		<tr class="optionCfg">
+			<td>输入框宽：</td> 
+			<td> 
+				<input type="range" id="_width" min="60" max="350" value="200" step="10"/><span id="_width_">200</span>px 
+			</td>
+			<td>输入框高：</td> 
+			<td> 
+				<input type="range" id="_height" min="18" max="180" value="18" step="1"/><span id="_height_">18</span>px
+			</td>
+		</tr>
+		<tr class="optionCfg">
+			<td>选项列表：</td> 
+			<td colspan="2"> 
+				<input type="text" id="_options" placeholder="选项一|选项二 或 数据服务" style="width: 165px;"/>&nbsp;
+				<button class="tssbutton small blue" style="padding: .15em .2em .2em" onclick="checkDataService()">数据服务</button>
+			</td>
+			<td style="width: 120px; text-align: center;">
+				是否多选：<input name="_multiple" id="_multiple" type="checkbox" value="true">
+			</td>
+		</tr>
+		<tr class="optionCfg">		
+			<td>联动字段：</td> 
+			<td colspan="3"> 
+				<span class="ld">
+					<input type="text" id="ldField" style="width: 65px;" placeholder="字段编码"/>
+					<input type="text" id="ldService" style="width: 200px;" placeholder="数据服务ID|URL, 或独立Function"/>
+					<input type="text" id="ldParam" style="width: 65px;" placeholder="服务参数"/>
+				</span>
+				<input type="hidden" id="_onchange" style="width: 345px;margin-top:1px;"/>
+			</td>
+		</tr>
+	</table>
+	<div id="manual">
+		说明：鼠标右键点击左边根节点【字段列表】，新建一个字段，填写字段名称、编码、类型等必要信息。创建完所有字段后，点左下角【完成配置】。如需修改某个字段，鼠标点击相应字段名称；删除字段，右键点击相应字段名称，再点菜单【删除】。
+	</div>
+	<div class="bts">
+		<input type="button" class="tssbutton small blue" value="完成配置" onclick="saveDefine()"/>
+		<input type="button" class="tssbutton small orange" value="关 闭" onclick="closeDefine()"/>
+	</div>
+</div>
+
+<iframe id="downloadFrame" style="display:none"></iframe>
+
+<table class="template" style="display:none;">
+	<thead>
+		<tr>
+			<th width="8%">字段名称</th>
+			<th width="8%">字段编码</th>
+			<th width="8%">字段类型</th>
+			<th width="6%">默认值</th>
+			<th width="6%">是否必填</th>
+			<th width="6%">是否唯一</th>
+			<th width="6%">作为条件</th>
+			<th width="5%">列宽</th>
+			<th width="5%">列对齐</th>
+			<th width="8%">谁能查看</th>
+			<th width="8%">谁能编辑</th>
+		</tr>
+	</thead>
+	<tbody>
+	</tbody>
+</table>
+
+</body>
+</html>

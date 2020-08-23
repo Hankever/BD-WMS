@@ -1,0 +1,2350 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>管理订单</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.data.js"></script>
+<script src="../../tools/util_date.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+<script src="../../tools/easyui.js"></script>
+<script src="../wms/wms.js"></script>
+<script src="oms.js"></script>
+
+<STYLE type="text/css">
+
+#dlg1,#dlg2 { padding:0 }
+#b1 { color: red; }
+.can-click { 
+    cursor: pointer; 
+    text-decoration: underline; 
+    font-weight: bold; 
+    background-color:RGB(234,242,255); 
+}
+#tb2 { display: flex; align-items: center; }
+.combo-icon { line-height: 22px; }
+
+#fm6 {width: 100%; height: 100%;}
+#whlist{
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
+}
+
+.whitem{
+    width: 48%;
+    height: 30px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    line-height: 24.5px;
+    border: 1px dashed grey;
+    margin: 1%;
+}
+		 
+</STYLE>
+
+<script type="text/javascript">
+
+var TO = {}, FIELD = "t1", refreshID, TAG, ORDERNO_LIST = [];
+var CONFIG = {};
+
+var FIELDS_0_1 = [
+    {title:'总量', field:'a', rowspan:2, width:60},
+    {title:'审核状态', colspan:4},
+    {title:'取消', field:'c', rowspan:2, width:60}
+];
+
+var FIELDS_0_2 = [
+    {title:'待打单', field:'t1', width:60},
+    {title:'待发货', field:'t2', width:60},
+    {title:'已发货', field:'t3', width:60},
+    {title:'拒绝', field:'t4', width:60}
+];
+
+$.each(FIELDS_0_1, function(i, field){
+    field.align = "center";
+    field.styler = canClick; 
+});
+$.each(FIELDS_0_2, function(i, field){
+    field.align = "center";
+    field.styler = canClick; 
+});
+
+$(function(){
+    var tag = decodeURIComponent( tssJS.Query.get("tag") || "");
+    var showPrint = false;
+    if(tag == "jump"){
+        var codes = window.parent.globalPrintV.data || [];
+        ORDERNO_LIST = codes;
+        showPrint = true;
+        FIELD = "a";
+    }
+    TAG = tag;
+
+    prepareSKUs();
+    prepareWHs();
+
+    Promise.all([getSite(), fetchCodeMap()]).then(
+        (values) => {
+            initQuery(showPrint);
+        },
+        (reason) => {
+            $.messager.alert({ title: '提示', msg: reason });
+        }
+    );
+});
+
+function initQuery(showPrint){
+    initParams();
+    queryOrder(showPrint);
+    initStoreForm();
+    initAccountForm();
+}
+
+function initParams(){
+    $("#datestart").datebox("setValue", subDateS(now, 31));
+    $("#dateend").datebox("setValue", cday);
+
+    $('#d_status').combobox({
+        panelHeight:'auto',
+        valueField:'name',
+        textField:'name',
+        data: ORDER_STATUS
+    });
+}
+
+function getParams(){
+    var params = getFormData("fm1");
+    tssJS.each(params, function(key, val){
+        if(!val) delete params[key];
+    });
+
+    if(!params.datestart){
+        $.messager.alert({ title: '提示', msg: '请输入开始日期！' });
+        return;
+    }
+    if(!params.dateend){
+        $.messager.alert({ title: '提示', msg: '请输入结束日期！' });
+        return;
+    }
+
+    if(params.orderno){
+        params.orderno = tssJS.fixSplit(params.orderno);
+    }
+    if(params.logisticcode){
+        params.logisticcode = tssJS.fixSplit(params.logisticcode);
+    }
+
+    params.createtime = "[" + params.datestart + ", " + subDateS(toDate(params.dateend), -1) + "]";
+    params.pagesize = 100000;
+
+    delete params["datestart"];
+    delete params["dateend"];
+
+    return params;
+}
+
+function queryOrder(showPrint){
+    $('#dlg1').dialog('close');
+
+    if(editing){
+        return;
+    }
+
+    if(refreshID){
+        $("#refresh").linkbutton({text:"关闭刷新"});
+    }
+
+    var params = getParams();
+
+    if(!params){
+        return;
+    }
+
+    if(TAG == "jump"){
+        params = {};
+        params.orderno = ORDERNO_LIST;
+        if(ORDERNO_LIST.length == 0){
+            handleData([], showPrint);
+            return;
+        }
+    }
+
+    params.fields = "id,verify,status,origin";
+
+    tssJS.getJSON(ORDER.QUERY, params, function(data) {
+        handleData(data, showPrint);
+    });
+}
+
+function handleData(data, showPrint){
+    var h = {};
+    $.each(FIELDS_0_1, function(i, field){
+        if(field.field){
+            h[field.field] = "加载中...";
+            h["_" + field.field] = [];
+        }
+    });
+    $.each(FIELDS_0_2, function(i, field){
+        if(field.field){
+            h[field.field] = "加载中...";
+            h["_" + field.field] = [];
+        }
+    });
+
+    data.each(function(i, item){
+        if(TAG == "jump" || item.origin != "WB"){
+            if(item.status != '已取消'){
+                h._a.push(item.id);
+
+                if(!item.verify || item.verify == '待审核'){
+                    h._t1.push(item.id);
+                }
+                else if(item.verify == '拒绝'){
+                    h._t4.push(item.id);
+                }
+                else if(item.verify == '通过' && ["已发货", "待收货", "已收货"].contains(item.status)){
+                    h._t3.push(item.id);
+                }
+                else{
+                    h._t2.push(item.id);
+                }
+            }
+            else{
+                h._c.push(item.id);
+            }
+        }
+    });
+
+    h.a = h._a.length;
+
+    h.t1 = h._t1.length;
+    h.t2 = h._t2.length;
+    h.t3 = h._t3.length;
+    h.t4 = h._t4.length;
+
+    h.c = h._c.length;
+
+    TO = h;
+    $("#lrt").text( tssJS.now(true) ); 
+    showTable(showPrint);
+}
+
+function showTable(showPrint){
+    showTotal();
+    showDetal(showPrint);
+}
+
+var dg1;
+function showTotal(){
+    dg1 = $('#t-1').datagrid({
+        scrollbarSize: 0,
+        fit: true,
+        fitColumns: true,
+        data: [TO],
+        columns:[FIELDS_0_1, FIELDS_0_2],
+        onClickRow: function (index, row) {
+            $(this).datagrid('unselectRow', index);
+        },
+        onClickCell: function(index, field, value) {
+            FIELD = field;
+            cellHighLight(index, field);
+            showDetal();
+        }
+    });
+}
+
+function cellHighLight(index, field){
+    var fieldList = ['a', 't1', 't2', 't3', 'c'];
+    var fieldIndex = fieldList.indexOf(field);
+
+    var a = document.getElementById("t-1");
+    var parent = a.parentNode;
+    var view2 = parent.childNodes[1];
+    var datagridbody = view2.childNodes[1];
+    var tablenode = datagridbody.childNodes[0];
+    var tbodynode = tablenode.childNodes[0];
+    var trnode = tbodynode.childNodes[index];
+    var tdList = trnode.childNodes;
+
+    for (var i = 0; i < tdList.length; i++){
+        if( i == fieldIndex){
+            tdList[i].style.backgroundColor = "RGB(255,228,141)";
+        }
+        else{
+            tdList[i].style.backgroundColor = "RGB(234,242,255)";
+        }
+    }
+}
+
+function showDetal(showPrint){
+    var tos = TO["_" + FIELD];
+    cellHighLight(0, FIELD);
+
+    showTOList(tos, FIELD, showPrint);
+}
+
+function showTOList(tos, field, showPrint) {
+    if(!tos || !tos.length) return showOrders([], field);
+
+    tssJS.showWaitingLayer();
+    var params = {};
+    params.id = tos.join(",");
+    params.sortField = "createtime";
+    params.sortType = "desc";
+    params.pagesize = 100000;
+
+    tssJS.getJSON(RECORD.oms_default_config.URL.QUERY, {"type": CONFIG_TYPE_DOMAIN, "status": STATUS_ENABLE}, function(data){
+        CONFIG = {};
+        if(data.length > 0){
+            for(var i = 0; i < data.length; i++){
+                if(data[i].type == CONFIG_TYPE_DOMAIN){
+                    CONFIG = data[i];
+                    break;
+                }
+            } 
+        }
+
+        tssJS.getJSON(ORDER.QUERY, params, function(result) {
+            if(TAG == "jump"){
+                result.sort(sortStr("orderno"));
+            }
+            showOrders([], field);
+            tssJS.hideWaitingLayer();
+            showOrders(result, field, showPrint);
+        });
+    });
+}
+
+var dg2;
+var editRow = undefined;
+function showOrders(result, field, showPrint){
+    //取消的订单
+    $("#batchbtn").menubutton("enable");
+    var hiddenField = false;
+    if(field == "c"){
+        $("#batchbtn").menubutton("disable");
+        hiddenField = true;
+    }
+
+    var printNoVerify = getConfig("printNoVerify");
+
+    var resultOrders = [];
+    result.each(function(i, item) {
+        //通过或拒绝后显示重审
+        if(item.verify && item.verify != "待审核"){ 
+            item.v_op = `${item.verify}&nbsp;&nbsp;&nbsp;<a class="blue" href="javascript:void(0)" onclick="toVerify('${item.id}','重审')">重审</a>`;
+        }
+        else{
+            item.v_op = `<a class="green" href="javascript:void(0)" onclick="toVerify('${item.id}','通过')">通过</a>&nbsp;&nbsp;&nbsp;`;
+            item.v_op += `<a class="red" href="javascript:void(0)" onclick="toVerify('${item.id}','拒绝')">拒绝</a>`;
+        }
+
+        //未推送显示电子面单或者推送按钮；已推送的显示重打或者重推，可查看
+        if(!item.towhere){ 
+            item.needOP = true; //需要推送操作
+            item.op = `<a class="orange" href="javascript:void(0)" onclick="pushToCarrier('${item.id}')">电子面单</a>`;
+        }
+        else{
+            item.needOP = false;
+            if(item.towhere == "ecode"){
+                item.op = `<a class="blue" href="javascript:void(0)" onclick="rePrintEcode('${item.id}','${item.carrysite}')">重打面单</a>`;
+            }
+        }
+
+        //需要审核
+        if(printNoVerify != "1"){
+            if(item.verify != "通过"){
+                item.op = "";
+                item.needOP = false;
+            }
+
+            //有审核记录，并且推单之后，不可重审
+            if(item.verify && item.towhere){ 
+                item.v_op = item.verify;
+            }
+        }
+
+        item.goods = "";
+        item.qty = item.qty || 0;
+        item.skus = item.skus || 0;
+        if(item.qty){
+            item.goods += "数量" + item.qty;
+        }
+        if(item.skus){
+            item.goods += " ";
+            item.goods += "品项" + item.skus;
+        }
+        if(item.goods){
+            item.goods = `<a class="green" href="javascript:void(0)" onclick="viewGoods('${item.id}')">${item.goods}</a>`;
+        }
+
+        if(item.carrysite && SITES[item.carrysite]){
+            item.site = SITES[item.carrysite]["name"];
+        }
+        else{
+            item.site = item.carrysite;
+        }
+
+        if(TAG == "jump" || item.origin != "WB"){
+            resultOrders.push(item);
+        }
+    });
+
+    var FIELDS_1_1 = [
+        {field: 'ck', checkbox: true},
+        {title:'订单号', field:'orderno', width: 120},
+        {title:'审核', field:'verify', width:100, hidden: true},
+        {title:'审核操作', field:'v_op', width:100, hidden: hiddenField},
+        {title:'去向', field:'towhere', width:100, hidden: true},
+        {title:'推送操作', field:'op', width:80, hidden: hiddenField}
+    ];
+
+    var FIELDS_1_2 = [
+        {title:'下单日期', field:'orderday', width:150},
+        {title:'平台', field:'platform', width:80, editor: {
+            type: "combobox",
+            options: {
+                url: RECORD.oms_edi_key.URL.QUERY,
+                queryParams: {type: EDI_KEY_TYPE_SITE, status: STATUS_ENABLE, fields: "distinct platform"},
+                panelHeight: "auto",
+                valueField: "platform",
+                textField: "text",
+                loadFilter: function(data){
+                    data.each(function(i, item){
+                        item.text = CODE_MAP[CODE_TYPE_PLATFORM][item.platform];
+                    });
+                    return data;
+                }
+            }
+        }, formatter:formatPlatform},
+        {title:'承运商', field:'carrier', width:80, editor: {
+            type: "combobox",
+            options: {
+                valueField: "value",
+                textField: "text"
+            }
+        }, formatter:formatCarrier},
+        {title:'物流单号', field:'logisticcode', width:100, editor:'textbox'},
+        {title:'承运网点', field:'site', width:100},
+        {title:'业务类型', field:'exptype', width:80, editor: {
+            type: "combobox",
+            options: {
+                panelHeight: "200",
+                valueField: "value",
+                textField: "text"
+            }
+        }, formatter:formatExp},
+        {title:'运费支付', field:'paytype', width:80, editor: {
+            type: "combobox",
+            options: {
+                panelHeight: "auto",
+                valueField: "value",
+                textField: "text",
+                data: CODE_LIST_PAYTYPE
+            }
+        }, formatter:formatPay},
+        {title:'包装类型', field:'packingtype', width:80, editor: {
+            type: "combobox",
+            options: {
+                panelHeight: "auto",
+                valueField: "value",
+                textField: "text",
+                data: concatBlank(CODE_LIST_PACK)
+            }
+        }, formatter:formatPack},
+        {title:'派送方式', field:'deliverymethod', width:80, editor: {
+            type: "combobox",
+            options: {
+                panelHeight: "auto",
+                valueField: "value",
+                textField: "text",
+                data: concatBlank(CODE_LIST_DELIVERY)
+            }
+        }, formatter:formatDelivery},
+        {title:'货币', field:'currency', width:80, editor: {
+            type: "combobox",
+            options: {
+                panelHeight: "auto",
+                valueField: "value",
+                textField: "text",
+                data: concatBlank(CODE_LIST_CURRENCY)
+            }
+        }, formatter:formatCurrency, hidden: true},
+        {title:'打印尺寸', field:'printsize', width:140, formatter:formatPrintSize},
+        {title:'仓库', field:'warehouse', width:80},
+        {title:'状态', field:'status', width:100},
+        {title:'包裹数', field:'quantity', width:50, editor: {
+            type: "numberbox",
+            options: {
+                precision: 0,
+                min: 1
+            }
+        }},
+        {title:'体积', field:'volume', width:50, editor: {
+            type: "numberbox",
+            options: {
+                precision: 2,
+                min: 0
+            }
+        }},
+        {title:'重量', field:'weight', width:50, editor: {
+            type: "numberbox",
+            options: {
+                precision: 2,
+                min: 0
+            }
+        }},
+        {title:'订单标记', field:'orderflag', width:70, editor: {
+            type: "combobox",
+            options: {
+                panelHeight: "auto",
+                valueField: "code",
+                textField: "code",
+                data: [{"code": ""},{"code": "COD"}]
+            }
+        }},
+        {title:'COD应收金额', field:'aramount', width:80, editor: {
+            type: "numberbox",
+            options: {
+                precision: 2,
+                min: 0
+            }
+        }},
+
+        {title:'子单号', field:'subcode', width:100, hidden:true},
+
+        {title:'收件人', field:'receiver', width:80, editor:'textbox'},
+        {title:'收件电话', field:'receivemobile', width:80, editor:'textbox'},
+        {title:'收件邮编', field:'receivepostcode', width:60, editor:'textbox'},
+        {title:'收件省', field:'province', width:80, editor:'textbox'},
+        {title:'收件市', field:'city', width:80, editor:'textbox'},
+        {title:'收件区', field:'district', width:80, editor:'textbox'},
+        {title:'收件地址', field:'receiveaddr', width:100, editor:'textbox'},
+
+        {title:'商家留言', field:'sremark', width:100, editor:'textbox'},
+
+        {title:'货品', field:'goods', width:100},
+        {title:'数量', field:'qty', width:100, hidden:true},
+        {title:'品项数', field:'skus', width:100, hidden:true},
+        {title:'金额', field:'money', width:100, formatter: formatMoney},
+        
+        {title:'外部单号', field:'outorderno', width:100, hidden:true},
+
+        {title:'发件人', field:'sender', width:80},
+        {title:'发件电话', field:'sendmobile', width:80},
+        {title:'发件邮编', field:'sendpostcode', width:60},
+        {title:'发件省', field:'sendprovince', width:80},
+        {title:'发件市', field:'sendcity', width:80},
+        {title:'发件区', field:'senddistrict', width:80},
+        {title:'发件地址', field:'sendaddr', width:100},
+        
+        {title:'来源', field:'origin', width:100, hidden:true},
+        {title:'COD卡号', field:'codcard', width:100, editor:'textbox'},
+        {title:'平台订单', field:'platformno', width:150, hidden:true}
+    ];
+
+    fieldAlign(FIELDS_1_1, "center");
+    fieldAlign(FIELDS_1_2, "center");
+
+    dg2 = $('#t-2').datagrid({
+        pagination: true,
+        fit : true,
+        fitColumns : false,
+        rownumbers : true,
+        showFooter: true,
+        singleSelect: false,
+        remoteSort : false,
+        data: resultOrders.slice(0,500),
+        frozenColumns: [FIELDS_1_1], 
+        columns:[FIELDS_1_2],
+        onDblClickRow: function(index, row){
+            toEdit(index, row);
+        },
+        onAfterEdit: function (index, row, changes) {//结束编辑触发
+            editRow = undefined;
+        },
+        onClickRow: function(index,row){//单击表单区域结束编辑
+            dg2.datagrid("endEdit", editRow);
+        },
+        rowStyler:function(index, row) {  
+            if( row["status"] == '已取消' ){  
+                return 'color: grey;';  
+            }
+        },
+        onLoadSuccess: function(data){
+            showFoot(data.rows);
+            if(refreshID){
+                $("#refresh").linkbutton({text:"关闭刷新"});
+            }
+        }
+    });
+
+    var pager = dg2.datagrid("getPager"); 
+    $(pager).pagination({ 
+        total:resultOrders.length, 
+        pageSize: 500,
+        pageList: [100,300,500,1000],
+        beforePageText: '第',
+        afterPageText: '页    共 {pages} 页', 
+        displayMsg: '当前显示 {from} - {to} 条记录   共 {total} 条记录', 
+        onSelectPage:function (pageNo, pageSize) { 
+            dg2.datagrid("endEdit", editRow);//结束编辑
+            var start = (pageNo - 1) * pageSize; 
+            var end = start + pageSize; 
+            dg2.datagrid("loadData", resultOrders.slice(start, end)); 
+            pager.pagination('refresh', { 
+                total:resultOrders.length, 
+                pageNumber:pageNo 
+            }); 
+        }
+    });
+
+    if(showPrint){
+        showPrintDlag();
+    }
+}
+
+function formatMoney(value, row, index){
+    if(value){
+        value = Math.round(value * 100) / 100;
+    }
+    return value;
+}
+
+function showPrintDlag(){
+    dg2.datagrid("selectAll");
+    batchPushToCarrier();
+}
+
+function toSearch(){
+    $('#dlg1').dialog({
+        "modal": true, 
+        "shadow": false
+    }).dialog('open').dialog('setTitle', "查询订单").dialog('center');
+}
+
+function searchQuery(){
+    FIELD = "a";
+    queryOrder();
+}
+
+function showFoot(data){
+    var foot = {
+        'orderno': '合计',
+        'qty': 0, 
+        'money': 0
+    };
+
+    data.each(function(i, item) {
+        foot.qty += parseFloat(item.qty||0);
+        foot.money += parseFloat(item.money||0);
+    });
+
+    foot.qty = Math.round(foot.qty);
+    foot.money  = Math.round(foot.money * 100) / 100;
+
+    $('#t-2').datagrid('reloadFooter',[foot]);
+}
+
+function batchVerify(type){
+    var rows = $('#t-2').datagrid("getSelections");
+    if(rows.length == 0){
+        $.messager.alert({ title: '提示', msg: '请勾选数据后操作！'});
+        return;
+    }
+    var ids = [];
+    rows.each(function(i, item){
+        if(type == "通过" || type == "拒绝"){
+            if(!item.verify || item.verify == "待审核"){
+                ids.push(item.id);
+            }
+        }
+        else if(type == "重审"){
+            if((item.verify == "通过" || item.verify == "拒绝") && !item.towhere){
+                ids.push(item.id);
+            }
+        }
+    });
+
+    if(ids.length == 0){
+        $.messager.alert({ title: '提示', msg: '选中数据中无符合条件订单！'});
+        return;
+    }
+    toVerify(ids.join(","), type);
+}
+
+function toVerify(ids, type){
+    $.messager.confirm("审核", "您确定" + `<a>${type}</a>` + "选中订单吗? ", function(confirm){
+        if(confirm){
+            if(type == "重审"){
+                type = "待审核";
+            }
+            var result = [];
+            var idList = ids.split(",");
+            idList.each(function(i, item){
+                var obj = {
+                    id: item,
+                    verify: type
+                };
+                result.push(obj);
+            });
+            
+            $.post(ORDER.CUD_JSON, {"json": JSON.stringify(result)}, function(data) {
+                if(data.errorMsg) {
+                    $.messager.alert({title: '提示', msg: data.errorMsg});
+                }
+                if(data.created || data.updated) {
+                    $.messager.show({title: '提示', msg: '保存成功！'});
+                    queryOrder();
+                }
+            });
+        }
+    });
+}
+
+var globalV = {};
+function rePrintEcode(id, siteId){
+    var ids = id.split(",");
+    tssJS.post(SERVICE.oms_print_ecode, {"orderIds": ids, "accountId": siteId}, function(result){
+        if(result.code == "success"){
+            toPrint(result);
+        }
+    });
+}
+
+function openPushWmsDlag(){
+    var rows = $('#t-2').datagrid("getSelections");
+    if(rows.length == 0){
+        $.messager.alert({ title: '提示', msg: '请勾选数据后操作！'});
+        return;
+    }
+
+    openDialog("dlg9", "fm6", "s5", "选择仓库");
+
+    var html = "";
+    WAREHOUSE_WMS.each(function(i, item){
+        html += '<div class="whitem">';
+        html += '<input class="easyui-radiobutton" name="whId" value="' + item.id + '" label="' + item.name + '">';
+        html += '</div>';
+    });
+
+    $("#whlist").html(html);
+    $.parser.parse($("#fm6"));
+}
+
+function pushToWMS(){
+    var rows = $('#t-2').datagrid("getSelections");
+    var ids = [];
+    rows.each(function(i, item){
+        ids.push(item.id);
+    });
+    
+    if(ids.length == 0){
+        $.messager.alert({ title: '提示', msg: '选中数据中无符合条件订单！'});
+        return;
+    }
+
+    var wh = getFormData("fm6");
+    if(!wh.whId){
+        $.messager.show({ title: '提示', msg: '请先选择仓库！'});
+        return;
+    }
+
+    tssJS.post(SERVICE.oms_order_towms, {"ooIds": ids.join(","), "whId": wh.whId}, function(result){
+        if(result.code == "100"){
+            $.messager.show({title: '提示', msg: '推送成功！'});
+        }
+        else if(result.code == "500"){
+            var errorMsg = result.errList.join(",") + result.message;
+            $.messager.alert({ title: '提示', msg: errorMsg});
+        }
+        queryOrder();
+        closeDialog('fm6','dlg9');
+    });
+}
+
+function batchPushToCarrier(){
+    var rows = $('#t-2').datagrid("getSelections");
+    if(rows.length == 0){
+        $.messager.alert({ title: '提示', msg: '请勾选数据后操作！'});
+        return;
+    }
+    var ids = [];
+    rows.each(function(i, item){
+        if(TAG == "jump"){
+            ids.push(item.id);
+        }
+        else if(item.needOP){
+            ids.push(item.id);
+        }
+    });
+    
+    if(ids.length == 0){
+        $.messager.show({title: '提示', msg: '选中数据中无符合条件订单！'});
+        return;
+    }
+    pushToCarrier(ids.join(","));
+}
+
+function pushToCarrier(ids){
+    $("#s1").linkbutton("enable");
+    $('#dlg2').dialog({
+        "modal": true, 
+        "shadow": false,
+        "width": "80%",
+        "height": "70%"
+    }).dialog("open").dialog("setTitle", "打印电子面单").dialog("center");
+    $("#fm5").form("clear");
+
+    var expList = CODE_LIST_EXPTYPE;
+    var sizeList = CODE_LIST_SIZE;
+
+    $("#e_account").combogrid({
+        url: RECORD.oms_edi_key.URL.QUERY,
+        queryParams: {"status": STATUS_ENABLE, "type": EDI_KEY_TYPE_SITE},
+        panelHeight: 'auto',
+        panelMaxHeight: '100',
+        panelWidth: '400',
+        fitColumns: true,
+        rownumbers: true,
+        editable: false,
+        idField: 'id',
+        textField: 'name',
+        columns:[[
+            {field:'name',title:'名称',width:100, align:'center'},
+            {field:'carrier',title:'承运商',width:100, align:'center', formatter: formatCarrier},
+            {field:'platform',title:'平台',width:100, align:'center', formatter: formatPlatform},
+            {field:'id',title:'id',width:100, align:'center', hidden: true}
+        ]],
+        icons:[
+            {iconCls:'combo-icon ion ion-md-refresh', handler: function(){ $("#e_account").combogrid("grid").datagrid("reload"); }}
+        ],
+        onSelect:function(index, row){
+            var rows = $('#t-3').datagrid("getRows");
+            rows.each(function(i, item){
+                $('#t-3').datagrid('updateRow',{
+                    index: i,
+                    row: {
+                        carrier: row.carrier,
+                        platform: row.platform
+                    }
+                });
+            });
+
+            var carrier = row.carrier;
+            var targetE = [], targetS = [];
+            if(carrier){
+                expList.each(function(i, item){
+                    if(item.carrier == carrier){
+                        targetE.push(item);
+                    }
+                });
+
+                sizeList.each(function(i, item){
+                    if(item.carrier == carrier){
+                        targetS.push(item);
+                    }
+                });
+            }
+
+            $('#e_exptype').combobox("clear");
+            $('#e_exptype').combobox("loadData", concatBlank(targetE));
+            $('#e_printsize').combobox("loadData", concatBlank(targetS));
+            if(row.printsize){
+                $('#e_printsize').combobox("setValue", row.printsize);
+            }
+            else{
+                $('#e_printsize').combobox("clear");
+            }
+        },
+        onLoadSuccess: function(data){
+            setCookieValue(data.rows);
+        }
+    });
+
+    $('#e_exptype').combobox({
+        editable:false,
+        panelHeight:'auto',
+        valueField:'value',
+        textField:'text',
+        data: []
+    });
+
+    $('#e_paytype').combobox({
+        editable:false,
+        panelHeight:'auto',
+        valueField:'value',
+        textField:'text',
+        data: concatBlank(CODE_LIST_PAYTYPE)
+    });
+
+    $('#e_packingtype').combobox({
+        editable:false,
+        panelHeight:'auto',
+        valueField:'value',
+        textField:'text',
+        data: concatBlank(CODE_LIST_PACK)
+    });
+
+    $('#e_deliverymethod').combobox({
+        editable:false,
+        panelHeight:'auto',
+        valueField:'value',
+        textField:'text',
+        data: concatBlank(CODE_LIST_DELIVERY)
+    });
+
+    $('#e_currency').combobox({
+        editable:false,
+        panelHeight:'auto',
+        valueField:'value',
+        textField:'text',
+        data: concatBlank(CODE_LIST_CURRENCY)
+    });
+
+    $('#e_printsize').combobox({
+        editable:false,
+        panelHeight:'auto',
+        valueField:'value',
+        textField:'text',
+        data: []
+    });
+
+    showEcodeData(ids);
+}
+
+function setCookieValue(carrierList){
+    var printAccount = tssJS.Cookie.getValue("print_account");
+    var printeExptype = tssJS.Cookie.getValue("print_exptype");
+    var printSize = tssJS.Cookie.getValue("print_printsize");
+
+    var printPaytype = tssJS.Cookie.getValue("print_paytype");
+    var printPacking = tssJS.Cookie.getValue("print_pack");
+    var printDelivery = tssJS.Cookie.getValue("print_delivery");
+    var printCurrency = tssJS.Cookie.getValue("print_currency");
+
+    for(var i = 0; i < carrierList.length; i++){
+        if(carrierList[i].id == printAccount){
+            $("#e_account").combogrid("grid").datagrid("selectRecord", printAccount);
+            break;
+        }
+    }
+
+    setComboboxValue("e_exptype", printeExptype);
+    setComboboxValue("e_printsize", printSize);
+    setComboboxValue("e_paytype", printPaytype);
+    setComboboxValue("e_packingtype", printPacking);
+    setComboboxValue("e_deliverymethod", printDelivery);
+    setComboboxValue("e_currency", printCurrency);
+}
+
+function setComboboxValue(id, value){
+    var data = $("#" + id).combobox("getData");
+    for(var i = 0; i < data.length; i++){
+        if(data[i].value == value){
+            $("#" + id).combobox("setValue", value);
+            break;
+        }
+    }
+}
+
+function showEcodeData(ids){
+    var field = [
+        { field : 'orderno', title : '订单号', width : 100, align: 'center' },
+        { field : 'platform', title : '平台', width : 100, align: 'center', formatter: formatPlatform },
+        { field : 'carrier', title : '承运商', width : 100, align: 'center', formatter: formatCarrier },
+        { field : 'exptype', title : '业务类型', width : 100, align: 'center', formatter: formatExp },
+        { field : 'paytype', title : '运费支付', width : 100, align: 'center', formatter: formatPay},
+        { field : 'packingtype', title : '包装类型', width : 100, align: 'center', formatter: formatPack},
+        { field : 'deliverymethod', title : '派送方式', width : 100, align: 'center', formatter: formatDelivery},
+        { field : 'currency', title : '货币类型', width : 100, align: 'center', formatter: formatCurrency},
+        { field : 'printsize', title : '打印尺寸', width : 100, align: 'center', formatter: formatPrintSize},
+        { field : 'quantity', title : '包裹数', width : 100, align: 'center' }
+    ];
+
+    $('#t-3').datagrid({
+        url: ORDER.QUERY,
+        queryParams: {"id": ids},
+        fitColumns: true,
+        rownumbers : true,
+        singleSelect : true,
+        columns : [field],
+        loadFilter: function(data){
+            if(TAG == "jump"){
+                data.sort(sortStr("orderno"));
+            }
+            return data;
+        }
+    });
+}
+
+function printEcode(){
+    var accountId = $("#e_account").combogrid("getValue");
+    if(!accountId){
+        $.messager.alert({ title: '提示', msg: '请选择面单账号！'});
+        return;
+    }
+
+    var exptype = $("#e_exptype").combobox("getValue");
+    var paytype = $("#e_paytype").combobox("getValue");
+    var packingtype = $("#e_packingtype").combobox("getValue");
+    var deliverymethod = $("#e_deliverymethod").combobox("getValue");
+    var currency = $("#e_currency").combobox("getValue");
+    var printsize = $("#e_printsize").combobox("getValue");
+
+    tssJS.Cookie.setValue("print_account", accountId);
+    tssJS.Cookie.setValue("print_exptype", exptype);
+    tssJS.Cookie.setValue("print_paytype", paytype);
+    tssJS.Cookie.setValue("print_printsize", printsize);
+    tssJS.Cookie.setValue("print_pack", packingtype);
+    tssJS.Cookie.setValue("print_delivery", deliverymethod);
+    tssJS.Cookie.setValue("print_currency", currency);
+
+    var rows = $('#t-3').datagrid("getRows");
+    var ids = [];
+    rows.each(function(i, item){
+        ids.push(item.id);
+    });
+
+    var params = {
+        "orderIds": ids,
+        "accountId": accountId
+    };
+    if(exptype){
+        params.exptype = exptype;
+    }
+    if(paytype){
+        params.paytype = paytype;
+    }
+    if(packingtype){
+        params.pack = packingtype;
+    }
+    if(deliverymethod){
+        params.delivery = deliverymethod;
+    }
+    if(currency){
+        params.currency = currency;
+    }
+    if(printsize){
+        params.printsize = printsize;
+    }
+
+    $("#s1").linkbutton("disable");
+    tssJS.post(SERVICE.oms_print_ecode, params, function(result){
+        if(result.code == "success"){
+            toPrint(result);
+            $('#dlg2').dialog('close');
+        }
+        if(result.failMsg){
+            var failMsg = result.failMsg;
+            if(failMsg.length > 0){
+                $.messager.alert({ title: '提示', msg: failMsg.join(";")});
+            }
+        }
+        $("#s1").linkbutton("enable");
+    });
+}
+
+function openPrintIframe(){
+    tssJS.openIframePanel("P12", ' - 面单打印', 1000, 600, '/tss/pages/oms/print.html');
+}
+
+var editing = false;
+function toEdit(index, row){
+    if(row.towhere){
+        $.messager.show({title: '提示', msg: '已推送不可编辑！'});
+        return;
+    }
+
+    if(row.status == "已取消") return;
+
+    var expList = CODE_LIST_EXPTYPE;
+
+    var optCarrier = $('#t-2').datagrid("getColumnOption", "carrier");
+    optCarrier.editor = {
+        type: "combobox",
+        options: {
+            url: RECORD.oms_edi_key.URL.QUERY,
+            queryParams: {type: EDI_KEY_TYPE_SITE, status: STATUS_ENABLE, fields: "distinct carrier"},
+            valueField: "carrier",
+            textField: "text",
+            panelHeight: "auto",
+            onChange: function(newValue, oldValue){
+                var targetE = [];
+                var ed = $('#t-2').datagrid('getEditor', {index: index, field: "exptype"});
+                if(newValue){
+                    expList.each(function(i, item){
+                        if(item.carrier == newValue){
+                            targetE.push(item);
+                        }
+                    });
+                    $(ed.target).combobox("clear");
+                }
+                
+                $(ed.target).combobox("loadData", targetE);
+            },
+            loadFilter: function(data){
+                data.each(function(i, item){
+                    item.text = CODE_MAP[CODE_TYPE_CARRIER][item.carrier];
+                });
+                return data;
+            }
+        }
+    }
+    
+    var optExp = $('#t-2').datagrid("getColumnOption", "exptype");
+    var targetExp = [];
+    if(row.carrier){
+        expList.each(function(i, item){
+            if(item.carrier == row.carrier){
+                targetExp.push(item);
+            }
+        });
+    }
+    optExp.editor = {
+        type: "combobox",
+        options: {
+            panelHeight: "auto",
+            valueField: "value",
+            textField: "text",
+            data: targetExp
+        }
+    };
+
+    if (editRow == undefined) {
+        editing = true; // 禁止自动刷新 
+        dg2.datagrid("beginEdit", index);
+        editRow = index;  
+    }
+}
+
+function endEditAndSave(){
+    dg2.datagrid("endEdit", editRow);
+
+    var rows = dg2.datagrid('getChanges');
+    if(rows.length == 0){
+        return;
+    }
+
+    var result = [];
+    $.each(rows, function(i, row) {
+        var obj = {
+            id: row.id,
+            carrier: row.carrier,
+            platform: row.platform,
+            exptype: row.exptype,
+            packingtype: row.packingtype,
+            deliverymethod: row.deliverymethod,
+            paytype: row.paytype,
+            currency: row.currency,
+            quantity: row.quantity,
+            weight: row.weight,
+            volume: row.volume,
+            logisticcode: row.logisticcode,
+            orderflag: row.orderflag,
+            aramount: row.aramount,
+            codcard: row.codcard,
+            receiver: row.receiver,
+            receivemobile: row.receivemobile,
+            receivepostcode: row.receivepostcode,
+            province: row.province,
+            city: row.city,
+            district: row.district,
+            receiveaddr: row.receiveaddr,
+            sremark: row.sremark
+        };
+        result.push(obj);
+    });
+    
+    $.post(ORDER.CUD_JSON, {"json": JSON.stringify(result)}, function(data) {
+        if(data.errorMsg) {
+            $.messager.alert({title: '提示', msg: data.errorMsg});
+        }
+        else{
+            $.messager.show({title: '提示', msg: '保存成功！'});
+        }
+    });
+}
+
+function customsExport(){
+    var params = getParams();
+
+    var frameId = "exportFrame";
+    if( $(frameId).length == 0 ) {
+        var exportEl = tssJS.createElement("div"); 
+        exportEl.innerHTML = "<div><iframe id='" + frameId + "' src='about:blank' style='display:none'></iframe></div>";
+        document.body.appendChild(exportEl);
+    }
+
+    var queryString = "?";
+    $.each(params, function(key, value) {
+        if( queryString.length > 1 ) {
+            queryString += "&";
+        }
+        queryString += (key + "=" + value);
+    });
+    $("#exportFrame").attr("src", encodeURI(ORDER.CSV_EXP + queryString));
+}
+
+function autoRefresh(){
+    if(refreshID){
+        clearInterval(refreshID);
+        refreshID = null;
+        $("#refresh").linkbutton({text:"开启刷新"});
+    }
+    else{
+        refreshID = setInterval(queryOrder, 180*1000);
+        $("#refresh").linkbutton({text:"关闭刷新"});
+    }
+}
+
+function canClick(value, row, index){
+    return {class: 'can-click'};
+}
+
+function addEcodeAccount(){
+    addAccount();
+}
+
+function viewGoods(id){
+    $('#dlg3').dialog({
+        "modal": true, 
+        "shadow": false,
+        "width": "70%",
+        "height": "50%"
+    }).dialog("open").dialog("setTitle", "查看货品").dialog("center");
+
+    var field = [
+        {field: "sku_id", title: "货品ID", hidden: true},
+        {field: "sku", title: "货品", width: 120, sortable: true},
+        {field: "skucode", title: "货品编码", width: 100},
+        {field: "guige", title: "规格", width: 100},
+        {field: "uom", title: "单位", width: 100},
+        {field: "shelflife", title: "有效期", width: 100},
+        {field: "qty", title: "数量", width: 100},
+        {field: "price", title: "单价(元)", width: 100},
+        {field: "money", title: "金额(元)", width: 100, formatter: formatMoney}
+    ];
+
+    field.each(function(i, item){
+        item.align = "center";
+    });
+
+    var params = {};
+    params.order_id = id;
+ 
+    tssJS.getJSON(OITEMS.QUERY, params, function(data) {
+        data.each(function(i, item) {
+            var sku = SKU_M[item.sku_id];
+            item.sku = sku.name;
+            item.skucode = sku.code;
+            item.brand = sku.brand;
+            item.supplier = sku.supplier;
+            item.guige = sku.guige;
+            item.price = item.price || sku.discount || sku.price2 || sku.price || sku.price1;
+            item.uom = sku.uom;
+            item.shelflife = sku.shelflife;
+        });
+
+        $('#t-4').datagrid({
+            fitColumns: true,
+            rownumbers : true,
+            singleSelect: true,
+            checkOnSelect: true,
+            selectOnCheck: true,
+            remoteSort: false,
+            columns : [field],
+            data: data
+        });
+    });
+}
+
+function myStore(){
+    $('#dlg4').dialog({
+        "modal": true, 
+        "shadow": false,
+        "width": "80%",
+        "height": "50%"
+    }).dialog("open").dialog("setTitle", "我的店铺").dialog("center");
+
+    showStore();
+}
+
+function showStore(){
+    var field_f = [
+        {field: 'ck', checkbox: true},
+        {field: "type", title: "类型", width: 60, formatter: formatStoreType},
+        {field: "auth", title: "授权状态", width: 60},
+        {field: "status", title: "状态", width: 60, formatter: formatStatus},
+        {field: "name", title: "店铺名称", width: 100}
+    ];
+
+    var field = [
+        {field: "appkey", title: "应用ID", width: 100},
+        {field: "appsecret", title: "应用秘钥", width: 100},
+        {field: "platform", title: "平台", width: 100, formatter: formatStorePlatform},
+        {field: "owner", title: "卖家名称", width: 100},
+        {field: "website", title: "网址", width: 100},
+        {field: "contact", title: "联系人", width: 100},
+        {field: "mobile", title: "电话", width: 100},
+        {field: "province", title: "省", width: 100},
+        {field: "city", title: "市", width: 100},
+        {field: "district", title: "区", width: 100},
+        {field: "addr", title: "详细地址", width: 100},
+        {field: "remark", title: "备注", width: 100}
+    ];
+
+    fieldAlign(field_f, "center");
+    fieldAlign(field, "center");
+
+    var params = {};
+ 
+    tssJS.getJSON(RECORD.oms_store.URL.QUERY, params, function(data) {
+        data.each(function(i, item){
+            if(item.type == STORE_TYPE_ONLINE){
+                if(!item.auth){
+                    item.auth = "去授权";
+                }
+                item.auth = `<a class="green" href="javascript:void(0)" onclick="storeAuth('${item.id}','${item.platform}')">${item.auth}</a>`;
+            }
+        });
+
+        $('#t-5').datagrid({
+            rownumbers : true,
+            singleSelect: true,
+            checkOnSelect: true,
+            selectOnCheck: true,
+            remoteSort: false,
+            frozenColumns: [field_f],
+            columns : [field],
+            data: data,
+            toolbar: [
+                { text: '新增', iconCls: 'ion ion-md-add', handler: addStore }, '-',
+                { text: '修改', iconCls: 'ion ion-md-create', handler: updateStore }, '-',
+                { text: '删除', iconCls: 'ion ion-md-close', handler: deleteStore }, '-',
+                { text: '刷新', iconCls: 'ion ion-md-refresh', handler: showStore }, '-'
+            ]
+        });
+    });
+}
+
+function storeAuth(id, platform){
+    $.messager.confirm("授权", "您确定进行授权吗？", function(confirm){
+        if(confirm){
+            var params = {
+                storeid: id,
+                platform: platform
+            };
+            tssJS.post(SERVICE.oms_store_auth, params, function(result){
+                if(result.code == "success"){
+                    window.open(result.uri, "_blank");
+                }
+            });
+        }
+    });
+}
+
+var STORE_SAVE_URL;
+function addStore(){
+    openDialog("dlg5", "fm2", "s2", "新增店铺");
+    radioCheck("type", "type_online");
+    radioCheck("status", "status_enable");
+    platfromRequireCheck();
+
+    STORE_SAVE_URL = RECORD.oms_store.URL.CREATE;
+}
+
+function updateStore(){
+    var rows = getSelectRows("t-5");
+    if(!rows) return;
+    var row = rows[0];
+
+    openDialog("dlg5", "fm2", "s2", "修改店铺");
+    $('#fm2').form('load',row);
+    platfromRequireCheck();
+    
+    STORE_SAVE_URL = RECORD.oms_store.URL.UPDATE + row.id;
+}
+
+function initStoreForm(){
+    var s = [{name:"", value:""}];
+    STORE_TYPE_LIST.each(function(i, item){
+        s.push(item);
+    });
+    $('#s_platform').combobox({
+        editable:false,
+        panelHeight:'auto',
+        valueField:'value',
+        textField:'name',
+        data: s
+    });
+    bindRadio();
+}
+
+function bindRadio(){
+    $("input[type='radio'][name='type']").click(function(){
+        platfromRequireCheck();
+    });
+}
+
+function platfromRequireCheck(){
+    var type = getChangeRadio("type");
+    var platfrom = $('#s_platform').combobox("getValue");
+    if(type == STORE_TYPE_ONLINE){
+        $('#s_platform').combobox({required: true});
+    }
+    else{
+        $('#s_platform').combobox({required: false});
+    }
+    $('#s_platform').combobox("setValue", platfrom);
+}
+
+function saveStore(){
+    $("#s2").linkbutton("disable");
+    
+    var flag = $("#fm2").form('validate');
+    if(flag){
+        var params = getFormData("fm2");
+        $.post(STORE_SAVE_URL, params, function(result){
+            if(result.errorMsg){
+                $.messager.alert("提示", result.errorMsg);
+            }
+            else{
+                $('#dlg5').dialog('close');
+                showStore();
+            }
+            $("#s2").linkbutton("enable");
+        });
+    }
+    else{
+        $("#s2").linkbutton("enable");
+    }
+}
+
+function deleteStore(){
+    var rows = getSelectRows("t-5");
+    if(!rows) return;
+    var row = rows[0];
+    $.messager.confirm("删除", "您确定删除该店铺吗？", function(confirm){
+        if(confirm){
+            tssJS.ajax({
+                 url: RECORD.oms_store.URL.DELETE + row.id,
+                 method: 'DELETE',
+                 onsuccess: function(result) {
+                    if(result.dataType == "success"){
+                        showStore();
+                    }
+                 }
+            });       
+        }
+    });
+}
+
+function getSelectRows(id){
+    var rows = $('#' + id).datagrid("getSelections");
+    if(rows.length == 0){
+        $.messager.alert({ title: '提示', msg: '请勾选数据后操作！'});
+        return;
+    }
+    return rows;
+}
+
+function myAccount(){
+    $('#dlg6').dialog({
+        "modal": true, 
+        "shadow": false,
+        "width": "80%",
+        "height": "50%"
+    }).dialog("open").dialog("setTitle", "我的账号").dialog("center");
+
+    showAccount();
+}
+
+function showAccount(){
+    var field_f = [
+        {field: 'ck', checkbox: true},
+        {field: "type", title: "类型", width: 100, formatter: formatAccountType},
+        {field: "name", title: "名称", width: 100},
+        {field: "carrier", title: "承运商", width: 100, formatter: formatCarrier},
+        {field: "platform", title: "归属平台", width: 100, formatter: formatPlatform}
+    ];
+
+    var field = [
+        {field: "status", title: "状态", width: 100, formatter: formatStatus},
+        {field: "client_id", title: "账号", width: 100},
+        {field: "client_secret", title: "秘钥", width: 100},
+        {field: "month_code", title: "月结号", width: 100},
+        {field: "send_site", title: "网点编号", width: 100},
+        {field: "send_staff", title: "网点员工", width: 100},
+        {field: "sender", title: "发件人", width: 100},
+        {field: "sendmobile", title: "发件电话", width: 100},
+        {field: "sendpostcode", title: "发件邮编", width: 100},
+        {field: "sendprovince", title: "发件省", width: 100},
+        {field: "sendcity", title: "发件市", width: 100},
+        {field: "senddistrict", title: "发件区", width: 100},
+        {field: "sendaddr", title: "发件地址", width: 100},
+        {field: "codcard", title: "COD卡号", width: 100},
+        {field: "printsize", title: "打印尺寸", width:80, formatter: formatPrintSize},
+        {field: "remark", title: "备注", width: 100},
+        {field: "access_token", title: "令牌", width: 100, hidden:true},
+        {field: "refresh_token", title: "刷新令牌", width: 100, hidden:true},
+        {field: "refresh_time", title: "刷新时间", width: 100, hidden:true},
+        {field: "expires_in", title: "有效期", width: 100, hidden:true},
+        {field: "udf1", title: "udf1", width: 100, hidden:true},
+        {field: "udf2", title: "udf2", width: 100, hidden:true}
+    ];
+
+    fieldAlign(field_f, "center");
+    fieldAlign(field, "center");
+
+    var type = [EDI_KEY_TYPE_PLATFORM, EDI_KEY_TYPE_SITE];
+
+    var params = {
+        "type": type.join(",")
+    };
+
+    $('#t-6').datagrid({
+        url: RECORD.oms_edi_key.URL.QUERY,
+        queryParams: params,
+        rownumbers : true,
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        remoteSort: false,
+        frozenColumns: [field_f],
+        columns : [field],
+        toolbar: [
+            { text: '新增', iconCls: 'ion ion-md-add', handler: addAccount }, '-',
+            { text: '修改', iconCls: 'ion ion-md-create', handler: updateAccount }, '-',
+            { text: '删除', iconCls: 'ion ion-md-close', handler: deleteAccount }, '-',
+            { text: '刷新', iconCls: 'ion ion-md-refresh', handler: showAccount }, '-'
+        ]
+    });
+}
+
+function initAccountForm(){
+    var sizeList = CODE_LIST_SIZE;
+    $('#a_carrier').combobox({
+        editable:false,
+        panelHeight:'200',
+        valueField:'value',
+        textField:'text',
+        data: concatBlank(CODE_LIST_CARRIER),
+        onChange: function(newValue, oldValue){
+            var targetE = [];
+            if(newValue){
+                sizeList.each(function(i, item){
+                    if(item.carrier == newValue){
+                        targetE.push(item);
+                    }
+                });
+            }
+
+            $('#a_printsize').combobox({
+                editable:false,
+                panelHeight:'auto',
+                valueField:'value',
+                textField:'text',
+                data: concatBlank(targetE),
+                icons:[
+                    {iconCls:'combo-icon ion ion-md-refresh', handler: function(){ refreshCodeMap(); }}
+                ]
+            });
+        }
+    });
+
+    $('#a_printsize').combobox({
+        editable:false,
+        panelHeight:'auto',
+        valueField:'value',
+        textField:'text',
+        data: [],
+        icons:[
+            {iconCls:'combo-icon ion ion-md-refresh', handler: function(){ refreshCodeMap(); }}
+        ]
+    });
+
+    $('#a_platform').combobox({
+        editable:false,
+        panelHeight:'auto',
+        valueField:'value',
+        textField:'text',
+        data: concatBlank(CODE_LIST_PLATFORM)
+    });
+
+    bindAccountRadio();
+}
+
+function refreshCodeMap(){
+    var p = fetchCodeMap();
+    p.then(
+    (data) => {
+        var sizeList = CODE_LIST_SIZE;
+        var carrier = $('#a_carrier').combobox("getValue");
+
+        var targetE = [];
+        sizeList.each(function(i, item){
+            if(item.carrier == carrier){
+                targetE.push(item);
+            }
+        });
+
+        $('#a_printsize').combobox("loadData", concatBlank(targetE));
+    },
+    (reason) => { });
+}
+
+function bindAccountRadio(){
+    $("input[type='radio'][name='a_type']").click(function(){
+        accountRequireCheck();
+    });
+}
+
+function accountRequireCheck(){
+    var type = getChangeRadio("a_type");
+    var carrier = $('#a_carrier').combobox("getValue");
+    var platfrom = $('#a_platform').combobox("getValue");
+    var printsize = $('#a_printsize').combobox("getValue");
+    if(type == EDI_KEY_TYPE_SITE){
+        $('#a_carrier').combobox({required: true, readonly: false});
+    }
+    else{
+        $('#a_carrier').combobox({required: false, readonly: true});
+    }
+    $('#a_carrier').combobox("setValue", carrier);
+    $('#a_printsize').combobox("setValue", printsize);
+
+    if(type == EDI_KEY_TYPE_PLATFORM){
+        $('#a_platform').combobox({required: true});
+    }
+    else{
+        $('#a_platform').combobox({required: false});
+    }
+    $('#a_platform').combobox("setValue", platfrom);
+}
+
+var KEY_SAVE_URL;
+function addAccount(){
+    openDialog("dlg7", "fm3", "s3", "新增账号信息");
+    radioCheck("a_type", "type_site");
+    radioCheck("a_status", "a_status_enable");
+    accountRequireCheck();
+    KEY_SAVE_URL = RECORD.oms_edi_key.URL.CREATE;
+}
+
+function updateAccount(){
+    var rows = getSelectRows("t-6");
+    if(!rows) return;
+    var row = rows[0];
+
+    openDialog("dlg7", "fm3", "s3", "修改账号信息");
+    row.a_type = row.type;
+    row.a_status = row.status;
+    $('#fm3').form('load',row);
+    accountRequireCheck();
+    
+    KEY_SAVE_URL = RECORD.oms_edi_key.URL.UPDATE + row.id;
+}
+
+function deleteAccount(){
+    var rows = getSelectRows("t-6");
+    if(!rows) return;
+    var row = rows[0];
+    $.messager.confirm("删除", "您确定删除该账号信息吗？", function(confirm){
+        if(confirm){
+            tssJS.ajax({
+                 url: RECORD.oms_edi_key.URL.DELETE + row.id,
+                 method: 'DELETE',
+                 onsuccess: function(result) {
+                    if(result.dataType == "success"){
+                        showAccount();
+                    }
+                 }
+            });       
+        }
+    });
+}
+
+function saveAccount(){
+    $("#s3").linkbutton("disable");
+    
+    var flag = $("#fm3").form('validate');
+    if(flag){
+        var params = getFormData("fm3");
+        params.type = params.a_type;
+        params.status = params.a_status;
+        $.post(KEY_SAVE_URL, params, function(result){
+            if(result.errorMsg){
+                $.messager.alert("提示", result.errorMsg);
+            }
+            else{
+                $('#dlg7').dialog('close');
+                showAccount();
+            }
+            $("#s3").linkbutton("enable");
+        });
+    }
+    else{
+        $("#s3").linkbutton("enable");
+    }
+}
+
+function defaultConfig(){
+    tssJS.getJSON(RECORD.oms_default_config.URL.QUERY, { "type": CONFIG_TYPE_DOMAIN }, function(data){
+        openDialog("dlg8", "fm4", "s4", "默认配置");
+        if(data.length > 0){
+            for(var i = 0; i < data.length; i++){
+                if(data[i].type == CONFIG_TYPE_DOMAIN){
+                    initConfig(data[i]);
+                    return;
+                }
+            }
+            initConfig();
+        }
+        else{
+            initConfig();
+        }
+    });
+}
+
+var CONFIG_SAVE_URL;
+function initConfig(config){
+    var expList = CODE_LIST_EXPTYPE;
+    $('#c_carrier').combobox({
+        editable:false,
+        panelHeight:'200',
+        valueField:'value',
+        textField:'text',
+        data: concatBlank(CODE_LIST_CARRIER),
+        onChange: function(newValue, oldValue){
+            var targetE = [];
+            if(newValue){
+                expList.each(function(i, item){
+                    if(item.carrier == newValue){
+                        targetE.push(item);
+                    }
+                });
+            }
+            
+            $('#c_exptype').combobox({
+                editable:false,
+                panelHeight:'200',
+                valueField:'value',
+                textField:'text',
+                data: concatBlank(targetE)
+            });
+        }
+    });
+
+    $('#c_exptype').combobox({
+        editable:false,
+        panelHeight:'200',
+        valueField:'value',
+        textField:'text',
+        data: []
+    });
+
+    $('#c_packingtype').combobox({
+        editable:false,
+        panelHeight:'auto',
+        valueField:'value',
+        textField:'text',
+        data: concatBlank(CODE_LIST_PACK)
+    });
+
+    $('#c_deliverymethod').combobox({
+        editable:false,
+        panelHeight:'auto',
+        valueField:'value',
+        textField:'text',
+        data: concatBlank(CODE_LIST_DELIVERY)
+    });
+
+    $('#c_paytype').combobox({
+        editable:false,
+        panelHeight:'auto',
+        valueField:'value',
+        textField:'text',
+        data: concatBlank(CODE_LIST_PAYTYPE)
+    });
+
+    $('#c_currency').combobox({
+        editable:false,
+        panelHeight:'auto',
+        valueField:'value',
+        textField:'text',
+        data: concatBlank(CODE_LIST_CURRENCY)
+    });
+
+    $('#c_status').combobox({
+        editable:false,
+        panelHeight:'auto',
+        valueField:'value',
+        textField:'text',
+        data: [{"value": STATUS_ENABLE, "text": "启用", "selected": true},{"value": STATUS_DISABLE, "text": "停用"}]
+    });
+
+    radioCheck("printNoVerify", "print_verify_yes");
+
+    CONFIG_SAVE_URL = RECORD.oms_default_config.URL.CREATE;
+    if(config){
+        var content = JSON.parse(config.content);
+        var sendInfo = content.sendInfo;
+        if(!sendInfo){
+            sendInfo = {};
+        }
+        delete content.sendInfo;
+        for(key in sendInfo){
+            content[key] = sendInfo[key];
+        }
+        content.status = config.status;
+        $('#fm4').form('load', content);
+        CONFIG_SAVE_URL = RECORD.oms_default_config.URL.UPDATE + config.id;
+    }
+}
+
+function saveConfig(){
+    var config = getFormData("fm4");
+    var status = config.status;
+    var ignore = ["status"];
+    var sendKey = ["carrier", "exptype", "packingtype", "deliverymethod", "paytype", "currency", "sender", "sendmobile", "sendpostcode", "sendprovince", "sendcity", "senddistrict", "sendaddr"];
+    ignore.each(function(i, item){
+        delete config[item];
+    });
+    var sendInfo = {};
+    sendKey.each(function(i, item){
+        sendInfo[item] = config[item];
+        delete config[item];
+    });
+    config.sendInfo = sendInfo;
+    var content = JSON.stringify(config);
+    $.post(CONFIG_SAVE_URL, {"type": CONFIG_TYPE_DOMAIN, "content": content, "status": status}, function(result){
+        if(result.errorMsg){
+            $.messager.alert("提示", result.errorMsg);
+        }
+        else{
+            queryOrder();
+            $('#dlg8').dialog('close');
+            $.messager.show({title: '提示', msg: '保存成功！'});
+        }
+        $("#s4").linkbutton("enable");
+    });
+}
+
+function getConfig(key){
+    var df = {
+        "printNoVerify": "0",
+        "sendInfo": {
+            "carrier": "",
+            "exptype": "",
+            "packingtype": "",
+            "deliverymethod": "",
+            "paytype": "",
+            "currency": "",
+            "sender": "",
+            "sendmobile": "",
+            "sendpostcode": "",
+            "sendprovince": "",
+            "sendcity": "",
+            "senddistrict": "",
+            "sendaddr": ""
+        }
+    };
+    var content = CONFIG["content"];
+    if(content){
+        var json = JSON.parse(content);
+        if(key in json){
+            return json[key];
+        }
+    }
+    return df[key];
+}
+
+function toPrint(result){
+    var printType = result.printType;
+    if(printType == "html"){
+        globalV.templates = result.templates;
+        openPrintIframe();
+    }
+    else if(printType == "pdf"){
+        var url = SERVICE.oms_pdf_down + "?file=" + result.templates;
+        window.open(url, '_blank');
+    }
+    if(TAG != "jump"){
+        queryOrder();
+    }
+}
+
+function stopArea(){
+    showTab("停发区域", "/tss/modules/dm/recorder.html?rctable=oms_stop_area");
+}
+
+function templateExport(){
+    tssJS("#downloadFrame").attr( "src", encodeURI(ORDER.CSV_TL));
+}
+
+function oorderImport(){
+    var params = {};
+    params.afterUploadClass = "com.boudata.oms.order.ImportOOrder";
+    batchImport("oms_order", params);
+}
+
+function addPrintModel(){
+    showTab("面单模板添加", "/tss/pages/oms/print_model_buy.html");
+}
+
+</script>
+
+
+</head>
+
+<body>
+   
+   	<div id="main" class="easyui-layout" fit="true" >
+   		<div data-options="region:'north'" border="false">
+            <table id="t-1" border="false" style="height:77px;"></table>
+        </div>
+        <div data-options="region:'center'" border="false" title="<b>运单列表 -【最后刷新时间为: <time id='lrt'></time>】</b><b id='b1'>(双击行编辑)</b>">
+	        <table id="t-2" border="false" data-options="toolbar:'#tb2'"></table>
+            <div id="tb2">
+                <a href="#" class="easyui-linkbutton" data-options="iconCls:'ion ion-md-search',plain:true" onclick="toSearch()">查找订单</a>
+                <a class="datagrid-btn-separator"></a>
+                <a id="refresh" href="#" class="easyui-linkbutton" data-options="iconCls:'ion ion-md-settings',plain:true" onclick="autoRefresh()">开启刷新</a>
+                <a class="datagrid-btn-separator"></a>
+                <a href="#" class="easyui-linkbutton" data-options="iconCls:'ion ion-md-home',plain:true" onclick="myStore()">我的店铺</a>
+                <a class="datagrid-btn-separator"></a>
+                <a href="#" class="easyui-linkbutton" data-options="iconCls:'ion ion-md-list',plain:true" onclick="myAccount()">我的账号</a>
+                <a class="datagrid-btn-separator"></a>
+                <a href="#" class="easyui-linkbutton" data-options="iconCls:'ion ion-md-build',plain:true" onclick="defaultConfig()">默认配置</a>
+                <a class="datagrid-btn-separator"></a>
+                <a id="batchbtn" href="#" class="easyui-menubutton" data-options="menu:'#batchmenu',plain:true">批量操作</a>
+                <a class="datagrid-btn-separator"></a>
+                <a href="#" class="easyui-menubutton" data-options="menu:'#addmenu',plain:true">附加功能</a>
+                <a class="datagrid-btn-separator"></a>
+                <a href="#" class="easyui-menubutton" data-options="menu:'#excelmenu',plain:true">Excel操作</a>
+                <a class="datagrid-btn-separator"></a>
+                <a href="#" class="easyui-linkbutton" data-options="iconCls:'ion ion-md-save',plain:true,width:'60'" onclick="endEditAndSave()">保存</a>
+                <a class="datagrid-btn-separator"></a>
+            </div>
+	    </div>
+    </div>
+
+    <div id="batchmenu" style="width:50px;">
+        <div data-options="iconCls:'ion ion-md-checkmark'" onclick="batchVerify('通过')">通过</div>
+        <div data-options="iconCls:'ion ion-md-close'" onclick="batchVerify('拒绝')">拒绝</div>
+        <div data-options="iconCls:'ion ion-md-redo'" onclick="batchVerify('重审')">重审</div>
+        <div data-options="iconCls:'ion ion-md-print'" onclick="batchPushToCarrier()">打印面单</div>
+        <div data-options="iconCls:'ion ion-md-arrow-forward'" onclick="openPushWmsDlag()">推送到WMS</div>
+    </div>
+
+    <div id="addmenu" style="width:50px;">
+        <div data-options="iconCls:'ion ion-md-arrow-forward'" onclick="stopArea()">停发区域维护</div>
+        <div data-options="iconCls:'ion ion-md-add'" onclick="addPrintModel()">面单模板添加</div>
+    </div>
+
+    <div id="excelmenu" style="width:50px;">
+        <div data-options="iconCls:'ion ion-md-cloud-upload'" onclick="oorderImport()">订单导入</div>
+        <div data-options="iconCls:'ion ion-md-cloud-download'" onclick="templateExport()">订单模板下载</div>
+        <div data-options="iconCls:'ion ion-md-cloud-download'" onclick="customsExport()">导出订单</div>
+    </div>
+
+    <div id="dlg1" class="easyui-dialog" style="width:auto;height:auto;" closed="true" buttons="#dlg1-buttons">
+        <form id="fm1" method="post" novalidate>
+            <table class="l">
+                <tr>
+                    <td class="label">下单日期:</td>
+                    <td colspan="3">
+                        <input id="datestart" name="datestart" class="easyui-datebox"/> -->
+                        <input id="dateend" name="dateend" class="easyui-datebox"/>
+                    </td>   
+                </tr>
+                <tr>
+                    <td class="label" rowspan="2">订单号:</td>
+                    <td rowspan="2" colspan="3">
+                        <textarea name="orderno" style="width:425px;height:69px;"/></textarea>
+                    </td>         
+                </tr>
+                <tr></tr>
+                <tr>
+                    <td class="label" rowspan="2">运单号:</td>
+                    <td rowspan="2" colspan="3">
+                        <textarea name="logisticcode" style="width:425px;height:69px;"/></textarea>
+                    </td>         
+                </tr>
+                <tr></tr>
+                <tr>
+                    <td class="label">状态:</td>
+                    <td>
+                        <input id="d_status" name="status" class="easyui-combobox" style="width:171px;"/>
+                    </td>  
+                </tr>
+                <tr>
+                    <td class="label">收件人:</td>
+                    <td>
+                        <input name="receiver" class="easyui-textbox"/>
+                    </td> 
+                    <td class="label">收件电话:</td>
+                    <td>
+                        <input name="receivemobile" class="easyui-textbox"/>
+                    </td>         
+                </tr>
+            </table>
+        </form>
+    </div>
+    <div id="dlg1-buttons">
+        <a href="#" class="easyui-linkbutton" iconCls="ion ion-md-search" onclick="searchQuery()">查询</a>
+    </div>
+
+    <div id="dlg2" class="easyui-dialog" closed="true">
+        <table id="t-3" border="false" style="width:auto;height:100%;" data-options="toolbar:'#tb3'"></table>
+        <div id="tb3" style="padding:2px 3px;" >
+            <form id="fm5" novalidate>
+                面单账号: <input id="e_account" class="easyui-combogrid" style="width:130px;"/>&nbsp;
+                业务类型: <input id="e_exptype" class="easyui-combobox" style="width:120px;"/>&nbsp;
+                运费支付: <input id="e_paytype" class="easyui-combobox" style="width:120px;"/>&nbsp;
+                打印尺寸: <input id="e_printsize" class="easyui-combobox" style="width:180px;"/>&nbsp;
+                <a id="s1" href="#" class="easyui-linkbutton" data-options="iconCls:'ion ion-md-print'" onclick="printEcode()">打印面单</a>
+                <a href="#" class="easyui-linkbutton" data-options="iconCls:'ion ion-md-add'" onclick="addEcodeAccount()">添加账号</a><br>
+                包装类型: <input id="e_packingtype" class="easyui-combobox" style="width:130px;"/>&nbsp;
+                派送方式: <input id="e_deliverymethod" class="easyui-combobox" style="width:120px;"/>&nbsp;
+                货币类型: <input id="e_currency" class="easyui-combobox" style="width:120px;"/>&nbsp;
+            </form>
+        </div>
+    </div>
+
+    <div id="dlg3" class="easyui-dialog" closed="true">
+        <table id="t-4" border="false" style="width:auto;height:100%;"></table>
+    </div>
+
+    <div id="dlg4" class="easyui-dialog" closed="true">
+        <table id="t-5" border="false" style="width:auto;height:100%;"></table>
+    </div>
+
+    <div id="dlg5" class="easyui-dialog" style="width:auto;height:auto;" closed="true" buttons="#dlg5-buttons">
+        <form id="fm2" method="post" novalidate>
+            <table class="l">
+                <tr>
+                    <td class="label">类型:</td>
+                    <td>
+                        <input id="type_online" name="type" value="1" type="radio" checked><label for="type_online">线上</label>
+                        <input id="type_offline" name="type" value="2" type="radio"><label for="type_offline">线下</label>
+                    </td>
+                    <td class="label">状态:</td>
+                    <td>
+                        <input id="status_enable" name="status" value="1" type="radio" checked><label for="status_enable">启用</label>
+                        <input id="status_disable" name="status" value="0" type="radio"><label for="status_disable">停用</label>
+                    </td>            
+                </tr>
+                <tr>
+                    <td class="label">店铺名称:</td>
+                    <td>
+                        <input id="s_name" name="name" class="easyui-textbox" required/>
+                    </td>
+                    <td class="label">平台:</td>
+                    <td>
+                        <input id="s_platform" name="platform" class="easyui-combobox" style="width:171px;"/>
+                    </td>                 
+                </tr>
+                <tr>
+                    <td class="label">应用ID:</td>
+                    <td>
+                        <input id="s_appkey" name="appkey" class="easyui-textbox"/>
+                    </td>
+                    <td class="label">应用秘钥:</td>
+                    <td>
+                        <input id="s_appsecret" name="appsecret" class="easyui-textbox"/>
+                    </td>                 
+                </tr>
+                <tr>
+                    <td class="label">卖家名称:</td>
+                    <td>
+                        <input id="s_owner" name="owner" class="easyui-textbox" required/>
+                    </td>
+                    <td class="label">网址:</td>
+                    <td>
+                        <input id="s_website" name="website" class="easyui-textbox"/>
+                    </td>                  
+                </tr>
+                <tr>
+                    <td class="label">联系人:</td>
+                    <td>
+                        <input id="s_contact" name="contact" class="easyui-textbox"/>
+                    </td>
+                    <td class="label">电话:</td>
+                    <td>
+                        <input id="s_mobile" name="mobile" class="easyui-textbox">
+                    </td>             
+                </tr>
+                <tr>
+                    <td class="label">省:</td>
+                    <td>
+                        <input id="s_province" name="province" class="easyui-textbox"/>
+                    </td> 
+                    <td class="label">市:</td>
+                    <td>
+                        <input id="s_city" name="city" class="easyui-textbox"/>
+                    </td> 
+                </tr>
+                <tr>
+                    <td class="label">区:</td>
+                    <td>
+                        <input id="s_district" name="district" class="easyui-textbox"/>
+                    </td>  
+                    <td class="label">详细地址:</td>
+                    <td>
+                        <input id="s_addr" name="addr" class="easyui-textbox"/>
+                    </td>               
+                </tr>
+                <tr>
+                    <td class="label">备注:</td>
+                    <td colspan="3">
+                        <input id="s_remark" name="remark" class="easyui-textbox" style="width:425px;"/>
+                    </td>               
+                </tr>
+            </table>
+        </form>
+    </div>
+    <div id="dlg5-buttons" style="text-align:center;">
+        <a id="s2" href="#" class="easyui-linkbutton" iconCls="ion ion-md-checkmark" onclick="saveStore()">确定</a>
+        <a href="#" class="easyui-linkbutton" iconCls="ion ion-md-close" onclick="closeDialog('fm2','dlg5')">取消</a>
+    </div>
+
+    <div id="dlg6" class="easyui-dialog" closed="true">
+        <table id="t-6" border="false" style="width:auto;height:100%;"></table>
+    </div>
+
+    <div id="dlg7" class="easyui-dialog" style="width:auto;height:auto;" closed="true" buttons="#dlg7-buttons">
+        <form id="fm3" method="post" novalidate>
+            <table class="l">
+                <tr>
+                    <td class="label">类型:</td>
+                    <td>
+                        <input id="type_site" name="a_type" value="3" type="radio" checked><label for="type_site">网点</label>
+                        <input id="type_platfrom" name="a_type" value="2" type="radio"><label for="type_platfrom">平台</label>
+                    </td>
+                    <td class="label">名称:</td>
+                    <td>
+                        <input id="a_name" name="name" class="easyui-textbox" required/>
+                    </td>
+                    <td class="label">状态:</td>
+                    <td>
+                        <input id="a_status_enable" name="a_status" value="1" type="radio" checked><label for="a_status_enable">启用</label>
+                        <input id="a_status_disable" name="a_status" value="0" type="radio"><label for="a_status_disable">停用</label>
+                    </td>            
+                </tr>
+                <tr>
+                    <td class="label">承运商:</td>
+                    <td>
+                        <input id="a_carrier" name="carrier" class="easyui-combobox" style="width:171px;"/>
+                    </td> 
+                    <td class="label">账号:</td>
+                    <td>
+                        <input id="a_client_id" name="client_id" class="easyui-textbox"/>
+                    </td>  
+                    <td class="label">秘钥:</td>
+                    <td>
+                        <input id="a_client_secret" name="client_secret" class="easyui-textbox"/>
+                    </td>                
+                </tr>
+                <tr>
+                    <td class="label">归属平台:</td>
+                    <td>
+                        <input id="a_platform" name="platform" class="easyui-combobox" style="width:171px;"/>
+                    </td> 
+                    <td class="label">网点编号:</td>
+                    <td>
+                        <input id="a_send_site" name="send_site" class="easyui-textbox"/>
+                    </td>
+                    <td class="label">网点员工:</td>
+                    <td>
+                        <input id="a_send_staff" name="send_staff" class="easyui-textbox">
+                    </td>     
+                </tr>
+                <tr>
+                    <td class="label">月结号:</td>
+                    <td>
+                        <input id="a_month_code" name="month_code" class="easyui-textbox"/>
+                    </td> 
+                    <td class="label">访问网址:</td>
+                    <td colspan="3">
+                        <input id="a_url" name="url" class="easyui-textbox" style="width:425px;"/>
+                    </td>                   
+                </tr>
+                <tr>
+                    <td class="label">发件人:</td>
+                    <td>
+                        <input id="a_sender" name="sender" class="easyui-textbox"/>
+                    </td>
+                    <td class="label">发件电话:</td>
+                    <td>
+                        <input id="a_sendmobile" name="sendmobile" class="easyui-textbox"/>
+                    </td>
+                    <td class="label">发件邮编:</td>
+                    <td>
+                        <input id="a_sendpostcode" name="sendpostcode" class="easyui-textbox"/>
+                    </td>             
+                </tr>
+                <tr>
+                    <td class="label">发件省:</td>
+                    <td>
+                        <input id="a_sendprovince" name="sendprovince" class="easyui-textbox"/>
+                    </td>
+                    <td class="label">发件市:</td>
+                    <td>
+                        <input id="a_sendcity" name="sendcity" class="easyui-textbox"/>
+                    </td>
+                    <td class="label">发件区:</td>
+                    <td>
+                        <input id="a_senddistrict" name="senddistrict" class="easyui-textbox"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">发件地址:</td>
+                    <td colspan="3">
+                        <input id="a_sendaddr" name="sendaddr" class="easyui-textbox" style="width:425px;"/>
+                    </td>
+                    <td class="label">COD卡号:</td>
+                    <td>
+                        <input id="a_codcard" name="codcard" class="easyui-textbox"/>
+                    </td> 
+                </tr>
+                <tr>
+                    <td class="label">打印尺寸:</td>
+                    <td>
+                        <input id="a_printsize" name="printsize" class="easyui-combobox" style="width:171px;"/>
+                    </td>        
+                </tr>
+                <tr>
+                    <td class="label">备注:</td>
+                    <td colspan="5">
+                        <input id="a_remark" name="remark" class="easyui-textbox" style="width:679px;"/>
+                    </td>               
+                </tr>
+            </table>
+        </form>
+    </div>
+    <div id="dlg7-buttons" style="text-align:center;">
+        <a id="s3" href="#" class="easyui-linkbutton" iconCls="ion ion-md-checkmark" onclick="saveAccount()">确定</a>
+        <a href="#" class="easyui-linkbutton" iconCls="ion ion-md-close" onclick="closeDialog('fm3','dlg7')">取消</a>
+    </div>
+
+    <div id="dlg8" class="easyui-dialog" style="width:auto;height:auto;" closed="true" buttons="#dlg8-buttons">
+        <form id="fm4" method="post" novalidate>
+            <table class="l">
+                <tr>
+                    <td class="label">承运商:</td>
+                    <td>
+                        <input id="c_carrier" name="carrier" class="easyui-combobox" style="width:171px;"/>
+                    </td>
+                    <td class="label">业务类型:</td>
+                    <td>
+                        <input id="c_exptype" name="exptype" class="easyui-combobox" style="width:171px;"/>
+                    </td>  
+                    <td class="label">运费支付:</td>
+                    <td>
+                        <input id="c_paytype" name="paytype" class="easyui-combobox" style="width:171px;"/>
+                    </td>                  
+                </tr>
+                <tr>
+                    <td class="label">包装类型:</td>
+                    <td>
+                        <input id="c_packingtype" name="packingtype" class="easyui-combobox" style="width:171px;"/>
+                    </td>   
+                    <td class="label">派送方式:</td>
+                    <td>
+                        <input id="c_deliverymethod" name="deliverymethod" class="easyui-combobox" style="width:171px;"/>
+                    </td> 
+                    <td class="label">货币:</td>
+                    <td>
+                        <input id="c_currency" name="currency" class="easyui-combobox" style="width:171px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">COD卡号:</td>
+                    <td>
+                        <input id="c_codcard" name="codcard" class="easyui-textbox"/>
+                    </td> 
+                    <td class="label">审核后打单:</td>
+                    <td>
+                        <input id="print_verify_yes" name="printNoVerify" value="0" type="radio" checked><label for="print_verify_yes">是</label>
+                        <input id="print_verify_no" name="printNoVerify" value="1" type="radio"><label for="print_verify_no">否</label>
+                    </td>         
+                </tr>
+                <tr>
+                    <td class="label">发件人:</td>
+                    <td>
+                        <input id="c_sender" name="sender" class="easyui-textbox"/>
+                    </td>
+                    <td class="label">发件电话:</td>
+                    <td>
+                        <input id="c_sendmobile" name="sendmobile" class="easyui-textbox"/>
+                    </td>
+                    <td class="label">发件邮编:</td>
+                    <td>
+                        <input id="c_sendpostcode" name="sendpostcode" class="easyui-textbox"/>
+                    </td>             
+                </tr>
+                <tr>
+                    <td class="label">发件省:</td>
+                    <td>
+                        <input id="c_sendprovince" name="sendprovince" class="easyui-textbox"/>
+                    </td>
+                    <td class="label">发件市:</td>
+                    <td>
+                        <input id="c_sendcity" name="sendcity" class="easyui-textbox"/>
+                    </td>
+                    <td class="label">发件区:</td>
+                    <td>
+                        <input id="c_senddistrict" name="senddistrict" class="easyui-textbox"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">发件地址:</td>
+                    <td colspan="3">
+                        <input id="c_sendaddr" name="sendaddr" class="easyui-textbox" style="width:425px;"/>
+                    </td>
+                    <td class="label">状态:</td>
+                    <td>
+                        <input id="c_status" name="status" class="easyui-combobox" style="width:171px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+    <div id="dlg8-buttons" style="text-align:center;">
+        <a id="s4" href="#" class="easyui-linkbutton" iconCls="ion ion-md-checkmark" onclick="saveConfig()">保存</a>
+        <a href="#" class="easyui-linkbutton" iconCls="ion ion-md-close" onclick="closeDialog('fm4','dlg8')">取消</a>
+    </div>
+
+    <div id="dlg9" class="easyui-dialog" style="width:300px;height:200px;" closed="true" buttons="#dlg9-buttons">
+        <form id="fm6">
+            <div id="whlist"></div>
+        </form>
+    </div>
+    <div id="dlg9-buttons" style="text-align:center;">
+        <a id="s5" href="#" class="easyui-linkbutton" iconCls="ion ion-md-checkmark" onclick="pushToWMS()">推送</a>
+        <a href="#" class="easyui-linkbutton" iconCls="ion ion-md-close" onclick="closeDialog('fm6','dlg9')">取消</a>
+    </div>
+
+    <iframe id="downloadFrame" style="display:none"></iframe>
+
+</body>
+</html>

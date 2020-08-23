@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>绑定微信</title>
+
+<script src="../tools/tssJS/tssJS.js"></script>
+<script src="../tools/tssJS/tssJS.all.js"></script>
+<script src="https://res.wx.qq.com/connect/zh_CN/htmledition/js/wxLogin.js"></script>
+
+<style type="text/css">
+
+body { font-family: "Microsoft Yahei"; }
+#main { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 600px; }
+#alert_box { display: none; }
+
+</style>
+</head>
+
+<body>
+
+<div id="main">
+    <h3 id="tip"></h3>
+    <div id="qrcode"></div>
+</div>
+
+<script type="text/javascript">
+
+    var origin = window.location.origin;
+    var appId = "wx773bbcc8cfc29cea";
+
+    $(function() {
+        var code = tssJS.Query.get("code");
+        var state = tssJS.Query.get("state");
+        var account = tssJS.Query.get("account");
+        var type = "bind";
+
+        if( !code ) {
+            showQrcode(account);
+        }
+        else{
+            bindUnionId(code, state, type);
+        }
+    });
+
+    function bindUnionId(code, account, type){
+        $.ajax({
+            url: "/tss/wx/api/bindunionid",
+            params: { 
+                "code": code,
+                "account": account,
+                "appid": appId,
+                "type": type
+            },
+            headers: {"noAlert": true},
+            ondata : function() { 
+                var data = this.getResponseJSON();
+                if(data.code == "success"){
+                    $("#tip").text("绑定成功，下次可以使用微信扫码登录系统");
+                }
+                else{
+                    $("#qrcode").hide();
+                    $("#tip").text(data.errorMsg);
+                }
+            }
+        });
+    }
+
+    function showQrcode(account){
+        $("#tip").text("请使用微信扫描二维码");
+
+        var redirect_uri = encodeURIComponent(origin + "/tss/more/bind_wx.html");
+
+        var obj = new WxLogin({
+            self_redirect:false,
+            id:"qrcode", 
+            appid: appId, 
+            scope: "snsapi_login", 
+            redirect_uri: redirect_uri,
+            state: account,
+            style: "white",
+            href: ""
+        });
+    }
+
+</script>
+</body>
+</html>

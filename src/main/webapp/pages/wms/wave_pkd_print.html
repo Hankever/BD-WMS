@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>拣货指导单打印</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/common/JsBarcode.all.min.js"></script>
+
+<STYLE type="text/css">
+
+table { border-collapse: collapse; border-spacing: 0; table-layout:fixed; }
+img { margin-top: 2px; width: 150px; height: 50px; }
+
+.bitable { width: 100%; height: auto; }
+.bitable tr { height: 18pt; }
+.bitable td { text-align: center; vertical-align: middle; border-bottom: 1px dashed #ccc; }
+.bitable thead {
+  background: linear-gradient(#f9f9f9 0px, #efefef 100%) repeat-x;
+}
+.bitable tbody { background-color: #fff; }
+.bitable tbody td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
+  /*white-space: nowrap;*/
+  height: 28px;
+}
+
+#t1 thead tr:nth-child(1) { height: 1px; }
+#t1 h2 { line-height: 35px; padding-top: 5px; display: inline-block; }
+#t1 h2 span { font-size: 12pt; letter-spacing: 3px; }
+#t1 tbody tr:nth-child(2) td:nth-child(odd)  { text-align: right; }
+
+#d1 { margin-top: 6pt; }
+body>.template { display: none; }
+
+/* 清单隔离线 */
+.template tbody tr>td { border-bottom: 1px dashed #ccc; }
+
+td, th { font-size: 6pt; }
+@media print {
+	#b1 { display: none; } 
+	td, th { font-size: 6pt; }
+	#d1>table  { page-break-after: always; }
+	#d1>table:last-child  { page-break-after: avoid; }
+}
+
+#b1 { font-size: 15px; padding: 5px 15px; }
+		 
+</STYLE>
+
+<script type="text/javascript">
+
+$(function(){
+	$("#t1 h2>span").text(document.title);
+	document.title = ".";
+	
+	showOuterData();
+});
+
+// 显示外部传入的数据
+var globalV, params;
+function showOuterData() {
+	globalV = window.parent.globalV;
+	if(globalV && globalV.data) {
+		params = globalV.params || {};
+		show(globalV.data);
+	}
+}
+
+function show(data) {
+	var title = "波次拣货单" + (globalV.combined ? "（合并）" : "（按单）");
+
+	$("#b1").click( function() {
+		preview();
+		tssJS.post("/tss/api/log", {table: "打印日志", code: title, content: globalV.pkhno + " : " + data.length});
+	 });
+
+	$("#t1 h2>span").html( title + " <img id='pkhno'/>");
+	JsBarcode("#pkhno", globalV.pkhno, {
+		height: "35px",
+      	fontSize: 20,
+      	font: "Sans-serif"
+    });
+
+	$("#t1 tbody tr:nth-child(2) td:nth-child(2)").text( globalV.worker );
+	$("#t1 tbody tr:nth-child(2) td:nth-child(4)").text( new Date().format("yyyy-MM-dd hh:mm") );
+
+	// 对【库位、货品、批次】一致的拣货明细进行合并
+	var qty = 0;
+	if( globalV.combined ) {
+		data.sort(sortStr("orderno"));
+		var pre_map = {}, ordernos = [];
+		data.each(function(i,item) {
+			var key = item.loccode + item.skucode + item.orderno;
+			if( !pre_map[key] ) {
+				pre_map[key] = cloneObj(item);
+			} else {
+				pre_map[key].qty += item.qty;
+			}
+			if(!ordernos.includes(item.orderno)) {
+				ordernos.push(item.orderno);
+			}
+			qty += item.qty;
+		})
+		var map = {};
+		for(key in pre_map){
+			var item = pre_map[key];
+			var key = item.loccode + item.skucode;
+			if( !map[key] ) {
+				map[key] = cloneObj(item);
+				map[key].sku_orders = {};
+				map[key].sku_orders[item.orderno] = item.qty;
+			} else {
+				map[key].qty += item.qty;
+				map[key].sku_orders[item.orderno] = item.qty;
+			}
+		};
+
+		var order_map = {};
+		ordernos.each(function(i, orderno) {
+			order_map[orderno] = i + 1;
+		})
+
+		data = [];
+		$.each(map, function(key, item) {
+			var sku_orders = item.sku_orders;
+			item.sku_order = [];
+			for(var key in sku_orders) {
+				item.sku_order.push('[' + order_map[key] + ']x' + sku_orders[key]);
+			}
+			data.push(item);
+		})
+	}
+	$("#t1 tbody tr:nth-child(2) td:nth-child(6)").text( ordernos.length );
+	$("#t1 tbody tr:nth-child(2) td:nth-child(8)").text( qty );
+
+	var tos = [];
+	var table;
+	data.each(function(i, item) {
+		if( i == 0 || i == 12 || (i-12)%15 == 0 ) {
+			table = $("body>.template")[0].cloneNode(true);
+			$("#d1").appendChild(table);
+		}
+		for(var key in item){
+			item[key] = item[key] || ''
+		}
+
+		var row = tssJS.createElement("tr");
+		tssJS(row).html("<td/><td style='white-space: inherit;'/><td/><td/><td/><td/><td/><td/><td/><td/><td/>");
+		var  index = 0;
+
+		var skuDesc = (item.guige||'');
+		if( item.uom ) {
+			skuDesc += "(" +item.uom+ ")";
+		}
+
+		tssJS("td:nth-child(" +(++index)+ ")", row).html( '' );
+		tssJS("td:nth-child(" +(++index)+ ")", row).html( item.skuname );
+		tssJS("td:nth-child(" +(++index)+ ")", row).html( skuDesc );
+		tssJS("td:nth-child(" +(++index)+ ")", row).html( '<img id="img' +i+ '"/>' );
+		tssJS("td:nth-child(" +(++index)+ ")", row).html( item.parent_loc );
+		tssJS("td:nth-child(" +(++index)+ ")", row).html( item.qty );
+		tssJS("td:nth-child(" +(++index)+ ")", row).html( item.sku_order.join(', ') );
+
+		tssJS("tbody", table).appendChild(row);
+
+		JsBarcode("#img" + i, item.barcode, {
+			height: "35px",
+	      	fontSize: 20,
+	      	font: "Sans-serif"
+	    });
+	});
+}
+
+function preview() { 
+	window.print(); 
+} 
+
+function fixLot(item) {
+	var lotatts = [];
+	item.invstatus && lotatts.push(item.invstatus);
+	item.createdate && lotatts.push(item.createdate);
+	item.expiredate && lotatts.push(item.expiredate);
+	item.lotatt01 && lotatts.push(item.lotatt01);
+	item.lotatt02 && lotatts.push(item.lotatt02);
+	item.lotatt03 && lotatts.push(item.lotatt03);
+	item.lotatt04 && lotatts.push(item.lotatt04);
+
+	return lotatts.join();
+}
+
+function sortStr(field, type){
+    return function(a, b){
+        var valueA = a[field];
+        var valueB = b[field];
+        if(type == "desc"){
+            return -valueA.localeCompare(valueB);
+        }
+        else{
+            return valueA.localeCompare(valueB);
+        }
+    }
+}
+
+function cloneObj(obj) {  
+    var newObj = {};  
+    if (obj instanceof Array) {  
+        newObj = [];  
+    }  
+    for (var key in obj) {  
+        var val = obj[key];  
+        if( val === null ){
+            newObj[key] = null;
+        }
+        else{
+            newObj[key] = typeof val === 'object' ? cloneObj(val): val;  
+        }
+    }  
+    return newObj;  
+}
+
+</script>
+
+</head>
+
+<body>
+<!--startprint-->
+   <table id="t1" class="bitable">
+   		<thead>
+   			<tr><th width="10%"/><th width="15%"/><th  width="10%"/><th width="15%"/><th width="10%"/><th width="15%"/></tr>
+   		</thead>
+   		<tbody>
+	   		<tr>
+	   			<td colspan="9">
+	   				<h2>
+	   					<span></span>&nbsp;&nbsp;
+	   					<button id="b1" class="tssbutton orange">打 印</button>
+	   				</h2>
+	   			</td>
+	   		</tr>
+	   		<tr>
+	   			<td>拣货人：</td>
+	   			<td colspan="1"></td>
+	   			<td>打印时间：</td>
+	   			<td colspan="2"></td>
+	   			<td>订单数：</td>
+	   			<td colspan="1"></td>
+	   			<td>货品数量：</td>
+	   			<td colspan="1"></td>
+	   		</tr>
+   		</tbody>
+   </table>
+
+   <div id="d1"></div>
+
+<!--endprint-->
+<table class="bitable template">
+	<thead>
+		<tr>	
+			<th width="0%"></th>
+			<th width="20%">货品名称</th>
+			<th width="10%">规格</th>
+			<th width="24%">货品条码</th>
+			<th width="15%">拣货库位</th>
+			<th width="11%">拣货数量</th>
+			<th width="40%">货品分布</th>
+		</tr>
+	</thead>
+	<tbody>
+	</tbody>
+</table>
+
+</body>
+</html>

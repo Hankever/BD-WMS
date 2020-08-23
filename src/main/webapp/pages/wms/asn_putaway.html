@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>上架作业</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="wms.js"></script>
+<STYLE type="text/css">
+    input[readonly]{
+        background-color: #eee;
+    }
+</STYLE>
+
+<script type="text/javascript">
+
+var globalV = {}, 
+    dg1, dg2,
+    dg2_data, dg1_selected;
+
+var all_btns = '#btn21,#btn22,#btn23,#btn24,#btn25';
+
+var FIELDS_1 = [
+    {field: "asnno", title: "入库单号", styler: cursorHand},
+    {field: "asnday", title: "入库日期"},
+    {field: "type", title: "入库类型"},   
+    {field: "supplier", title: "供货方", width: "7%"},
+    {field: "owner_id", title: "货主", formatter:ownerid2name},
+    {field: "qty", title: "数量", width: "6%"},
+    {field: "qty_actual", title: "已入库数量", width: "6%"},
+    {field: "status", title: "入库单状态"},
+    {field: "qty_sj", title: "已上架数量", width: "6%"},
+    {field: "status_op", title: "上架状态"},
+    {field: "remark", title: "备注", width:"20%"}
+];
+var FIELDS_2 = [
+    {field: "opitem_id", hidden:true},
+    {field: "sku_id", title: "货品ID", hidden: true},
+    {field: "skuname", title: "货品", width: '15%',align:'left'},
+    {field: "skucode", title: "货品编码", width: '9%',align:'left'},
+    {field: "guige", title: "货品规格"},
+    {field: "uom", title: "单位", width:'4%'},
+    {field: "lot", title: "批次", width:'10%'},
+    {field: "qty_actual", title: "已入库数量"},
+    {field: "qty_sj", title: "已上架货量", styler: qtyStyler},
+    {field: "qty_this", title: "本次上架数量", editor: {type: "numberbox", options: {min:1}}},
+    {field: "toloccode", title: "上架库位", styler: function(value,row,index) { return 'background-color: rgb(254, 247, 169)'; }},
+    {field: "opts", title: "操作", width:'6%'}
+];
+fixLotatts(FIELDS_2);
+
+$.each(FIELDS_1, function(i, field) {
+    field.align = field.align||"center";
+    field.width = field.width||"7%";
+});
+$.each(FIELDS_2, function(i, field) {
+    field.align = field.align||"center";
+    field.width = field.width||"7%";
+});
+
+$(function(){
+    $('#owner_id').combobox({
+        url: OWNER.QUERY,
+        textField:'name',
+        valueField:'id',
+        panelHeight:'100px'
+    })
+
+    dg2 = $('#t2').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        remoteSort: false,
+        toolbar: [    
+            { text: '1.预上架推荐', iconCls: 'ion ion-ios-keypad', handler: prePutaway, disabled: true, id: "btn24"},
+            '-', { text: '2.打印上架指导单', iconCls: 'ion ion-ios-print', handler: printPwds, disabled: true, id: "btn25"},
+            // '-', { text: '指派上架人', iconCls: 'ion ion-ios-person', handler: assign, id: "_bt3" },
+            '-', { text: '3.完成上架', iconCls: 'ion ion-ios-checkmark-circle-outline', handler: putaway,disabled: true, id: "btn22"},
+        ],
+        onClickCell: function(index, field, value) {
+            if(field == 'opts'  && value ) {
+                if( value.indexOf('删除') >= 0 ) {
+                    removeItem(index);
+                }
+                if( value.indexOf('复制') >= 0 ) {
+                    copyItem(index);
+                }
+            } 
+            var row = dg2.datagrid('getRows')[index];
+            if(row.end_edit) {
+                dg2.datagrid("endEdit", index);
+            }        
+        },
+        columns: [FIELDS_2],
+        data: []
+    });
+
+    dg2.datagrid('enableCellEditing');
+    initContext(drawTable)
+    
+});
+
+function drawTable(data){
+    prepareLOCs(function(){
+        prepareOwners(function(){
+            prepareSKUs(function(){
+                SELECTED_WH = data;
+                queryAsn();
+                dg2.datagrid('addEditor', 
+                    {field:'toloccode', editor: {type:'combobox',options:{data:LOC_D, textField:'name', valueField:'code', panelHeight:'100px'}}}
+                );
+            })
+        })
+    });
+}
+
+function queryAsn() {
+    dg1 = $('#t1').datagrid({
+        url: ASN.QUERY,
+        queryParams: getParams(),
+        fit: true,
+        fitColumns: true,
+        pagination: true,
+        rownumbers: true,
+        pageSize : 50,
+        pageList: [20, 50, 100],
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        toolbar: '#tb1' ,
+        columns: [FIELDS_1],
+        onLoadSuccess: function(data) {
+            if(data.total) {
+                setTimeout(function() {
+                    dg1.datagrid("selectRow", dg1_selected || 0);
+                }, 500);   
+
+                // 刷入已上架作业详情
+                var asnIds = [];
+                data.rows.each(function(i, item) {
+                    asnIds.push(item.id);
+                });
+
+                // 更新入库数量
+                JQ.post('/tss/asn/opQty', {asnIds: asnIds.join(","),  optype: '入库'}, function(data1) {
+                    var m1 = {}, m2 = {};
+                    data1.each(function(i, item) {
+                        m1[item[0]] = item[1];
+                        m2[item[0]] = item[2];
+                    })
+
+                    data.rows.each(function(i, item) {
+                        var qty = m1[item.id];
+                        $('#t1').datagrid('updateRow', {
+                            index: i,
+                            row: {
+                                qty_actual: qty,
+                                status_op: m2[item.id]
+                            }
+                        });
+                    });
+
+                    // 更新已上架数量
+                    JQ.post('/tss/asn/opQty', {asnIds: asnIds.join(","), optype: '上架'}, function(data2) {
+                        var m1 = {};
+                        data2.each(function(i, item) {
+                            m1[item[0]] = item[1];
+                        })
+
+                        data.rows.each(function(i, item) {
+                            var qty = m1[item.id];
+                            var sj_status = item.status_op || (qty ? (qty == item.qty ? "完全上架": "部分上架") : "未上架");
+                            $('#t1').datagrid('updateRow', {
+                                index: i,
+                                row: {
+                                    qty_sj: qty,
+                                    status_op: sj_status
+                                }
+                            });
+                        });
+                    });
+                
+                });
+                
+            }
+            else {
+                dg2.datagrid({data:[]})
+            }
+            return data;
+        },
+        /* onClickRow 事件无法用JS去触发，故此优先用onSelect事件 */
+        onSelect: function(index, row) {
+            var opable = true;
+            if(row.status_op == '完全上架' || row.status_op == '已直接入库上架'){
+                $(all_btns).linkbutton("disable");
+                opable = false;
+            }
+            else {
+                $(all_btns).linkbutton("enable")
+            }
+            queryItems( row['asnno'], row['id'], opable );
+            dg1_selected = index;
+        }
+    });
+}
+
+function getParams(){
+    var time1 = $('#asnday_from').datebox("getValue") || subDateS(now, TIME_SPAN),
+        time2 = $('#asnday_to').datebox("getValue") || subDateS(now, -1);
+
+    $('#asnday_from').datebox('setValue', time1);
+    $('#asnday_to').datebox('setValue', time2);
+
+    var params = {
+            warehouse_id: SELECTED_WH,
+            asnno: $("#asnno").val(),
+            owner_id: $('#owner_id').combobox('getValue'),
+            asnday: "[" + time1 + "," + time2 + "]",
+            status: '已完成,部分入库,关闭'
+        };
+
+    return params;
+}
+
+function queryItems(asnno, asn_id, opable) {
+    tssJS.get( SERVICE.asn_putaway_info, {asnId: asn_id}, function(data) {
+        if( !data.length ) {
+            $('#btn22,#btn23,#btn24,#btn25').linkbutton("disable")
+        }
+
+        showItems(data, opable); 
+    });
+}
+
+function showItems(data, opable) {
+    data.each(function(i, item) {
+        var sku = SKU_M[item.sku_id];
+        item.skuname = sku.name;
+        item.skucode = sku.code;
+        item.barcode = sku.barcode;
+        item.brand = sku.brand;
+        item.guige = sku.guige;
+        item.price = item.price || sku.price2 || sku.price || sku.price0 || 0;
+        item.uom = sku.uom;
+        item.guige = sku.guige;
+        item.shelflife = sku.shelflife;
+        item.opts = '<a href="javascript:void(0)" style="text-decoration: underline;">复制</a>';
+    });
+
+    dg2.datagrid("loadData", data);
+
+    if( !opable ) {
+        dg2.datagrid("hideColumn", "opts");
+    } 
+    else {
+        dg2.datagrid("showColumn", "opts");
+        dg2.datagrid('gotoCell', {
+            index: 0,
+            field: 'qty_this'
+        });
+    }
+
+    dg2_data = data;
+}
+
+function qtyStyler(value, row, index) { 
+    if( row.qty_sj > 0 ) {
+        return 'background-color: #eee;'; 
+    } 
+}
+
+function removeItem(index) {
+    var row = dg2.datagrid('getRows')[index];
+    dg2.datagrid('deleteRow', index);
+}
+
+function prePutaway() {
+    var asn_id = dg1.datagrid("getRows")[dg1_selected].id;
+    tssJS.get( SERVICE.asn_pre_putaway, {asnId: asn_id}, function(data) {
+        var items = [];
+        data.items.each(function(i, item) {
+            var ai = item.asnitem;
+            var _item = {};
+            _item.id = ai.id;
+            _item.sku_id = ai.sku.id;
+            _item.toloccode = item.toloccode;
+            _item.qty_actual = ai.qty_actual;
+            _item.lot = item.lot;
+            _item.inv_id = item.opinv.id;
+
+            if( item.id ) { // 已上架的记录
+                _item.qty_sj = item.qty;
+                _item.end_edit = true;
+            }
+            else {
+                _item.qty_this = item.qty;
+            }
+
+            items.push(_item);
+        })
+
+        showItems(items, true); 
+
+        var rule = data.rules.length ? data.rules[0].name : '空库位优先（系统默认）';
+        $.messager.show({ title: '上架推荐提示', msg: '本次使用推荐规则为【' +rule+ "】<br>可为不同仓库或货主设置不同的推荐规则"});
+
+        $('#btn25').linkbutton("enable");
+    });
+}
+
+function assign() {
+    var row = $('#t1').datagrid('getSelected');
+    if(row.sj_status == '未上架') {
+        return $.messager.alert('提示', "请选择未上架的入库单进行指派");
+    }
+
+    chooseWorker( $("#_worder_").val() );
+}
+
+function saveWorker() {
+    var row = $('#t1').datagrid('getSelected');
+    var params_ = {}; 
+    params_.id = row.id;
+    params_.worker = getChoosedWorkers();
+    params_.type = '上架';
+    
+    // TODO 生成上架指导单，并指派
+}
+
+var globalV = {};
+function printPwds() {
+    globalV.data = dg2.datagrid("getRows");
+    var flag = true;
+    globalV.data.each(function(i, row) {
+        if( !row.toloccode || !row.qty_this ) flag = false;
+    });
+    if(!flag) {
+        return $.messager.alert('提示', "本次上架数量和上架库位不能为空，可先执行【预上架推荐】");
+    }
+
+    globalV.asnno = $('#t1').datagrid('getSelected').asnno;
+    globalV.pkhno = globalV.asnno;
+    globalV.worker = userCode2userName( $("#_worder_").val() );
+    tssJS.openIframePanel("panel-1", " - 上架指导单打印", 800, 480, "asn_pwd_print.html");
+}
+
+function copyItem(index){
+    var row = dg2.datagrid('getRows')[index];
+    var copy_row = cloneObj(row);
+    copy_row.opitem_id = null;
+
+    copy_row.opts = '<a href="javascript:void(0)">删除</a>';
+    
+    dg2.datagrid("insertRow", {index: index + 1,row: copy_row})
+}
+
+function putaway(){
+    var obj = getSaveItems();
+    if(obj.if_save) {
+        var params = {
+                whId: SELECTED_WH, 
+                items: JSON.stringify(obj.save_items)
+        };
+
+        JQ.post(SERVICE.asn_putaway, params, function(data){
+            dg1.datagrid('reload');
+            dg1.datagrid("selectRow", dg1_selected);
+            $.messager.show({ title: '提示', msg: '上架成功！'});
+        })
+    }
+}
+
+function getSaveItems(){
+    for(var i = 0; i < 1000; i++) {
+        dg2.datagrid("endEdit", i);
+    }
+    var dg_rows = dg2.datagrid('getRows');
+    var all_rows = cloneObj(dg_rows);
+    for(var i = all_rows.length - 1;i >= 0;i--){
+        var item = all_rows[i];
+        if(!item.qty_this && item.qty_this != "0"){
+            all_rows.splice(i, 1);
+        }
+    }
+
+    var if_save = all_rows.length, save_items = [];
+    all_rows.each(function(i, item){
+        if( !item.toloccode ) {
+            if_save = false;
+            return $.messager.alert('提示','请填写库位')
+        }
+
+        var _item = { asnitem_id: item.id, qty: item.qty_this, toloccode: item.toloccode };
+        _item.inv_id = item.inv_id;
+
+        save_items.push(_item);
+    })
+
+    return {if_save: if_save, save_items: save_items};
+}
+
+</script>
+
+</head>
+<body>
+<div id="init"></div>
+
+<div id="main" class="easyui-layout" fit="true">
+    <div id="dataContainer" data-options="region:'center'" border="false">
+        <table id="t1" border="false"></table>
+    </div>
+    <div data-options="region:'south',split:true" style="height:52%" border="false" title="<b class='order_no'></b> 上架明细<span id='_worder'></span><input type='hidden' id='_worder_'><input type='hidden' id='_opid_'>">
+        <table id="t2" border="false"></table>
+    </div>
+</div>
+
+<div id="tb1" class="queryContainer">
+    <label>入库单号</label><input id='asnno' class='easyui-textbox'>
+    <label>入库日期</label><input id='asnday_from' class='easyui-datebox'>
+    <label> --> </label><input id='asnday_to' class='easyui-datebox'>
+    <label>货主</label><input id="owner_id" class="easyui-combobox">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-search" style="width:60px;margin-left:10px" onclick="queryAsn()">查 询</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-list" style="margin-left:10px" onclick="showOpLog()">作业日志</a>
+</div>
+
+</body>
+</html>

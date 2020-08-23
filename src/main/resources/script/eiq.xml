@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sqls>
+	<sql code="queryDailyEIQ1" name="查询各天的EIQ总览">
+		<![CDATA[
+		    select date_format(o.orderday, '%y-%m-%d') 日期, count(distinct o.id) 总订单数, 
+		       sum(o.qty) 总出货量, max(o.qty) 订单最大件数, min(o.qty) 订单最小件数, round(avg(o.qty),2) 每单平均件数, 
+		       sum(o.skus) 总出货品项, max(o.skus) 订单最大品项数, min(o.skus) 订单最小品项数, round(avg(o.skus),2) 每单平均品项数, 
+		       count(distinct owner_Id) 总出货客户数
+			from wms_order t
+			where 0=0
+			  <#if whIDs??> and o.warehouse_id in (${whIDs}) </#if> 
+		      <#if owIDs??> and o.owner_id in (${owIDs})</#if>
+		      and o.orderday >= '${date_from}' and o.orderday < '${date_to}' + interval 1 day
+			group by date_format(o.orderday, '%y-%m-%d')
+			order by 日期 
+			
+		]]>
+	</sql>
+	
+	<sql code="queryIOQty" name="查询出入库量WH_IDS" noLog="true">
+		<![CDATA[
+		select count(*) num, sum(qty) qty from wms_order 
+			where createTime > '${date_from}' 
+				<#if wh_id??> and warehouse_id in (${wh_id}) </#if> 
+				<#if status??> and status = '${status}'</#if> 
+		union all
+		select count(*) num, sum(qty) qty from wms_asn 
+			where createTime > '${date_from}' 
+				<#if wh_id??> and warehouse_id in (${wh_id}) </#if> 
+				<#if status??> and status = '${status}'</#if> 
+		]]>
+	</sql>
+	
+	<sql code="queryDailyEIQ2" name="查询各天的EIQ总览"><![CDATA[
+		select date_format(o.orderday, '%y-%m-%d') 日期, count(distinct oi.sku_id) 单日总出货品项 
+		from wms_order_item oi, wms_order o
+		where oi.order_id = o.id
+			<#if whIDs??> and o.warehouse_id in (${whIDs}) </#if> 
+	        <#if owIDs??> and o.owner_id in (${owIDs})</#if>
+	        and o.orderday >= '${date_from}' and o.orderday < '${date_to}' + interval 1 day
+		group by date_format(o.orderday, '%y-%m-%d')
+		order by 日期  desc
+	]]></sql>
+	<sql code="queryDailyEIQ3" name="查询各天的EIQ总览"><![CDATA[
+		select count(distinct oi.sku_id) 总出货品项, count(distinct owner_Id) 总出货客户数
+		from wms_order_item oi, wms_order o
+		where oi.order_id = o.id
+			<#if whIDs??> and o.warehouse_id in (${whIDs}) </#if> 
+	        <#if owIDs??> and o.owner_id in (${owIDs})</#if>
+	        and o.orderday >= '${date_from}' and o.orderday < '${date_to}' + interval 1 day
+	]]></sql>
+	
+	<sql code="queryHistoryData" name="EIQ样本数据查询">
+		<![CDATA[
+			select date_format(o.orderday, '%y-%m-%d') day, o.id so, oi.sku_id sku, oi.qty 
+			from wms_order_item oi, wms_order o
+			where oi.order_id = o.id
+				<#if whIDs??> and o.warehouse_id in (${whIDs}) </#if> 
+		        <#if owIDs??> and o.owner_id in (${owIDs})</#if>
+		        and o.orderday >= '${date_from}' and o.orderday < '${date_to}' + interval 1 day
+		]]>
+	</sql>
+	
+	<sql code="getSKUs4ABC" name="getSKUs4ABC">
+		<![CDATA[
+		select a.sku,ifnull(b.iq,0) iq,ifnull(b.ik,0) ik,a.invqty,c.price2 price,a.invqty * ifnull(c.price2,1) value from 
+			(select s.sku_id sku, sum(s.qty) invqty
+				from wms_inv s 
+				where 1 = 1
+				<#if whIDs??> and s.wh_id in (${whIDs}) </#if> 
+				<#if owIDs??> and s.owner_id in (${owIDs})</#if>
+			    group by s.sku_id) a
+		left join
+			(select oi.sku_id sku, sum(oi.qty) iq, count(distinct o.id) ik
+				from wms_order_item oi, wms_order o
+				where oi.order_id = o.id
+				<#if whIDs??> and o.warehouse_id in (${whIDs}) </#if> 
+		        <#if owIDs??> and o.owner_id in (${owIDs})</#if>
+		        and o.orderday >= '${date_from}' and o.orderday < '${date_to}' + interval 1 day
+			    group by oi.sku_id) b
+		on (a.sku = b.sku)
+		left join wms_sku c
+        on (a.sku = c.id)
+        <#if type=='number'>
+	    order by b.iq desc, b.ik desc
+	    <#elseif type=='price'>
+	    order by a.invqty * ifnull(c.price2,1) desc
+	    </#if>
+		]]>
+	</sql>
+ 
+</sqls>

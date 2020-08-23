@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<ForgetInfo>
+		<xform>
+			<declare>
+				<column name="userId" caption="" mode="string" display="none"/>
+				<column name="loginName" caption="帐号" mode="string" empty="false"/>
+				<column name="passwordQuestion" caption="密码提示问题" mode="string" empty="false"/>
+				<column name="passwordAnswer" caption="密码提示答案" mode="string" empty="false"/>
+				<column name="password" caption="输入新密码" mode="string"/>
+				<column name="repassword" caption="新密码确认" mode="string"/>
+			</declare>
+			<layout>
+				<TR>
+					<TD width="100"><label binding="loginName"/></TD>
+					<TD><input binding="loginName" type="text"/></TD>
+				</TR>
+				<TR>
+					<TD><label binding="passwordQuestion"/></TD>
+					<TD><input binding="passwordQuestion" type="text"/></TD>
+				</TR>
+				<TR>
+					<TD><label binding="passwordAnswer"/></TD>
+					<TD><input binding="passwordAnswer" type="text"/></TD>
+				</TR>
+				<TR>
+					<TD></TD>
+					<TD class="bts">
+					   <a href="#" class="tssbutton small blue" onclick="if(checkForgetForm()) { getPassword(); }">找 回</a>
+					</TD>
+				</TR>
+				<TR>
+                    <TD><label binding="password"/></TD>
+                    <TD><input binding="password" type="password"/></TD>
+                </TR>
+                <TR>
+                    <TD><label binding="repassword"/></TD>
+                    <TD><input binding="repassword" type="password"/></TD>
+                </TR>
+                <TR>
+                    <TD></TD>
+                    <TD class="bts">
+                    	<a href="#" class="tssbutton small blue" id="resetBT" 
+                    		onclick="if(checkNewPassword()) { setNewPassword(); }">提 交</a>
+                    </TD>
+                </TR>
+			</layout>
+			<data></data>
+		</xform>
+	</ForgetInfo>
+</Response>

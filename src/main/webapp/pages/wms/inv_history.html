@@ -1,0 +1,135 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>库存历史变换</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="wms.js"></script>
+
+
+<script type="text/javascript">
+
+var INV_HISTORY_FIELDS = [
+    {field: "owner", title: "货主", width: '5%', hidden: hide_ow},    
+    {field: "sku", title: "货品名称", width: "8%"},
+    {field: "skucode", title: "货品编码", width: "6%"},
+    {field: "location", title: "库位"},
+    {field: "optype", title: "作业类型"},
+    {field: "qty", title: "库存数量", width: '6%'},
+    {field: "qtyLocked", title: "锁定数量", width: '5%'},
+    {field: "guige", title: "规格"},
+    {field: "uom", title: "单位"},
+    {field: "invstatus"},
+    {field: "createdate"},
+    {field: "shelflife", title: "保质期", width:'4%'},
+    {field: "expiredate"},
+    {field: "lotatt01"},
+    {field: "lotatt02"},
+    {field: "lotatt03"},
+    {field: "lotatt04"},
+    {field: "opno", title: "作业单号", width: '8%'},
+    {field: "oper", title: "作业人"},
+    {field: "optime", title: "作业时间", width: '7%'},
+];
+fixLotatts(INV_HISTORY_FIELDS);
+fixFields(INV_HISTORY_FIELDS, "wms_sku");
+
+$.each(INV_HISTORY_FIELDS, function(i, field) {
+    field.align = field.align || "center";
+    field.width = field.width || '5%';
+});
+
+$(function(){
+    initContext( init );
+});
+
+function init(){
+    prepareOwners();
+
+    prepareLOCs(function(){
+        prepareOperationType(function(){
+            prepareSKUs(function(){
+                jQuery.getJSON("/tss/wx/api/users", {}, function(result) {
+                    userPartner = result;
+                    queryInvHistory();
+                });
+            })
+        })
+    })
+}
+
+function getParams(){
+    var params = {};
+    params.wh_id = tssJS.Query.get("wh_id");
+    params.sku_id = tssJS.Query.get("sku_id");
+    params.location_id = tssJS.Query.get("location_id");
+    params.inv_id = tssJS.Query.get("inv_id");
+
+    return params;
+}
+
+function queryInvHistory(opid){
+    var dg1 = $('#t1').datagrid({
+        url: '/tss/api/bi/invHistory',
+        method: 'get',
+        queryParams: getParams(),
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        pagination: true,
+        pageSize : 50,
+        columns: [INV_HISTORY_FIELDS],
+        loadFilter:function(data) {
+            data.rows.each(function(i, item){
+                var loc = LOC_I[item.location_id];
+                var sku = SKU_M[item.sku_id];
+                item['warehouse'] = WAREHOUSE_I[item.wh_id].name;
+                item['owner'] = OWNER_I[item.owner_id].name;
+                item['location'] = loc.code;
+                item['sku'] = sku.name;
+                item['skucode'] = sku.code;
+                item['brand'] = sku.brand;
+                item['guige'] = sku.guige;
+                item['uom'] = sku.uom;
+                item['shelflife'] = sku.shelflife;
+                item['qty'] = item.fromqty + '-->' + item.toqty;
+                item['qtyLocked'] = item.fromqtylocked + '-->' + item.toqtylocked;
+
+                calExpireDate(item);
+            })
+            return data;
+        }
+    });
+}
+
+</script>
+
+</head>
+<body>
+
+<div id="main" class="easyui-layout" fit="true">
+    <div id="dataContainer" data-options="region:'center'" border="false">
+        <table id="t1" border="false"></table>
+    </div>
+</div>
+
+</body>
+</html>

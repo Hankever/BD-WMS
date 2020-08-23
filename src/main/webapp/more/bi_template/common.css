@@ -1,0 +1,37 @@
+html { height:100%; }   
+body { height:100%; margin: 0; padding: 0; font-family: "微软雅黑", Verdana, Arial, Helvetica, AppleGothic, sans-serif; } 
+body,h1,h2,h3,h4,h5,h6,hr,p,dl,dt,dd,ul,ol,li,pre,form,fieldset,legend,button,input,textarea,th,td{margin:0; padding:0;}
+ul,ol{list-style:none;}
+a { text-decoration: none; }
+a:hover { text-decoration: none; cursor: pointer; }
+table{border-collapse: collapse; border-spacing: 0;}
+
+.tssbutton {
+  display: inline-block;
+  outline: none;
+  text-align: center;
+  text-decoration: none;
+  font: 1em/100% Arial, Helvetica, '微软雅黑', sans-serif;
+  border-radius: 3px;
+  letter-spacing: 1px;
+  padding: .2em .4em .2em;
+}
+.tssbutton:hover {
+  text-decoration: none;
+}
+.blue {
+  color: #fff;
+  border: solid 1px #049cdb;
+  background: #049cdb;
+  cursor: pointer;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+.blue:hover {
+  background-color: #03719f;
+}
+.blue:active {
+  color: #e8e8e8;
+}
+.bibt {
+    position: absolute; top: 3px; left: 5px; z-index: 99;
+}

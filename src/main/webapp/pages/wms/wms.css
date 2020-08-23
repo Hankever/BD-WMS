@@ -1,0 +1,47 @@
+/* 右上角仓库选择器 */
+.ribbon-block { width: 180px; height: 110px; overflow: hidden; position: absolute; right: 0;}
+.ribbon {
+    font-family: Arial, sans-serif, "Microsoft Yahei";
+    font-size: 1.5em;
+    font-weight: 600;
+    text-align: center;
+    -webkit-transform: rotate(45deg);
+    -moz-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    -o-transform: rotate(45deg);
+    position: relative;
+    padding: 6px 0; margin-top:10px;
+    width: 300px; height:40px;
+    color: white; background-color:#3c718c;
+    z-index: 999;
+}
+.ribbon:hover { cursor: pointer; }
+.selectItem { display: inline-block; width: 160px; padding-left: 5px; border-bottom: 1px dashed #eee; line-height: 30px;}
+.selectItem > input { margin: 2px 10px; }
+.dlg_choose_wh { width:360px; min-height: 160px; }
+.window-shadow { width: 0 !important; }
+
+/* 出入库单据页面 */
+
+
+/* 出入库验货界面 */
+.label_  { font-size: 14px; color: #666; }
+.label_b { font-size: 16px; color: #666; }
+.input_, #io_check .textbox-text { height: 30px; font-size: 15px; width: 190px; }
+.len1 { width: 50px; text-align: center; }
+.len2 { text-align: center; height: 32px; width: 65px; }
+.len2_ { text-align: center; height: 30px; width: 45px; }
+.textarea { height: 100px;  width: 300px; font-size: 15px; }
+.underline { text-decoration: underline; }
+.layout_center { text-align: center; padding-left: 10%; }
+.qty_text { font-size: 25px; font-weight: bold; }
+
+#io_check .l-btn-text, #sn_count { font-size: 16px; line-height: 27px; }
+#sn_count {  color: blue; }
+#qty_checking, #sku_num { width: 160px; height: 80px; background-color: black; color: white; font-size: 72px; }
+#exc_reason { color: red; font-weight: bold; }
+#doc_status { color: blue; font-size: 14px; }
+#io_check img[src=""], #io_check img:not([src]){ opacity: 0; }
+#imgs { padding-left: 25px; }
+#imgs>img { width: 90%; max-width: 300px; height: 150px; padding: 6px 10px; }
+.img_text { position: absolute; display: inline-block; width: 20px; padding-left: 10px; padding-top: 10px; }

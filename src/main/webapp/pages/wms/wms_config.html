@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WMS系统自定义</title>
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/datagrid-groupview.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="wms.js"></script>
+</head>
+
+<body>
+<div id="init"></div>
+
+<div id="main" class="easyui-layout" fit="true">
+    <div data-options="region:'center'" border="false">
+        <div class="easyui-layout" fit="true">
+            <div data-options="region:'center'" border="false" title="作业流程配置">
+                <table id="l1" border="false"></table>
+            </div>
+            <div data-options="region:'south'" border="false" style="height:30%" title="更多配置">
+                <table id="l2" border="false"></table>
+            </div>
+        </div>
+    </div>
+    <div data-options="region:'east',split:true,collapsible:true" style="width: 66%" border="false" title="字段&批次属性自定义">
+        <table id="t1" border="false"></table>
+    </div>
+</div>
+
+
+</body>
+
+<script type="text/javascript">
+    
+var FIELDS_1 = [
+    {field: "tbl", title: "所属表", width: '80px', formatter: function ownerid2name(value, row){
+            return TABLES[value] || value;
+        }
+    },
+    {field: "label", title: "字段名称", width: '90px', editor: 'text'},
+    {field: "code", title: "字段编码", width: '80px'},
+    {field: "type", title: "是否显示", width: '60px', 
+    	editor: { type: 'combobox', options: { data: [{text: '否', value: 'hidden'}, {text: '是', value: ''} ], panelHeight:'70px' } }, 
+    	formatter: function ownerid2name(value, row){
+		    if(value != 'hidden') return '√';
+		}
+    },
+    {field: "nullable", title: "必填", width: '50px', 
+    	editor: { type: 'combobox', options: { data: [{text: '是', value: 'false'}, {text: '否', value: 'true'} ], panelHeight:'70px' } }, 
+    	formatter: function ownerid2name(value, row){
+		    if(value == 'false') return '√';
+		}
+    },
+    {field: "unique_", title: "值唯一", width: '50px', 
+        editor: { type: 'combobox', options: { data: [{text: '是', value: 'true'}, {text: '否', value: 'false'} ], panelHeight:'70px' } }, 
+        formatter: function ownerid2name(value, row){
+            if(value == 'true') return '√';
+        }
+    },
+    {field: "readonly", title: "只读", width: '50px', 
+        editor: { type: 'combobox', options: { data: [{text: '是', value: 'true'}, {text: '否', value: 'false'} ], panelHeight:'70px' } }, 
+        formatter: function ownerid2name(value, row){
+            if(value == 'true') return '√';
+        }
+    },
+    {field: "cwidth", title: "列宽", width: '50px', editor: 'text'},
+	{field: "align", title: "对齐", width: '60px', editor: {
+    		type: 'combobox', 
+    		options: { 
+    			data: [{text: '左对齐', value: 'left'}, {text: '居中', value: 'center'}, {text: '右对齐', value: 'right'} ], 
+    			panelHeight:'70px'
+    		}
+    	}, 
+    	formatter: function ownerid2name(value, row){
+		    if(value == 'left') return '左对齐';
+		    if(value == 'center') return '居中';
+		    if(value == 'right') return '右对齐';
+		}
+	},
+    {field: "options", title: "下拉选项列表", width: '20%', editor: 'text'},
+    {field: "defaultvalue", title: "默认值", width: '70px', editor: 'text'},
+    {field: "checkreg", title: "校验正则", width: '70px', editor: 'text'},
+    {field: "udf1", title: "副表", width: '80px', hidden: true }  // 对另一张表也有效
+];
+fixLotatts(FIELDS_1);
+
+var TABLES = {
+            "wms_sku": "货品", 
+            "wms_skux": "货品扩展", 
+            "wms_order": "出库单", 
+            "wms_asn": "入库单", 
+            "wms_asn_import": "入库单导入",
+            "fms_order": "付款单", 
+            "fms_asn": "收款单", 
+            "fms_invoice": "开票申请"};
+
+
+$.each(FIELDS_1, function(i, field) {
+    field.align = field.align||"center";
+});
+
+
+$(function () {
+
+    var tbls = ['', 'wms_sku', 'wms_skux', 'wms_asn', 'wms_asn_import', 'wms_order'],
+        max_indexs = [-1, -1, -1, -1, -1, -1];
+
+     var fields = [];
+    FIELD_CUSTOMIZE.each(function(i, item) {
+        if( !item.tbl || tbls.includes(item.tbl) ) {
+            fields.push(item);
+        }
+    })
+
+    fields.each(function(i,item) {
+        if(!item.tbl) {
+            max_indexs[0] = i
+        }
+        tbls.each(function(j, tbl) {
+            if(item.tbl == tbl) {
+                max_indexs[j] = i
+            }
+        })
+    })
+
+    dg1 = $('#t1').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        remoteSort: false,
+        columns: [FIELDS_1],
+        data: fields,
+        toolbar: [
+            { text: '保存自定义', iconCls: 'ion ion-ios-save', handler: saveDg1},
+            { text: '清除并重置自定义', iconCls: 'ion ion-ios-trash', handler: resetDg1},
+            { text: '更多字段定义', iconCls: 'icon-redo', handler: function() { goToTab("字段自定义", "/tss/modules/dm/recorder.html?rctable=dm_record_field"); }}
+        ],
+        rowStyler : function(index, row) {
+            if( max_indexs.includes(index) ) {
+                return 'background-color: #eee'; 
+            }
+        },
+        onClickCell: function(index, field, value) {
+            var row = dg1.datagrid("getRows")[index];
+            var readonlys = ["uom", "guige", "category", "brand", "owner_id", "price0", "price", "price2", "type", "barcode"];  // "lotatt02"
+            if( readonlys.contains(row.code) && field === 'label' ) {
+                // 禁止编辑以上字段的label，此为固定的批次属性
+                $(this).datagrid("cancelEdit", index);
+            }
+        }
+    });
+
+    dg1.datagrid('enableCellEditing');
+
+    // loadDg1();   // FIELD_CUSTOMIZE 已经在bi_nav.html里加载好了
+    loadDg2();
+});
+
+function loadDg1() {
+    tssJS.get(RECORD_FIELD.QUERY, {sortField: 'tbl desc'}, function(data) {
+        if( data.length ) {
+            dg1.datagrid("loadData", data);
+        }
+    });
+}
+
+function saveDg1() {
+    var result = [];
+    result.push("id,tbl,code,label,type,nullable,unique_,readonly,cwidth,align,options,defaultvalue,checkreg,udf1");
+
+    for(var i=0; i < 1000; i++) {
+        dg1.datagrid("endEdit", i);
+    }
+
+    var rows = dg1.datagrid('getChanges');
+    if( rows.length == 0 ) {
+         return $.messager.show({ title: '提示',  msg: '当前没有任何修改' });
+    }
+    if(  !rows[0].id ) { // 没有ID说明是初次新增，则保存所有属性
+        rows = dg1.datagrid('getRows');
+    }    
+
+    $.each(rows, function(i, row) {
+        var options = row.options ? row.options.replace(/\t|，|,/g, " ") : null;
+        var obj = [row.id,row.tbl,row.code,row.label,row.type,row.nullable,row.unique_,row.readonly,row.cwidth,row.align,options,row.defaultvalue,row.checkreg,row.udf1];
+        result.push( obj.join(",") );
+    });
+
+    JQ.post( RECORD_FIELD.CUD, {"csv": result.join("\n")}, function(data) {
+        if(data.created || data.updated) {
+            $.messager.show({ title: '提示',  msg: '保存成功！' });
+
+            parent.loadCustomize();
+            setTimeout( function() {
+                location.href = "wms_config.html";
+            }, 500 );
+        }
+    });  
+}
+
+function resetDg1() {
+    var rows = dg1.datagrid('getRows');
+    var ids = [];
+    $.each(rows, function(i, row) {
+        row.id && ids.push(row.id);
+    });
+    if( ids.length == 0 ) {
+        return $.messager.show({ title: '提示',  msg: '当前没有自定义字段，无需重置' });
+    }
+
+    $.messager.confirm('确认重置', '您确定要重置吗？', function(confirmed){
+        confirmed && 
+        JQ.post( RECORD_FIELD.BATCH + "/del", {ids: ids.join()}, function(data) {
+            $.messager.show({ title: '提示',  msg: '重置成功！' });
+
+            parent.loadCustomize();
+            setTimeout( function() {
+                location.href = "wms_config.html";
+            }, 500 );
+        });
+    })
+}
+
+/******************************************* 流程、开关配置自定义 start *******************************************/
+
+var FIELDS = [
+            {title:'分组',field:'group',width:'6%', hidden: true},
+            {title:'参数名称', field:'name', width:'38%', align: 'center'},
+            {title:'参数code', field:'code', hidden: true},
+            {title:'参数值', field:'value', width:'15%', align: 'center', editor: {type:'numberbox', options: {precision:0, min:0, max:3}}},
+            {title:'说明', field:'content', width:'46%', align: 'center'}
+        ];
+$.each(FIELDS, function(i, field) {
+    field.align = field.align || "left";
+}); 
+function codeStyle(value,row,index){
+	if(param_list[index].require){
+		return 'background-color:#eee'
+	}
+}
+
+var dg;
+var param_list = [
+        {group:'基础配置', code:'js_qty_precision', value: 0, name:'数量小数位数', content:'保留小数位，填写0-2之间的整数'},
+        {group:'基础配置', code:'js_hide_money', value: 1, name:'隐藏金额', content:'0：显示，1：隐藏'},
+        {group:'基础配置', code:'js_hide_weight', value: 1, name:'隐藏重量体积', content:'0：显示，1：隐藏'},
+        {group:'基础配置', code:'js_enable_sn', value: 0, name:'序列号管理', content:'1：启用，0：不启用'},
+        {group:'基础配置', code:'js_enable_zz', value: 0, name:'中转（转运）模式', content:'1：启用，0：关闭（有号无单入库）'},
+
+        {group:'入库作业配置', code:'no_asn_inbound', value: 1, name:'允许无单入库', content:'1：允许，0：不允许'},
+        {group:'入库作业配置', code:'js_checkin_with_lot', value: 1, name:'验货入库维护批次信息', value: 1, content:'1：允许，0：不允许'},
+        {group:'入库作业配置', code:'js_beyond_asn', value: 0, name:'允许超收入库', content:'1：允许，0：不允许'},
+
+        {group:'出库作业配置', code:'no_order_outbound', value: 1, name:'允许无单出库', content:'1：允许，0：不允许'},
+        {group:'出库作业配置', code:'outbound_confirm', value: 0, name:'必需出库交接', content:'1：必需，0：无需'},
+        {group:'出库作业配置', code:'js_pickup_check_out', value: 1, name:'合并拣货验货(手持)', content:'1：允许，0：不允许'},
+        {group:'出库作业配置', code:'auto_create_box', value: 1, name:'出库自动封箱', content:'1：是，0：否'},
+        {group:'出库作业配置', code:'auto_check_outbound', value: 0, name:'验货完成自动出库', content:'1：允许，0：不允许'},
+
+        // {group:'库内作业配置', code:'negative_inv_qty', value: 0, name:'允许负库存', content:'1：允许，0：不允许'},
+        {group:'库内作业配置', code:'js_operation_approve', value: 0, name:'无单作业审核', content:'1：需审核，0：无需审核'},
+        {group:'库内作业配置', code:'js_inv_check_approve', value: 0, name:'盘点作业审核', content:'1：需审核，0：无需审核'},
+        {group:'库内作业配置', code:'js_code_only_scan', value: 1, name:'PDA手动输入数量', content:'1：允许  0：不允许（即强制扫码）'},
+    ];
+
+var codes = [], require_codes = [], result = [], exist_params = {}, firstTime = true;
+
+$(document).ready(function () {
+    
+    prepareWHs(function() {
+        initContext(function() {
+            init(firstTime); 
+            firstTime = false;
+        });
+    })
+
+});
+
+var domain_id;
+function init(enableCellEditing){
+    var dg = $('#l1').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        nowrap: false
+    });
+
+    tssJS.getJSON( RECORD.x_domain.URL.QUERY, {}, function(data) {
+        var domainObj = data[0];
+        domain_id = domainObj.id;
+        var config = domainObj.udf1 || '{}';
+
+        var wh = WAREHOUSE_I[SELECTED_WH];
+        if( wh && wh.config ) {
+            config = wh.config;
+        }
+
+        var _list = JSON.parse(config)
+        param_list.each(function(i, item) {
+            item.value = _list[item.code] == null ? item.value : _list[item.code];
+        }) 
+        var dg = $('#l1').datagrid({
+            view: groupview,
+            groupField: 'group',
+            groupFormatter: function(value, rows) {
+                return value;
+            },
+            toolbar: [ 
+                { text: '保存到域', iconCls: 'ion ion-ios-save',  handler: function() { saveData(false); }},
+                { text: '保存到仓库', iconCls: 'ion ion-ios-save', handler: function() { saveData(true); }}
+            ],
+            columns: [FIELDS],
+            data: param_list
+        });  
+    }); 
+
+    enableCellEditing && dg.datagrid('enableCellEditing');
+}
+
+function saveData(save2Wh){
+	for(var i = 0; i < param_list.length; i++) {
+        $('#l1').datagrid("endEdit", i);
+    }
+    var rows = $('#l1').datagrid('getRows');
+    var json = {};
+    rows.each( function(i, row) {
+        json[row.code] = row.value;
+    } );
+
+    var url = '/tss/xdata/x_domain/' + domain_id,
+        params = { udf1: JSON.stringify(json) };
+
+    if(save2Wh && SELECTED_WH) {
+        url = '/tss/xdata/wms_warehouse/' + SELECTED_WH;
+        params = { config: JSON.stringify(json) };
+        WAREHOUSE_I[SELECTED_WH].config = params.config;
+    }
+
+    $.post( url, params, function(data) {
+            if( data.errorMsg ) {
+                $.messager.alert('错误提示', '保存失败：' + data.errorMsg);
+            }
+            else {
+                $.messager.alert('提示', '保存成功！');
+                afterSave(json);
+                init();
+            }
+        }
+    );
+}
+
+function afterSave(config) {
+    // 中转（转运）模式开启，自动生成一个名为 “标准件”，“1010101010” 的SKU
+    if( config["js_enable_zz"] == '1' ) {
+        var bzj = {name: '标准件', code: '1010101010', barcode: '1010101010', status: '1'} ;
+        
+        tssJS.get(SKU.QUERY, {'code': bzj.code}, function(data) {
+            !data.length && $.post(SKU.CREATE, bzj);
+        });
+    }
+}
+
+function loadDg2(){
+    var data = [
+        {"type": "tab", "name": "仓库设置", "url": "/tss/modules/dm/recorder.html?rctable=wms_warehouse"},
+        {"type": "tab", "name": "货主（项目）", "url": "/tss/modules/dm/recorder.html?rctable=wms_owner"},
+        {"type": "tab", "name": "（上架、拣货、波次）作业策略", "url": "/tss/pages/wms/wms_rule.html"},
+        {"type": "tab", "name": "权限配置总览", "url": "/tss/pages/base/permission_view.html"},
+        {"type": "tab", "name": "往来对象管理", "url": "/tss/modules/dm/recorder.html?rctable=wmsx_customer"},
+        {"type": "tab", "name": "计费项目管理", "url": "/tss/pages/wms/bill_model.html"}
+    ];
+
+    var fields = [
+        { field: 'name', title: '名称', width: 120, align: 'center' },
+        { field: 'value', title: '前往配置', width: 80, align: 'center', formatter: formatValue }
+    ];
+
+    $('#l2').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        columns: [fields],
+        data: data
+    });
+}
+
+function formatValue(value, row, index){
+    if(row.type == "tab"){
+        value = `<a href="javascript:void(0)" onclick="goToTab('${row.name}','${row.url}')">前往</a>`;
+    }
+    return value;
+}
+
+function goToTab(name, url){
+    window.parent.addTab(name, url);
+}
+
+</script>
+
+</html>

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>它山石</title>
+<link rel="shortcut icon" href="images/tss.ico">
+<link rel="Bookmark" href="images/tss.ico">
+
+<link rel="stylesheet" href="tools/tssJS/fonts/icons.css">
+<link rel="stylesheet" href="tools/tssJS/css/boubei.css">
+
+<script src="tools/tssJS/tssJS.all.js"></script>
+<script src="tools/portlet.js"></script>
+
+<style>
+
+html, body { height: 100%; overflow: hidden; }
+body { background: url(images/loading_f.gif) no-repeat center; }
+.tssIFrame { position: absolute; top: 32px; width: 100%; }
+.hidden { display: none; }
+
+.top { height: 32px; background: url(images/top-bg.png); box-sizing: border-box; }
+.top .logo { 
+    display: inline-block; position: absolute; left: 0; top: 0;
+    width: 346px; height: 32px; 
+    background: url(images/logo-bg.png) no-repeat center;
+}
+.top .logo img { height: 22px; margin-top: 5px; margin-left: 20px; }
+
+.menu { position: absolute; top:1px; right: 0; font-size: 1.1em;  z-index: 10001; } 
+.menu a { background-color: rgb(38,112,141); color: #b7bac1; }
+.menu a:hover { background-color: #60bae3; color: #fff; text-decoration: none; }
+
+.menu ul { list-style-type: none; } 
+.menu ul li { float:left; position:relative; width: 88px; text-align:center;  } 
+.menu>ul>li { border-right: 1px solid rgba(204,204,204,0.2); }
+.menu ul li a, 
+.menu ul li a:visited { display: block; height: 30px; line-height: 30px; 
+    overflow: hidden; text-overflow: ellipsis; word-break: break-all; white-space: nowrap; 
+} 
+.menu ul li ul { display: none; }  
+.menu ul li:hover ul { display: block; position: absolute; top: 30px; left:0; width: 85px; } 
+.menu ul li:hover a { border-bottom: 1px solid rgba(204,204,204,0.2); }
+
+li.r9,li.r8,li.ra,li.ru { display: none; }
+
+#notice {
+    position: fixed; top: 5px; left: 200px; color: red;   
+    width: 40%; min-width: 360px; height: 24px; overflow: hidden;
+}
+#notice .container { float: left; width: 1000%; }
+#notice .container>div { float: left; }
+#notice .container>div>a {
+    display: inline-block; float: left; width: 400px; line-height: 20px; 
+    margin: 2px 30px; color: #fff; cursor:pointer; 
+    overflow: hidden; text-overflow: ellipsis; word-break: break-all; white-space: nowrap; 
+}
+#notice .container>div>a:link { color: #f0f0f0; }
+#notice .container>div>a:visited { color: #ccc; text-decoration:none; }
+#notice .container>div>a:hover { color: #FEF7A9; text-decoration:none; }
+#notice .container>div>a:active { color: #ff7f24; }
+#noticePanel .title { background-color: rgb(35,60,99); }
+span.max, span.min { display: none; }
+
+#userInfo>img { margin-right: 6px; margin-top: -2px; display: inline-block; vertical-align: middle; width: 16px; height: 16px;}
+
+</style>
+
+<script type="text/javascript">
+
+window.history.forward(1);  // 产生一个“前进”的动作，以抵消浏览器后退功能
+
+// 设置默认域管理员登录后首页， 初次注册后登录可强制进入domain.html：http://ip/tss/bi.html?domain_page=domain.html
+var domain_page = tssJS.Query.get("domain_page");
+
+// 购买模块后返回首页，先刷新登录信息，再请求菜单
+var refreshUserHas = tssJS.Query.get("refreshUserHas");
+
+/* 用户信息初始化  */
+var roles = [], userHas, isSelfDomain = false, userGroup;
+$(function(){
+
+    resizeIFrame();
+
+    userHas = $.Cookie.decode("userHas");
+    if( userHas && userHas[1] ) {
+        userGroup = userHas[15];
+        roles = userHas[1], isSelfDomain = (userHas[0].length && userHas[0][0][0] == -7);                   
+        roles.contains(-9) && $("li.r9").show(true);  // 开发者
+        roles.contains(-8) && !isSelfDomain && $("li.r8").show(true);  // 域管理员(非自注册域)
+        roles.contains(-1) && $("li.r9,li.r8,li.ra,li.ru").show(true);  // Admin
+
+        if(  userHas[11].join('').indexOf('人事') >= 0 || roles.contains(-8)) {
+            $("li.ru").show(true);
+        }
+
+        $("#userInfo").html("<img src='images/login-user.png'></img>" + userHas[4] || '个人信息');
+    }
+
+    dbsx();
+
+    if( refreshUserHas ) {
+        tssJS.get("/tss/auth/user/has?refreshFlag=true", {}, function(info) { getBIMenu(); });
+    } else {
+        getBIMenu();
+    }
+
+    getParam("index_logo", function(result) {
+        result && $(".top .logo img").attr("src", result);
+    });
+    getParam("sysTitle", function(result) {
+        if(result) document.title = result + ( location.href.indexOf('localhost') >= 0 ? '-本地测试' : '' );
+    });
+    getParam("my_host", function(result) {
+        result && $("#my_host").attr("href", result);
+    });
+
+    var interval = setInterval(function() {  
+
+        queryNotice(); // 栏目公告
+
+        $.get("/tss/si/version", {}, function(result) {
+            if(result && result[2] === false) {
+                clearInterval(interval);
+                $.confirm("登录已失效，请重新登录", "重新登录", function() {
+                    location.href = "login.html";
+                });
+            }
+
+            // 紧急站内信自动弹出
+            if( result[4].length ) {
+                var msg = result[4][0];
+                var content = msg.content + "<p style='text-align:right;margin-top:10px;'>  ------ " +(msg.sender||'')+ "  " +msg.sendTime+ "</p>"
+                $.tip(content, msg.title, function() {
+                    $.get("/tss/auth/message/" + msg.id, {});
+                });
+            }
+
+        }, false);  
+    }, 100*1000);
+});
+
+window.onresize = resizeIFrame;
+var resizeIFrame = function resizeIFrame() {
+    $(".tssIFrame").css("height", (document.body.offsetHeight - 32) + "px"); 
+}
+
+// ----------------------------------- 获取BI报表、数据表一级菜单 -----------------------------------
+function getBIMenu() {
+    var reports, records, permissions;
+    tssJS.getJSON( "/tss/auth/rp/my/" + rootId, {},
+        function(data) {
+            reports = data;
+            reports && records && permissions && buildMenu(reports, records, permissions);
+        }
+    );
+
+    tssJS.getJSON( "/tss/auth/rc/all/json", {},
+        function(data) {
+            records = data;
+            reports && records && permissions && buildMenu(reports, records, permissions);
+        }
+    );
+
+    tssJS.getJSON( "/tss/auth/module/limitresources", {},
+        function(data) {
+            permissions = data;
+            reports && records && permissions && buildMenu(reports, records, permissions);
+        }
+    );
+}
+
+var rootId = 0,   // 取”全部“节点
+    globalValiable = {},
+    level_2_menus = {}, 
+    menusMap = {}, 
+    fisrtGroup, topGroups = [],
+    fisrtResource;
+
+// 合并录入表和报表，同时要防止彼此ID重复
+function buildMenu(reports, records, p) {
+    if( !reports.length && !records.length ) {
+        return openMsgPage();
+    }
+
+    var data = [], level1Num = 0, hasPermission = p.length == 3 && (p[0].length+p[1].length);
+    records.each( function(i, item) {
+        if( item[2] == rootId && item[1].indexOf("系统功能") >=0 ) return true;
+        if( hasPermission && !p[1].contains(item[0]) && item[0] > 8 ) return true;
+
+        if( item[1].indexOf("$") == 0 ) return true;  // $打头的节点约定为不显示，不直接开放用户访问
+        if( item[2] == rootId ) level1Num ++;
+
+        data.push(item);
+
+    });
+    reports.each( function(i, item) {
+        if( item[2] == rootId && item[1].indexOf("系统报表") >=0 ) return true;
+        if( hasPermission && !p[0].contains(item[0]) && item[0] > 15) return true;
+
+        if( item[2] == rootId ) level1Num ++;
+
+        item[0] = -1 * item[0];
+        item[2] = -1 * item[2];
+        data.push(item);
+    });
+
+    data.each( function(i, item) {
+        var id = item[0], pid = item[2], name = item[1], isResource = item[3], icon = item[5]||"";
+        menusMap[id] = item;
+
+        if( name === '_系统导航页_' ) {
+            fisrtResource = id;
+        }
+
+        if( Math.abs(pid) == rootId ) { // 一级目录
+            var li = tssJS.createElement("li", null, "top" + id);
+            $(li).html("<a onclick='openLevelOne(" +id+ ")'>" +name+ "</a>");
+            // $(li).find("a").css("color", "orange");
+
+            if( userGroup === 'customer' && name === '业务中心' && !userHas[11].contains("体验者") ) return true; // 业务中心不对客户开放
+
+            if( level1Num <= 4 ) {  // 直接放顶级目录里
+                // $(".menu>ul").appendChild(li); 
+                $(".menu>ul")[0].insertBefore(li, $1("_bi"));
+                $("#_bi").hide();
+            } else {
+                $("#_bi>ul").appendChild(li); // 一级目录
+            }
+
+            level_2_menus[id] = [];
+            fisrtGroup = fisrtGroup || id;
+            topGroups.push(id);
+        }
+        else if( !isResource ) { 
+            var brothers = level_2_menus[pid];
+            if(brothers) {
+                brothers.push(item); // 二级目录
+            }
+            else { // 三级目录，直接升级为二级，方便开发者定义多模块
+                var parent = menusMap[pid];
+                if(parent) {
+                    var uncles = level_2_menus[parent[2]];
+                    uncles && uncles.push(item);
+                }
+            }
+        }
+        else if( isResource ) {  // 报表
+            var parent = menusMap[pid];
+            if(parent) {
+                if( !parent.children ) {
+                    parent.children = []; // 没有任何报表的二级目录将被过滤掉
+                }
+                parent.children.push(item);
+            } 
+        }
+    } );
+
+    getParam("domain_page", function(result) {
+        domain_page = domain_page || result;
+        openLevelOne(fisrtGroup, 0); // 默认打开第一个报表
+    });
+}
+
+function openLevelOne(group, index) {
+    globalValiable.list = level_2_menus[group]||[];
+
+    if( globalValiable.list.length == 0 ) {
+        $("#top" + group).hide();
+        if ( index > 9 )  return;
+        
+        openLevelOne( topGroups[++index], index );
+    }
+
+    !fisrtResource && globalValiable.list.each( function(i, _item) {
+        (_item.children||[]).each(function(i, item){
+            if(item[3]) { // isReport|Record = true
+                fisrtResource = item[0];
+                return false;
+            }
+        });
+        if(fisrtResource) return false;
+    } );
+
+    // 域管理员/开发者 初次默认打开引导页， 普通用户不需要
+    if( roles.contains(-8) || roles.contains(-9) || isSelfDomain ) {
+        openUrl('more/bi_nav.html?group=' + group);
+    }
+    else {
+        openUrl('more/bi_nav.html?group=' + group + (fisrtResource ? "&_default="+fisrtResource : "") );
+    }
+}
+
+</script>
+
+</head>
+
+<body>
+ 
+<div class="top">
+    <div class="logo"><img src="images/logo.png"/></div>
+    <div class="menu"> 
+        <ul> 
+            <li id="_bi">
+                <a onclick="location.reload()">业务中心</a>
+                <ul></ul>
+            </li>           
+            <li class="ru"><a onclick="openUrl('modules/um/group.html')">用户组织</a></li>
+            <li><a onclick="openMsgPage()">待办提醒</a></li> 
+            <li class="r9">
+                <a>开发管理</a> 
+                <ul>                    
+                    <li><a onclick="openUrl('modules/um/role.html')">角色设置</a> </li>
+                    <li><a onclick="openUrl('modules/dm/record.html')">数据表</a></li> 
+                    <li><a onclick="openUrl('modules/dm/report.html')">服务&报表</a></li>
+                    <li><a onclick="openUrl('modules/dm/datasource.html')">数据源</a></li>
+                    <li class="r9"><a onclick="openUrl('modules/_param/param_init.html')">系统配置</a></li>
+                    <li class="r9"><a onclick="openUrl('more/monitor.html')">系统监控</a> </li>   
+                </ul>
+            </li>  
+            <li style="width: 105px;">
+                <a onclick='fixUserInfo()' id="userInfo">个人信息</a>
+                <ul>
+                    <li><a onclick="logout()">注销登陆</a></li>
+                    <li class="r8 r9"><a onclick="su()">切换账号</a></li>
+                    <li><a onclick='changePasswd()'>修改密码</a></li>   
+                    <li class="r8"><a onclick="openUrl('more/pay/account.html')">我的账户</a> </li> 
+                    <li class="r8 r9"><a onclick="openUrl('modules/cms/channel.html')">栏目文章</a></li> 
+                    <li class="ra"><a onclick="openUrl('modules/portal/structure.html')">门户结构</a></li> 
+                    <li class="ra"><a onclick="openUrl('modules/portal/component.html')">门户组件</a></li> 
+                    <li><a onclick="feedback()">问题建议</a></li>
+                    <li><a href='https://www.boudata.com' target="_blank" id='my_host'>访问官网</a></li>
+                    <!-- <li><a href='http://bbs.boubei.com' target="_blank">社区支持</a></li> -->
+                </ul>
+            </li>            
+        </ul>  
+    </div> 
+</div>
+
+<!-- 跑马灯公告 -->
+<div id="notice">
+    <div class="container">
+        <div id="s1"></div>
+        <div id="s2"></div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(".top li>a[onclick]").attr("href", "javascript:void(0)");
+
+    tssJS.post("/tss/auth/account/subauthorize/check", {}, function(result) { 
+        var size = result[0];
+        ( size > 0) && tssJS.confirm("您有" + size + "个账号将于【" +result[1]+ "】后到期，现在就去续期吗？", "账号到期提醒", function() {
+            openUrl('more/pay/account.html');
+        });
+    });
+    
+</script>
+ 
+</body>
+</html>

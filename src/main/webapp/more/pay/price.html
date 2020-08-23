@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>在售模块商品清单</title>
+	<meta name="viewport" content="width=device-width">
+	
+	<link rel="stylesheet" href="_.css">
+	<link rel="stylesheet" href="price.css">
+
+	<script src="../../tools/tssJS/tssJS.js"></script>
+	<script src="../../tools/jquery/jquery-2.1.1.min.js"></script>
+	<script src="../../tools/es_checker.js"></script>
+	<script src="_.js"></script>
+</head>
+<style type="text/css">
+ 
+	.registration-form{
+		display: flex;
+		justify-content: left;  
+		align-items: left; 
+		flex-direction: column;
+	}
+	.registration-form > div { padding: 12px 20px; }
+	.registration-form > div > *{ line-height: 25px; }
+	.registration-form label { display: inline-block; width: 80px; }
+	.registration-form input { width: 240px; }
+	.registration-form button.pt-button { width:330px; line-height:30px; font-size: 15px; margin-top: 15px; }
+	.registration-form button:hover {
+		color:#88aa2e;
+		text-decoration:none;
+		background-color:transparent;
+		border:2px solid #2aa1d3
+	} 
+	#getSMS{ font-size: 12px; padding: 0px 5px; }
+
+	._panel { width: 450px; }
+	._panel-content { margin: 15px 0 0 25px; padding: 0 !important; }
+	._panel-footer { display: none; }
+	
+
+	#product-list { width: 92%; margin: 0 auto; padding-top: 40px; }
+	input[type=range] { width: 128px; margin: 0 5px; }
+	
+	.col-md-3 { margin-right: 2%; }
+	@media (min-width:992px) {
+		.col-md-3 { width:40%; }
+	}
+	@media (min-width:1200px) {
+		.col-md-3 { width:25%; }
+	}
+
+	@media (max-width:768px) {
+		._panel { width: 360px; }
+		.registration-form > div { padding: 12px 10px; }
+		.registration-form input { width: 200px; }
+	}
+
+</style>
+<body>
+	<div id="product-list" class="pt-container light-blue"></div>
+</body>
+
+<script type="text/javascript">
+
+$.get(MODULE_DEF, {}, function(data){
+
+    data.each(function(i, item) {
+	    if( parent.moduleId && parent.moduleId != item.id) return true;
+	    
+		let active = i == 0 ? "active" : "";
+		let account_limit = (item.account_limit || '1,20').split(',');
+		let month_limit   = (item.month_limit   || '1,36').split(',');
+
+		let al_min = account_limit[0],
+			al_max = account_limit[account_limit.length-1],
+			ml_min = month_limit[0],
+			ml_max = month_limit[month_limit.length-1];
+
+		if( ml_max == 1 && item.price == 1 ) return true;  // 通常为试用一个月，在小程序端开通，PC购买不显示
+
+		let $form = $(`
+			<form id='`+item.id+`' class="col-md-3 col-sm-6" action="" method="POST" onsubmit="return false">
+				<input type="hidden" name="module_id" value="` + item.id + `">
+				<input type="hidden" name="module" value="` + item.module + `">
+				<input type="hidden" name="type" value="` + item.product_class + `">
+				<input type="hidden" name="money_cal">
+
+				<div class="pricing-table ` +active+ `">
+		          <div class="pt-header">
+		          	<div class="pt-ribbon-wrapper">
+		              <div class="pt-ribbon">
+		                推荐
+		              </div>
+		            </div>
+		            <h3 class="pt-title">` + item.module + `</h3>
+		            <h4 class="pt-price"><span class="pt-currency">￥</span>` + (item.price||0) + `<span class="pt-per">/月/账号</span></h4>
+		            <p class="pt-description">`+ (item.description || '暂无简介') +`</p>
+		          </div>
+		          <div class="pt-body hover">
+		            <div class="pt-row">
+		              账号: <input name="account_num" type="range" min="` + al_min + `" max="` + al_max + `" value="` + al_min + `"><span>` + al_min + `</span> 个
+		            </div>
+		            <div class="pt-row">
+		              时长: <input name="month_num" type="range" min="` + ml_min + `" max="` + ml_max + `" value="` + ml_min + `"><span>` + ml_min + `</span> 月
+		            </div>
+		            <div class="pt-row">
+		              合计：<strong class="money_cal"> - </strong>元
+		            </div>
+		            
+		          </div>
+		          <div class="pt-footer">
+		            <button type="submit" class="pt-button">点击购买</button>
+		          </div>
+		        </div> <!-- end .pricing-table -->
+			</form>
+			`).appendTo('#product-list');
+
+
+			$form.find("input[name='account_num'], input[name='month_num']").on('input propertychange', function() {
+				
+				$(this.nextSibling).text( this.value );
+				queryPrice()
+			    
+			});
+
+			function queryPrice(){
+				const v1 = $form.find("input[name='account_num']").val();
+				const v2 = $form.find("input[name='month_num']").val();
+
+			    if(v1 && v2){
+					$.post(MODULE_MONEY, getFormData($form.attr('id')), function(mo){
+						const money_cal = mo.money_cal;
+						$form.find("input[name='money_cal']").val(money_cal)
+						$form.find(".money_cal").text(money_cal)
+					})
+				}
+			}
+
+			queryPrice()
+
+			// 确认订单
+			$form.submit(()=>{
+				//未登录需要填写账号信息
+				if(!parent.isLogin) {
+					selfRegister($form)
+				} else {
+					commitOrder($form);
+				}
+			})
+		})
+	})
+
+	function commitOrder($form, params){
+		let moduleOrder = getFormData($form.attr('id'));
+		if(params){
+			moduleOrder.params = JSON.stringify(params);
+		}
+		$.post(MODULE_ORDER, moduleOrder, function(co){
+			if(co.id){
+				parent.checkLogin();
+				payOrder(co.order_no, co.money_cal, co.product, window.location.origin + "/tss/bi.html?refreshUserHas=true")
+			} else {
+				confirm(co.errorMsg);
+			}
+		})
+	}
+
+	function selfRegister($form) {
+		createPanel({
+			title: "请先填写注册信息", 
+			content: `<form class="registration-form" onsubmit="return false">
+							<div>
+								<label>公司名称</label> 
+								<input name="company_name" autocomplete="off" required />
+							</div>
+							<div>
+								<label>姓名称呼</label> 
+								<input name="user_name" autocomplete="off" required />
+							</div>
+							<div>
+								<label>手机号码</label>
+								<input name="phone" type="number" maxlength="11" pattern="^(0|86|17951)?1[0-9]{10}" placeholder="将作为您的登录账户" autocomplete="off" required />
+							</div>
+							<div>
+								<label>验证码</label> 
+								<input name="smsCode" type="number" autocomplete="off" required style="width:126px"/>
+								<button type="button" autocomplete="off" id="getSMS">获取验证码</button>
+							</div>
+							<div>
+								<label>初始密码</label> 
+								<input name="password" type="password" placeholder="购买成功后以此密码登录系统" required/>
+							</div>
+							<div>
+								<button type="submit" autocomplete="off" class="pt-button">注 册</button>
+							</div>
+						</form>`,
+			css:{
+				// width:'450px',
+				height:'420px'
+			}
+		})
+
+		$('.registration-form').submit(()=>{
+			let params = getFormData('.registration-form');
+
+			let isFull = true;
+			$.each((key,value)=>{
+				if(!value){
+					isFull = false;
+				}
+			})
+			isFull && commitOrder( $form, params );
+		});
+
+		$('#getSMS').click(()=>{ 
+			//发送验证码
+			let params = getFormData('.registration-form');
+			if( !params.phone ){
+				$('input[name="phone"]').focus().attr("placeholder", "请先输入您的手机号码");
+				return
+			}
+			$('#getSMS').attr('disabled', true)
+			$.post( '/tss/sms.in', {'phone': params.phone} )
+
+			let sms_click_time = new Date();
+			let interval = setInterval(function(){
+				let secondLeft = 60 - Math.round((new Date() - sms_click_time)/1000);
+				$('#getSMS').text( '等待' + secondLeft + '秒' );
+				if(secondLeft<=0){
+					$('#getSMS').text("获取验证码")
+					$('#getSMS').removeAttr('disabled')
+					clearInterval(interval)
+				}
+			},1000)
+		})
+	}
+
+$.getJSON("/tss/param/json/simple/ALIPAY_APPID", {}, 
+    function(result) {
+        if(result && result.length && result[0]) {
+        	appid = result[0];
+        }
+    }
+);
+
+</script>
+</html>

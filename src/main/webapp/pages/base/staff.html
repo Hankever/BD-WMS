@@ -1,0 +1,814 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>员工管理</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+<script src="../../tools/easyui/datagrid-filter.js"></script>
+<script src="../../tools/easyui.js"></script>
+<script src="../_js/scm.js"></script>
+
+<style type="text/css">
+	.easyui-dialog table.l .label { width: 96px ; }
+	#dlg2,#dlg3{
+		display: flex;
+	}
+	.customer_table,.lc_table{
+		height:98%;
+		width:45%;
+	}
+	.middle_button{
+		border:1px solid #666;
+		border-radius:10%;
+		width:80%;
+		margin:170% 10%;
+		height:25px;
+		line-height: 22px;
+		font-weight:bolder;
+		text-align: center;
+	}
+	.middle_button:hover{
+		cursor:pointer;
+	}
+	.middle{
+		width:10%;
+	}
+	.private{
+		display:none;
+	)
+</style>
+
+<script type="text/javascript">
+var sys;
+sys = tssJS.Query.get('sys');
+
+var private = false;
+//userRoleNames.indexOf('私有云管理员') > -1;
+var dg,dg_all,dg_my,dg_alllc,dg_mylc, roleList = [], sysRolesMap = {},all_customer = [],all_lc = [],my_customer = [],selected_staffid,selected_index;
+
+$.getJSON( "/tss/wx/api/roles", {}, function(data) {
+	sysRolesMap = data;
+});
+var domain_groups = [],groups_map = {},domain=userHas[15];
+var see_all = userHas[11].contains('总经理') || userHas[11].contains('副总经理') || userHas[11].contains('人事岗');
+var all_arr = see_all ? [{name:'全部',id:'-1'}] : [];
+var FIELDS = [
+    // {field: 'ck', checkbox: true},    
+	{field: "name", width: "60px", title: "姓名"},
+	{field: "phone", width: "90px", title: "手机"},
+	{field: "group_id", width: "100px", title: "部门", formatter:groupFormat},
+	{field: "position", width: "120px", title: "职务岗位", formatter:function(value){return toRoleName(value)}},
+	{field: "roleids",width:"120px",title:"拥有角色",formatter:function(value){return toRoleName(value)},hidden:!private},
+	{field: "code", width: "60px", title: "员工号"},
+	{field: "indate", width: "85px", title: "入职时间"},
+	{field: "outdate", width: "85px", title: "离职日期"},
+	{field: "id_card", width: "140px", title: "身份证号码",hidden:!see_all},
+	{field: "credentials", width: "80px", title: "拥有证件"},
+	{field: "zizhi", width: "60px", title: "证件展示"},
+	{field: "email", width: "100px", title: "邮箱"},
+	{field: "social_account", width: "100px", title: "社交账号"},	
+	{field: "bank_name", width: "80px", title: "开户行"},
+	{field: "account", width: "50px", title: "户名"},
+	{field: "account_num", width: "140px", title: "卡号"},
+	{field: "sex", width: "45px", title: "性别"},
+	{field: "age", width: "45px", title: "年龄",hidden:!see_all},
+	{field: "nation", width: "45px", title: "民族"},
+	{field: "education", width: "45px", title: "学历",hidden:!see_all},
+	{field: "address", width: "120px", title: "住址"},
+	{field: "married", width: "45px", title: "婚否"},
+	{field: "emergency_person", width: "70px", title: "紧急联系人"},
+	{field: "emergency_relation", width: "70px", title: "联系人关系"},
+	{field: "emergency_phone", width: "90px", title: "紧急联系电话"},
+	{field: "disease", width: "70px", title: "突发性疾病",hidden:!see_all}
+];
+$.each(FIELDS, function(i, field) {
+    field.align = "center";
+
+}); 
+var myRolesMap = {};
+$(document).ready(function () {
+	if(private){
+		$('.private').css('display','table-cell')
+		$('.public').css('display','none')
+	}
+	$.getJSON(REPORT.s_customer,{status:'在用'},function(data){	
+		all_customer = all_arr.concat(data);
+	})
+	$.getJSON(REPORT.s_network_platform,{status:'在用'},function(data){	
+		all_lc = all_arr.concat(data);
+	})
+	$.getJSON('/tss/auth/service/domaingroups',function(data){
+		domain_groups = data;
+		for(var i = data.length - 1; i>=0; i--){
+			var item = data[i];
+			item.pname = item.pname && item.pname != '-' ? item.pname.replace(domain,'') : '';
+			item.showname = item.pname ? item.pname + '-' + item.name : item.name;
+			groups_map[item.id] = item.showname;
+			if(item.name == 'customer'){
+				data.splice(i,1)
+			}
+		}
+	    $('#group_id').combobox({
+	    	data:domain_groups,
+	    	valueField:'id',
+	    	textField:'showname',
+	    	panelHeight:'120px',
+	    	width:'170px'
+	    })
+	})
+	dg_all = $('#all_customer').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        columns: [[ {field: "name", width: "100%", title: "客户", align:'center'}]],
+	}).datagrid('enableFilter',[{field: "name", type: "textbox"}])
+	dg_my = $('#my_customer').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        columns: [[ {field: "name", width: "100%", title: "客户", align:'center'}]]
+	})
+	dg_alllc = $('#all_lc').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        columns: [[ {field: "name", width: "100%", title: "承运伙伴", align:'center'}]],
+	}).datagrid('enableFilter',[{field: "name", type: "textbox"}])
+	dg_mylc = $('#my_lc').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        columns: [[ {field: "name", width: "100%", title: "承运伙伴", align:'center'}]]
+	})
+	$('#credentials').combobox({
+        valueField:'value',
+        textField:'value',
+        data: [
+        	{value: '驾驶证A1'}, {value: '驾驶证A2'}, {value: '驾驶证B1'},{value: '驾驶证B2'}, {value: '驾驶证C1'},
+        	{value: '会计证初级'}, {value: '会计证中级'}, {value: '会计证高级'}
+        ]
+    });
+
+    $('#sex').combobox({
+        valueField:'value',
+        textField:'value',
+        panelHeight: '50px',
+        data: [ {value: '男'},{value: '女'} ]
+    });
+
+    $('#education').combobox({
+        valueField:'value',
+        textField:'value',
+        panelHeight: '150px',
+        data: [
+        	{value: '本科'}, {value: '硕士'}, {value: '大专'},{value:'高中'} ,{value: '中专'}, {value: '初中及以下'}, {value: '博士及以上'}
+        ]
+    });
+
+    $('#um_account').combobox({
+    	valueField:'value',
+    	textField:'name',
+    	panelHeight:'auto',
+    	data:[{name:'是',value:'1'},{name:'否',value:'0'}]
+    })
+
+    $('#married').combobox({
+        valueField:'value',
+        textField:'value',
+        panelHeight: '50px',
+        data: [ {value: '已婚'}, {value: '未婚'} ]
+    });
+    if(private){
+		$.getJSON( "/tss/auth/service/roles",{},function(data){
+			data.each(function(i,item){
+				myRolesMap[item[0]] = item[1];
+				if(item[1] == '客户') return
+				if(item[1] == '匿名角色') return
+				roleList.push({value: item[0],text: item[1]})
+			})
+			$('#roleids').combobox({
+				data: roleList,
+				multiple: true
+			});
+			query();		
+		},'GET');
+	}
+	else{
+		query()
+	}
+    
+});
+function query(params) {
+    params = params || {};
+    var toolbar_fields = [{ text: '绑定客户', iconCls: 'ion ion-ios-people', disabled: true, handler: function(){bindIds('customer')}, id:"btn2"}]
+    if(see_all){
+    	toolbar_fields = [ 
+            { text: '新增', iconCls: 'ion ion-ios-add-circle', handler: create }, 
+            '-', { text: '修改', iconCls: 'ion ion-ios-create', disabled: true, handler: update, id: "btn1"}, 
+            '-', { text: '绑定客户', iconCls: 'ion ion-ios-people', disabled: true, handler: function(){bindIds('customer')}, id:"btn2"},
+            '-', { text: '绑定走货平台', iconCls: 'ion ion-ios-car', disabled: true, handler: function(){bindIds('lc')}, id:"btn3"},
+            '-', { text: '离职交接', iconCls : 'ion ion-ios-log-out', disabled: true, handler : outStaffInfo, id: "btn4" },
+            '-', { text: '导出数据', iconCls : 'ion ion-md-cloud-download', handler : exportStaff},
+            '-', { text: '导入数据', iconCls : 'ion ion-md-cloud-upload', handler : function(){ 
+            	batchImport(RECORD.staff_info.table);
+            }},
+            '-', { text: '权限总览', iconCls: 'ion ion-md-settings', handler : function(){
+            	addTab("url", '权限总览',  '/tss/pages/base/permission_view.html');
+        	}},
+            '-', { text: '部门组织', iconCls: 'ion ion-ios-contacts', handler: function(){
+            	tssJS.openIframePanel("aa", "部门组织", 1028, 600, "/tss/modules/um/group.html", true);
+            }},
+            '-', { text: '分配账号', iconCls: 'ion ion-ios-contact', handler: function(){
+            	tssJS.openIframePanel("aa", "分配账号", 1028, 600, "/tss/more/pay/account.html?assignAccount=true", true);
+            }}
+        ];
+    }
+	dg = $('#t1').datagrid({
+        url: RECORD.staff_info.URL.QUERY,
+        queryParams: params,
+        fit: true,
+        fitColumns: true,
+        // pagination: true,有enableFilter时分页点击下一页无效
+        rownumbers: true,
+        // pageSize : 50,
+        // pageList : [50,100,200,300,400,500],
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        toolbar: toolbar_fields,
+        columns: [FIELDS],
+        /* 返回的结果再处理 */
+        loadFilter: function (res) {
+        	var data = res;
+        	if(res.rows){
+        		data = res.rows
+        	}
+        	$.each(data, function(i,item){
+        		item.age = getAge(item.id_card) || '';
+        	});
+        	function sequence(data1,data2){
+        		var a = data1.group_id || 0;
+        		var b = data2.group_id || 0;
+        		var c = data1.outdate || '2099-01-01';
+        		var d = data2.outdate || '2099-01-01';
+        		return new Date(d) - new Date(c) + a-b
+	        }
+	        data.sort(sequence)
+            return data;
+        },
+        rowStyler:function(index,row){
+        	if( row.outdate ) {
+        		return 'color: #ccc;'
+        	}
+        },
+        onDblClickRow:function(){
+        	see_all && update();
+        },
+	    onClickRow: function(index, row) {  
+	    	$('#btn1,#btn2,#btn3,#btn4').linkbutton("enable");
+			// row.outdate ? $('#btn4').linkbutton("enable") : $('#btn4').linkbutton("disable");
+        } 
+    }).datagrid('enableFilter',getFilterObj([FIELDS]));
+
+    if(Object.getOwnPropertyNames(params).length == 0) {
+    	refreshMaxCode();
+    }
+}
+
+function beginQuery() {
+    var params = {};
+    params.name = $('#param1').val();
+    params.phone = $('#param2').val();
+    query(params);
+}
+
+function create() {
+    $('#code').textbox('enable');
+    $('#save').linkbutton("enable");
+    $('#code').textbox({
+        buttonText:'检查',
+        onClickButton:function(){
+		    var code = $('#code').val();
+		    if ( code ) {
+			    tssJS.ajax({
+			        url : RECORD.staff_info.URL.QUERY,            
+			        params : {'code': code},  
+			        waiting : true,
+			        ondata: function(){
+			        	var data3 = this.getResponseJSON();
+			        	if (data3.length == 0){
+			                tooltips('该员工号待新增');
+			                $('#save').linkbutton("enable");
+			            }
+			            else {
+			                tooltips('该员工号已存在');
+			                $('#save').linkbutton("disable");
+			            }
+			        }
+			    });	
+		    }
+		    else {
+		    	tooltips('请输入员工号');
+			    $('#save').linkbutton("disable");
+		    }
+        }
+    });
+
+	openDialog('新增员工', true);
+    $('#lockVersion').val('0'); // 給版本号设置默认值.
+	$('#code').textbox('setValue', codeAddOne(max_code) == 1 ? userDomain + '0001' : codeAddOne(max_code) ); // code值默认加1
+
+    $('#um_account').combobox('setValue',1);
+
+	getAttachShow('staff_info','zizhi')
+}
+
+function update() {
+	// $('#code').textbox('disable');
+	$('#save').linkbutton("enable");
+    var row = getSelectedRow();
+    if (row) {
+    	$.getJSON( RECORD.staff_info.URL.GET + row.id, {}, function (data) {
+    		getAttachShow('staff_info','zizhi',data,'管理'+data.name+'的证件');
+    		openDialog('修改员工信息');
+    		multiLoad(data,'fm',['roleids'])
+    		$('#fm').form('load', data);
+            $('#code').textbox('readonly', false);
+        }, "GET");
+    };
+}
+
+function exportStaff() {
+	_export(RECORD.staff_info.table)
+}
+
+function outStaffInfo(){
+	var row = getSelectedRow('t1');
+	if(row) {
+		tssJS.getJSON( RECORD.staff_out.URL.QUERY, {staff_info_id: row.id},
+			function(data) {
+				var op = '新增'
+				$('#fm1').form('clear');
+				if(data.length){
+					op = '修改'
+					$('#fm1').form('load', data[0]);
+				}
+				else{
+					$('#fm1').form('load', {staff_info_id:row.id,code:row.code,name:row.name,hand_status:'否'});
+				}
+				$('#dlg1').dialog({"modal": true} ).dialog('open').dialog('setTitle', op + row.name + '离职交接').dialog('center');
+			}
+		);
+	}
+}
+
+function saveTable(t_name){
+	var param = {}
+		param.staff_info_id = $('#staff_info_id').val();
+		param.outdate = $('#outdate').val();
+	    param.name = $('#name').val();
+	    param.code = $('#code').val();
+
+	// if( param.outdate) {
+	// 	tssJS.getJSON( RECORD.staff_out.URL.QUERY, 
+	// 		{ staff_info_id: param.staff_info_id },
+	// 		function(data) {
+	// 			if( data && data.length > 0) return;
+
+	// 			$.post( RECORD.staff_out.URL.CREATE, param,
+	// 	            function(result){
+	//         			if(result && !result.errorMsg) {
+	//         				$.messager.show({
+	// 		                    title: '提示',
+	// 		                    msg: '已添加到员工离职管理表，请补充其他离职信息！'
+	// 		                });
+	//         			}
+	// 	            }
+	// 	        );
+	// 		}
+	// 	);
+	// }
+
+	var id_card = $("#id_card").val(), phone = $("#phone").val();
+	if( id_card && !validIdCard(id_card) ) return;
+	if( phone && !isPhone(phone) && sys != 'hb') return $.messager.alert({title: '提示',msg: '请输入正确的手机号码'});
+    if(sys == 'tms'){
+	    var status = $('#position').combobox('getText').indexOf('司机') >=0 ? '在职' : '转岗';
+	    status = param.outdate ? '离职' : status;
+		var driver_data={
+			type:'自有',
+			name:$('#name').textbox('getValue'),
+			tel:$('#phone').textbox('getValue'),
+			id_card:$('#id_card').textbox('getValue'),
+			bank:$('#bank_name').textbox('getValue'),
+			account:$('#account').textbox('getValue'),
+			account_num:$('#account_num').textbox('getValue'),
+			emergency_person:$('#emergency_person').textbox('getValue'),
+			emergency_phone:$('#emergency_phone').textbox('getValue'),
+			emergency_relation:$('#emergency_relation').textbox('getValue'),
+			education:$('#education').combobox('getValue'),
+			status:status
+		}
+	}
+
+	save(t_name, '', 
+			{
+				_tempID: _tempID, 
+				callback: function(r) {
+					$('#t1').datagrid('reload');
+					refreshMaxCode();
+
+					// 触发用户同步
+					if(private){
+						$.post('/tss/auth/job/Job-SyncStaffRole', {}, function(data) { } );	
+					}
+					$.post('/tss/auth/job/Job-sync-user', {}, function(data) { } );					
+
+					if(sys){
+						if( isNaN($.parseJSON(r).result) ){ driver_data.original_id = param.staff_info_id }
+							else{ driver_data.original_id = $.parseJSON(r).result }
+						tssJS.getJSON(REPORT.staffToDriver + '?noCache=true',{staff_info_id:driver_data.original_id},function(data){
+							if(data && data.length){
+								$.post( RECORD.t_driver.URL.UPDATE + data[0].id, driver_data);
+							}
+							else if( driver_data.status == '在职'){
+								$.post( RECORD.t_driver.URL.CREATE, driver_data);
+							}
+						})
+					}
+
+				}
+			}
+	);
+}
+
+function saveOutInfo(){
+	var row = getSelectedRow('t1');
+	row.outdate = $('#outdate1').val();
+	save(RECORD.staff_out.table,'',{fm:'fm1',dlg:'dlg1',callback:function(r){
+		$.post( RECORD.staff_info.URL.UPDATE + row.id, row,
+            function(result) {
+            	$.post('/tss/auth/job/Job-sync-user', {}, function(data) { } );	
+                $('#t1').datagrid('reload');
+            }
+        );
+	}})
+}
+
+function toRoleName(roles){
+	if(roles) {
+		roles = roles.split(',');
+		var roleNames = [];
+		roles.each( function(i, role) {
+			var rolename = role;
+			if(role - 0 > 0){
+				rolename = sysRolesMap[role]
+			}
+			// var rolename = sysRolesMap[role] || myRolesMap[role] || role;
+			if(rolename) { 
+				roleNames.push( rolename );
+			} 
+		} );
+
+		return '<span title="' + roleNames.join(',') + '">' + roleNames.join(',') + '</span>';
+	}
+}
+
+var max_code='0';
+function refreshMaxCode() {
+	$.getJSON(RECORD.staff_info.URL.QUERY, {} ,function(data){
+		for(var i=0; i < data.length; i++ ) {
+    		if(parseInt(data[i].code.replace(/[^0-9]/ig,''))>parseInt(max_code.replace(/[^0-9]/ig,''))){
+    			max_code = data[i].code;
+    		}
+    	}
+	});
+}
+
+function codeAddOne(code){
+	var code_string=code.replace(/[0-9]/ig,'【「');
+	var num_string=code.replace(/[^0-9]/ig,'');
+    var num_array=('000000000000'+(parseInt(num_string)+1)).slice(-num_string.length).split('');
+    for(var i=0;i<num_array.length;i++){
+    	code_string=code_string.replace('【「',num_array[i]);
+    }
+    return code_string;
+}
+
+function tooltips(text){
+	$('#toolid').tooltip({
+	    position: 'right',
+	    showEvent: '',
+	    content: '<span style="color:#fff">'+text+'</span>',
+	    onShow: function(){
+	        $(this).tooltip('tip').css({
+	            backgroundColor: '#666',
+	            borderColor: '#666'
+	        });
+	    }
+	});
+	$('#toolid').tooltip("show");
+}
+
+function bindIds(type){
+	var row = getSelectedRow('t1');
+	var obj = {customer:{dlg:'dlg2',title:'客户',all_data:all_customer},lc:{dlg:'dlg3',title:'承运伙伴',all_data:all_lc}};
+	if(row) {
+		$('#'+obj[type].dlg).dialog({"modal": true}).dialog('open').dialog('setTitle', '绑定' + obj[type].title + '至' + row.name)
+		var my = row[type+'_ids'] ? row[type+'_ids'].split(',') : [];
+		selected_staffid = row.id;
+		selected_index = dg.datagrid('getRowIndex',row)
+		var my_ids = [],show_ids = [];
+		obj[type].all_data.each(function(i,item){
+			if(my.indexOf(item.id + "") > -1){
+				my_ids.push(item)
+			}
+			else{
+				show_ids.push(item)
+			}
+		})
+		$('#all_'+type).datagrid({
+			data:show_ids
+		}).datagrid('enableFilter',[{field: "name", type: "textbox"}])
+		$('#my_'+type).datagrid({
+			data:my_ids
+		})
+	}
+}
+
+function moveSelected(from_dg,to_dg){
+	var select_rows = $('#'+from_dg).datagrid('getSelections');
+	select_rows.each(function(i,item){
+		var index = $('#'+from_dg).datagrid('getRowIndex',item)
+		$('#'+from_dg).datagrid('deleteRow', index)
+		$('#'+to_dg).datagrid("appendRow", item)
+	})
+}
+
+function saveBindIds(type){
+	var close = type == 'lc' ? 3 : 2;
+	var rows = $('#my_'+type).datagrid('getRows');
+	var selected_ids = [];
+	rows.each(function(i,item){
+		if(selected_ids.indexOf(item.id) == -1){
+			selected_ids.push(item.id)
+		}
+		if(item.id == '-1'){
+			selected_ids = [-1];
+			return false;
+		}
+	})
+	$.post(RECORD.staff_info.URL.UPDATE + selected_staffid,{[type+'_ids']:selected_ids.join(',')},function(data){
+		if(data == '{"result": "操作成功！"}'){
+			closeDialog('fm'+close,'dlg'+close)
+			dg.datagrid("updateRow", {index:selected_index,row:{[type+'_ids']:selected_ids.join(',')}});
+			$.messager.show({
+                title:'提示',
+                msg:'保存成功',
+                timeout:1000*3,
+                showType:'show'
+            })
+		}
+		else{
+			$.messager.alert('提示','保存失败。'+(data.errorMsg || ''))
+		}
+	})
+}
+
+function groupFormat(value){
+	return groups_map[value]
+}
+
+</script>
+
+
+</head>
+<body>
+<div id="main" class="easyui-layout" fit="true">
+    <div id="dataContainer" data-options="region:'center'" border="false">
+        <table id="t1" border="false"></table>
+    </div>
+</div>
+<div id="dlg" class="easyui-dialog" style="width:895px;height: 420px;" closed="true" buttons="#dlg-buttons">
+    <form id="fm" method="post" novalidate>
+        <input id="staff_info_id" name="id" type="hidden"/>
+        <input id="lockVersion" name="lockVersion" type="hidden"/>
+        <input id="seqNo" name="seqNo" type="hidden" />
+        <table class="l">
+        <tr >
+            <td class="label">员工号:</td>
+			<td id = "toolid">
+			  <input name="code" id="code" class="easyui-textbox" required/>
+			</td>  
+			<td class="label">姓 名:</td>
+			<td>
+			  <input name="name" id="name" class="easyui-textbox" required/>
+			</td> 
+			<td class="label">手 机:</td>
+			<td>
+			  <input name="phone" id="phone" class="easyui-textbox" required/>
+			</td> 
+		</tr>
+		<tr>	 
+			<td class="label">部 门:</td>
+			<td>
+			  <input name="group_id" id="group_id" class="easyui-combobox" />
+			</td>	
+			<td class="label public">职务岗位:</td>
+			<td class="public">
+			  <input name="position" id="position" class="easyui-textbox" />	  
+			</td> 
+			<td class="label private">拥有角色:</td>
+			<td class='private'>
+				<input name="roleids" id="roleids" class="easyui-combobox"/>
+			</td>
+			<td class="label" style="width:40px;">入职时间:</td>
+			<td>
+			  <input name="indate" id="indate" class="easyui-datebox" required/>
+			</td>  
+		</tr>
+		<tr>
+			<td class="label">拥有证件:</td>
+			<td>
+			  <input name="credentials" id="credentials" class="easyui-combobox" />
+			</td> 	
+			<td class="label">上传证件:</td>
+            <td>
+	            <input name="zizhi" id="zizhi" class="easyui-combobox">         
+            </td>						
+			<td class="label">社交账号:</td>
+			<td>
+			  <input name="social_account" id="social_account" class="easyui-textbox" />
+			</td>	
+		</tr>
+		<tr> 
+			<td class="label">性 别:</td>
+			<td>
+			  <input name="sex" id="sex" class="easyui-combobox"/>
+			</td>
+			<td class="label">民 族:</td>
+			<td>
+			  <input name="nation" id="nation" class="easyui-textbox" />
+			</td> 
+			<td class="label">邮 箱:</td>
+			<td>
+			  <input name="email" id="email" class="easyui-textbox" />
+			</td>
+		</tr>
+		<tr>
+			<td class="label">身份证号:</td>
+			<td>
+			  <input name="id_card" id="id_card" class="easyui-textbox" />
+			</td> 		
+			<td class="label">住 址:</td>
+			<td colspan="3">
+				<textarea name="address" id="address" cols="71" rows="3"></textarea>			  
+			</td>
+		</tr>
+		<tr> 
+			<td class="label">开户行:</td>
+			<td>
+			  <input name="bank_name" id="bank_name" class="easyui-textbox" />
+			</td>		
+			<td class="label">户名:</td>
+			<td>
+			  <input name="account" id="account" class="easyui-textbox" />
+			</td>		
+			<td class="label">卡 号:</td>
+			<td>
+			  <input name="account_num" id="account_num" class="easyui-textbox" />
+			</td>
+		</tr>
+		<tr> 		 
+			<td class="label">紧急联系人:</td>
+			<td>
+			  <input name="emergency_person" id="emergency_person" class="easyui-textbox" />
+			</td>		
+			<td class="label">联系人关系:</td>
+			<td>
+			  <input name="emergency_relation" id="emergency_relation" class="easyui-textbox" />
+			</td>
+			<td class="label">紧急联系电话:</td>
+			<td>
+			  <input name="emergency_phone" id="emergency_phone" class="easyui-textbox" />
+			</td>
+		</tr>
+		<tr>
+			<td class="label">学 历:</td>
+			<td>
+			  <input name="education" id="education" class="easyui-combobox" />
+			</td>
+			<td class="label">婚姻状况:</td>
+			<td>
+			  <input name="married" id="married" class="easyui-combobox"/>
+			</td>		
+		</tr>		
+        </table>
+    </form>
+</div>
+<div id="dlg-buttons">
+    <a id='save' href="#" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle" onclick="saveTable( RECORD.staff_info.table )">保 存</a>
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-close-circle" onclick="closeDialog()">取 消</a>
+</div>
+<div id="dlg1" class="easyui-dialog" style="width:560px;height:280px;" closed="true" buttons="#dlg1-buttons">
+    <form id="fm1" method="post" novalidate>
+        <table class="l" >
+        <input name='id' type="hidden"/>
+        <input name='version' type="hidden"/>
+        <input name="staff_info_id" type="hidden"/>
+        <tr>
+            <td class="label">员工号:</td>
+            <td>
+              <input name="code" id="code1" class="easyui-textbox"/>
+            </td>  
+            <td class="label">姓名:</td>
+            <td>
+              <input name="name" id="name1" class="easyui-textbox"/>
+            </td>
+        </tr>
+        <tr> 
+            <td class="label" style="width:40px;">离职时间:</td>
+            <td>
+              <input name="outdate" id="outdate1" class="easyui-datebox"/>
+            </td>  
+        
+            <td class="label">离职交接人:</td>
+            <td>
+              <input name="hand_over" id="hand_over" class="easyui-textbox"/>
+            </td>
+        </tr>
+        <tr> 
+            <td class="label">交接详情:</td>
+            <td colspan="3">
+                <textarea name="hand_detail" id="hand_detail" cols="68" rows="3"/></textarea>              
+            </td>
+        </tr>
+        <tr>
+            <td class="label">交接完成:</td>
+            <!-- <td>
+              <input name="hand_status" id="hand_status" class="easyui-textbox"/>
+            </td> -->
+            <td >
+                <input name="hand_status" type="radio" value="是"/>是
+                <input name="hand_status" type="radio" value="否"/>否
+            </td>
+            <td class="label">备注:</td>
+            <td colspan="3">
+                <textarea name="remark" id="remark" cols="25" rows="3"/></textarea>            
+            </td>   
+        </tr>       
+        </table>
+    </form>
+</div>
+<div id="dlg1-buttons">
+    <a id='save1' href="#" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle" onclick="saveOutInfo()">保 存</a>
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-close-circle" onclick="closeDialog('fm1','dlg1')">取 消</a>
+</div>
+<div id="dlg2" class="easyui-dialog" style="width:560px;height:410px;" closed="true" buttons="#dlg2-buttons">
+    <div class="customer_table">
+    	<table id="all_customer" border="true" title="全部客户"></table>
+    </div>
+    <div class="middle">
+    	<div class="middle_button" onclick="moveSelected('all_customer','my_customer')">>></div>
+    	<div class="middle_button" onclick="moveSelected('my_customer','all_customer')"><<</div>
+    </div>
+    <div class="customer_table">
+    	<table id="my_customer" border="true" title="已绑客户"></table>
+    </div>
+</div>
+<div id="dlg2-buttons">
+    <a id='save2' href="#" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle" onclick="saveBindIds('customer')">保 存</a>
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-close-circle" onclick="closeDialog('fm2','dlg2')">取 消</a>
+</div>
+
+<div id="dlg3" class="easyui-dialog" style="width:560px;height:410px;" closed="true" buttons="#dlg3-buttons">
+    <div class="lc_table">
+    	<table id="all_lc" border="true" title="全部承运伙伴"></table>
+    </div>
+    <div class="middle">
+    	<div class="middle_button" onclick="moveSelected('all_lc','my_lc')">>></div>
+    	<div class="middle_button" onclick="moveSelected('my_lc','all_lc')"><<</div>
+    </div>
+    <div class="lc_table">
+    	<table id="my_lc" border="true" title="已绑承运伙伴"></table>
+    </div>
+</div>
+<div id="dlg3-buttons">
+    <a id='save3' href="#" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle" onclick="saveBindIds('lc')">保 存</a>
+    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-close-circle" onclick="closeDialog('fm3','dlg3')">取 消</a>
+</div>
+</body>
+</html>

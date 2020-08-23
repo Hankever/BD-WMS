@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Excel导入模板定义</title>
+    <link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+
+    <script src="../../tools/tssJS/tssJS.all.js"></script>
+    <script type="text/javascript" src="../../tools/jquery/jquery-1.11.1.min.js"></script>
+
+    <style>
+
+        html, body {
+            min-height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            margin: 0px 80px;
+        }
+
+        .container ul, .container ol {
+            width: 190px;
+            padding: 10px 15px;
+            min-height: 400px;
+            display: block;
+            float: left;
+        }
+
+        .container ol {
+            border: 1px solid #95B8E7;
+            margin: 5px 50px;
+            border-radius: 5px;
+        }
+
+        .container ul{
+            border:1px solid #95B8E7;
+            margin: 5px 0;
+            border-bottom:0;
+        }
+
+        #c1{
+            border-radius: 5px 0 0 5px;
+            border-right-style:dashed;
+        }
+        #c2{
+            border-radius: 0 5px 5px 0;
+            border-left:0;
+        }
+
+        .container ul li, .container ol li {
+            display: block;
+            float: left;
+            width: 150px;
+            line-height: 28px;
+            border-radius: 4px;
+            list-style: none;
+            background-color: #EED2EE;
+            margin-bottom: 6px;
+            text-align: center;
+            color: #555;
+            cursor: pointer;
+        }
+
+        #c2 li,#c3 li{
+            background-color: #33CCCC;
+        }
+
+        #c3 {
+            width: 280px;
+        }
+
+        #c3 li {
+            width: 120px;
+            margin-left: 1px;
+        }
+
+        .container header {
+            padding: 5px 20px 0;
+        }
+
+        .container header label {
+            display: inline-block;
+            width: 240px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        #detail {
+            margin: 10px 20px;
+            font-size: 14px;
+        }
+
+        #detail label {
+            color: #666;
+            margin-left: 10px;
+            width: 80px;
+            display: inline-block;
+            text-align: right;
+        }
+
+        #detail input {
+            height: 30px;
+            width: 200px;
+        }
+
+        #tl_list {
+            margin: 10px 0;
+        }
+
+        #bts {
+            margin: 10px 260px 20px;
+        }
+
+        #bts button {
+            margin-left: 30px;
+        }
+
+        .mb {
+            display: inline-block;
+            width: 128px;
+            line-height: 30px;
+            border-radius: 4px;
+            list-style: none;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            margin: 0 5px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .active {
+            color: white;
+            background-color: #049cdb !important;
+            border-color: #049cdb;
+        }
+        .arrow{
+            position:absolute;
+            font-size:20px;
+            margin-top:200px;
+            color:#666;
+        }
+        .arrow1{
+            margin-left:242px;
+        }
+
+        .arrow2{
+            margin-left:672px;
+        }
+        .remark{
+            font-size:13px;
+            background-color: #EED2EE;
+            padding:5px;
+            border-radius:5px;
+        }
+        .remark1{
+            background-color: #33CCCC
+        }
+
+
+    </style>
+
+</head>
+<body>
+
+<div id="detail">
+    <ul id="tl_list">
+        <!-- <li>模板一</li><li>模板二</li><li>模板三</li> -->
+    </ul>
+    <input type="hidden" id="id">
+    <input type="hidden" id="tldef">
+    <label>模板名称：</label><input type="" id="tlname">
+    <label>启用：</label> <input name="status" id="status" type="checkbox" checked
+                              style="vertical-align:middle; margin-top:0; width: 20px; height:22px">
+    <label style="margin-left: 50px; display: none;">所属客户：</label><input type="hidden" id="customer" placeholder="客户ID">
+    <br><br>
+    <label>Excel表头：</label><textarea id="excel_th" cols="111" rows="3" oninput="initC3()"
+                                     placeholder="复制当前Excel数据的表头行到此输入框，如：下单日期 货品名称 件数 重量 体积， 如果某列导入的是一个固定值xxx，则用{xxx}表示"></textarea>
+</div>
+<div id="bts">
+    <button class="tssbuttom medium blue" onclick="saveTL(true)" id="b1">新增模板</button>
+    <button class="tssbuttom medium blue" onclick="saveTL()" id="b2" style="display: none;">修改模板</button>
+    <button class="tssbuttom medium blue" onclick="reset()">清空字段对应</button>
+</div>
+<div class="container">
+    <header>
+        <label>标准模板表头池</label>
+        <!--        <label>标准模板表头</label>-->
+        <label style="width:420px"><span class="remark">（系统表头）</span> 字段对应关系 <span class="remark remark1">（自定义表头）</span></label>
+        <label>Excel表头池</label>
+    </header>
+
+    <div class="arrow arrow1">
+        <b><b style="font-weight:400">===</b>></b>
+    </div>
+    <div class="arrow arrow2">
+        <b><<b style="font-weight:400">===</b></b>
+    </div>
+    <ol id="c0"></ol>
+    <ul id="c1"></ul>
+    <ul id="c2"></ul>
+    <ol id="c3"></ol>
+</div>
+
+<script type="text/javascript">
+
+    // http://localhost:9000/tss/pages/base/tl_config.html?imp_rc_table=wms_asn_import
+
+    var default_th = tssJS.Query.get("default_th");
+    //'code:我的单号,ccode:客户单号,lc_name:承运方,tcode:平台单号,order_date:寄件日期,send_man:寄件人,send_phone:寄件电话,send_addr:寄件地址,receive_man:收件人,receive_phone:收件电话,receive_addr:收件地址,amount:件数,weight:重量,volume:体积,cargo:货名,cod:代收货款金额,cargo:包装,arrive_pay:到付款,remark:备注,cost_weight:成本重量,insurance_limit:保价额,send_site:始发地,receive_site:目的地';
+    var imp_rc_table = tssJS.Query.get("imp_rc_table");
+    var tl_type = tssJS.Query.get("tl_type") || imp_rc_table;
+    let customer_id = tssJS.Query.get("customer_id") || '';
+    let default_th_list = [];
+
+    if (default_th) {
+        default_th = decodeURI(default_th);
+        for (let i = 0; i < default_th.split(',').length; i++) {
+            const item = default_th.split(',')[i].split(':');
+            default_th_list.push({code: item[0], title: item[1]})
+        }
+        initC0C1('c1')
+    } else {
+        tssJS.get("/tss/xdata/define/" + imp_rc_table, {}, function (result) {
+            let cols = result[0];
+            default_th = [];
+            cols.each(function (i, col) {
+                if (col.type !== 'hidden') {
+                    default_th.push(col.label);
+                    default_th_list.push({title: col.label})
+                }
+            });
+
+            default_th = default_th.join(" ");
+            initC0C1('c1');
+        });
+    }
+
+    function initC0C1(id) {
+        let _html = '';
+        const title = id == 'c0' ? '点击移进' : '点击移出'
+        default_th_list.each(function (i, col) {
+            _html += `<li data-value="${col.code || col.title}" data-title="${col.title}" title="${title}" onclick="clickTL(this)">${col.title}</li>`
+            $('#' + id).html(_html)
+        })
+    }
+
+    const click_tl_obj = {
+        c0: {id: 'c1', title: '点击移出'}, c1: {id: 'c0', title: '点击移进'},
+        c2: {id: 'c3', title: '点击移出'}, c3: {id: 'c2', title: '点击移进'}
+    }
+
+    function clickTL(a) {
+        const obj = click_tl_obj[a.parentElement.id];
+        a.remove()
+        a.title = obj.title;
+        $('#' + obj.id).append(a)
+    }
+
+    var c2_list = [];
+
+    function initC2(tldef) {
+        tssJS("#c1").html("");
+        tssJS("#c2").html("");
+        c2_list = [];
+
+        var cols = (tldef || "").split(",");
+        cols.each(function (i, col) {
+            if (!col.trim()) return false;
+            let col_value = col.split(":")[0];
+            col = col.split(":")[1].replace("{}", "{空}");
+            c2_list.push(col);
+            var li = tssJS.createElement("li");
+            tssJS(li).text(col).title("点击挪出").attr("onclick", "clickTL(this)").attr("data-value",col);
+            tssJS("#c2").appendChild(li);
+
+            // 从c0清除 已经匹配的数据
+            let lis0 = tssJS('#c0').find('li');
+            lis0.each((i,li)=>{
+                if(li.dataset.value == col_value){
+                    tssJS(li).remove();
+
+                    tssJS(li).title("点击移出");
+                    tssJS("#c1").appendChild(li);
+                    return false;
+                }
+            })
+            // 从c3清除 col
+            var lis3 = tssJS("#c3").find("li");
+            lis3.each(function (i, li) {
+                if (tssJS(li).text() == col) {
+                    tssJS(li).remove();
+                    return false;
+                }
+            })
+        });
+    }
+
+    function initC3() {
+        let cols = (tssJS("#excel_th").value() || '').replace(/\t|，|,/g, " ").split(" ");
+
+        tssJS("#c3").html("");
+        let _html = '';
+        cols.each(function (i, col) {
+            if ((!col.trim() || c2_list.contains(col)) && col !== '{空}') return true;
+
+            _html += `<li data-value="${col}" title="点击挪进" onclick="clickTL(this)">${col}</li>`
+            $('#c3').html(_html)
+        })
+    }
+
+    function reset() {
+        initC0C1('c0')
+        $('#c1').html('')
+        initC2();
+        initC3();
+    }
+
+    function editTL(tl_id) {
+        $('.mb').removeClass('active');
+        $('#mb' + tl_id).addClass('active')
+        tssJS.get("/tss/xdata/json/dm_record_imptl", {id: tl_id}, function (data) {
+            var item = data[0];
+            tssJS("#id").value(item.id);
+            tssJS("#tlname").value(item.tlname);
+            tssJS("#excel_th").value(item.origin_header);
+            tssJS("#customer").value(customer_id);
+            tssJS("#tldef").value(item.tldef);
+            tssJS("#status")[0].checked = item.status === 1;
+            initC0C1('c0')
+            initC3();
+            initC2(item.tldef);
+
+            $("#b1").hide();
+            $("#b2").show();
+        });
+    }
+
+    function saveTL(create) {
+        var id = tssJS("#id").value();
+        var params = {};
+        params.type = tl_type;
+        params.tlname = tssJS("#tlname").value();
+        params.origin_header = tssJS("#excel_th").value();
+        params.customer = customer_id;
+        params.status = tssJS("#status")[0].checked ? 1 : 0;
+
+        if (!params.tlname) {
+            return tssJS.alert("请输入模板名称");
+        }
+
+        var lis1 = tssJS("#c1").find("li"),
+            lis2 = tssJS("#c2").find("li");
+        if (lis1.length != lis2.length) {
+            return tssJS.alert("对应字段需要和标准模板一一对应");
+        }
+
+        params.tldef = [];
+        lis1.each(function (i, li) {
+            params.tldef.push(tssJS(li)[0].dataset.value + ":" + tssJS(lis2[i]).text().replace("{空}", "{}"));
+        })
+        params.tldef = params.tldef.join(",");
+
+        $.post("/tss/xdata/dm_record_imptl" + (id && !create ? "/" + id : ""), params, function (result) {
+            if (result && result.errorMsg) {
+                tssJS.alert('保存失败。' + (result.errorMsg || ''))
+            } else {
+                tssJS.alert("保存成功，请刷新页面后再按新配置的模板进行数据导入");
+                $("#b1").show();
+                $("#b2").hide();
+                init();
+                initC0C1('c1')
+                $('#c0,#c2,#c3').html('')
+            }
+
+        });
+    }
+
+    $(function () {
+        init();
+    });
+
+    function init() {
+        tssJS.get("/tss/xdata/json/dm_record_imptl", {type: tl_type, customer: customer_id}, function (data) {
+            tssJS("#tl_list").html("");
+            data.each(function (i, item) {
+                let li = tssJS.createElement("li");
+                tssJS(li).text(item.tlname).attr('id', 'mb' + item.id).attr("onclick", "editTL(" + item.id + ")").attr('class', 'mb');
+                tssJS("#tl_list").appendChild(li);
+
+                if (item.status !== 1) {
+                    tssJS(li).css("background-color", "#bbb");
+                }
+            });
+            $('#tlname').val('')
+            $('#excel_th').val('')
+            tssJS("#c2, #c3").height(tssJS("#c1")[0].clientHeight);
+        });
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,459 @@
+<!-- 
+安全库存监控、库存趋势、出入库趋势、人员绩效
+作业看板（集合在作业看板里：工单作业进度，人员绩效排行，作业异常登记及处理情况） 工单监控、异常监控、作业排行 
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="utf-8">
+<title>综合面板</title>
+<meta http-equiv="refresh" content="180">
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+<script src="../../tools/echarts/echarts-all-3.1.2.js"></script>
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="../wms/wms.js"></script>
+</head>
+
+<style type="text/css">
+
+html,body{ height: 100%;width: 100%;margin: 0;background:  #f1f3f5;overflow: hidden;}
+#main {width:76vw; padding:1vh 1vw 2px 1vw;}
+#right { padding-top:1vh; border-right: 1vh solid #f1f3f5; }
+/*#r1, #r2 { display: none; } 
+#r3 { height: 100%; }*/
+
+.border_bottom { border-bottom: 1vh solid #f1f3f5 }
+.divcolor{background: #fff;}
+.flex{display: flex;}
+.hide{display: none;}
+
+ #header, #footer { height: 8vh; }
+ .tssbutton { height: 40px; min-width: 80px; font-size: 16px; margin: auto 8px; }
+
+.dashlabel{ width: 14vw; margin: 3.8vw 2vw 2vw 0;text-align: center;border-top: 1px solid #ddd;border: 1vh solid #f1f3f5; }
+.dashlabel p{ border-bottom: 1px solid #ddd;margin: 0;padding: 1.5vh 0 1.5vh 0;font-size: 16px;}
+.dashlabel .num1 { color: #58a55c; }
+.dashlabel .num2 { color: #d9503f; }
+.dashlabel div, .dashlabel a { font-size: 35px;line-height: 7vh; cursor: pointer;}
+.dashlabel div:hover, .dashlabel a:hover{ color: #5299f5 ;}
+#dash>div:nth-child(1){margin-left: 4.5vw;}
+
+#chart { padding:1vh 0 6vh 0;}
+.chart { height: 41.3vh; width: 74vw;padding:1vh 0 0 0.8vw}
+#daychoose{margin-top:1vh;padding:0 2vh 0 1vh ;float: right;} 
+#daychoose a{margin-left:1vh;padding:  1vh 1vw 1vh 1vw;border: 1px solid #d9d9d9;text-decoration: none;}
+#daychoose b{font-size: 16px;color: #d9503f;}
+
+._code{ padding: 2vh 6vw 3vh 0;}
+._code b{font-size: 15px;padding-left: 20px;}
+
+#r2{ height: 38vh; }
+#r3{ height: 22vh; }
+
+.center{height: 150px;width: 150px;}
+.img{height: 50px;width: 50px;}
+
+</style>
+
+<body>
+    <div id="all" class="flex">
+        <div id="main">
+            <div id="header" class="flex border_bottom divcolor">
+                <div style="position: absolute;right: 26vw; top: 10.5vh;">
+                    <input id="date1" class="easyui-datebox" style="width: 95px;" /> ~
+                    <input id="date2" class="easyui-datebox" style="width: 95px;"/>
+                </div>
+            </div>
+
+            <div id="dash" class="flex border_bottom divcolor"></div>
+
+            <div id="chart" class="border_bottom divcolor">
+                <div id="chart1" class="chart"></div> 
+                <div id="daychoose">
+                    <label id="totalSum"></label>
+                    <a href="#" onclick="chooseMonth('last')">上月</a>
+                    <a href="#" onclick="chooseMonth('next')">下月</a>
+                </div> 
+            </div>
+
+            <div id="footer" class="flex divcolor"></div>
+        </div>
+
+        <div id="right">
+            <div class="_code divcolor border_bottom" id="r1">
+                <b>微信小程序</b>
+                <div id="qr_code" class="qr_code" style="padding-left: 6vw;">
+                    <!-- /tss/wx/api/acode2?appId=wx6f5e8e3f5b6b45d8&domain=G1&belong=wms_test -->
+                	<div><img src="/tss/wx/api/acode2?appId=wx6f5e8e3f5b6b45d8" style="width:200px;height:200px;"></div>
+                	<div style="font-weight:bold;text-align:center;margin-top:5px;">扫一扫打开小程序</div>
+                    <button class="tssbutton medium green" style="margin: 5px 0 0 32px;" onclick="bindWx()">点击绑定微信</button>
+                </div>
+            </div>
+            <div class="_code divcolor border_bottom" id="r2">
+                <b>系统技术支持</b>
+                <div style="text-align: center;">
+                    <img src="../../images/bd_gzh.jpg" style="height: 200px; width: 200px; padding: 3vh 0 1vh 5vw">
+                    <b style="margin-left: 4vw;font-size:12px;">扫码关注公众号</b>
+                </div>
+            </div>
+            <div class="_code divcolor border_bottom" id="r3">
+                <b>消息提醒</b>
+                <div style="padding-left: 9vw; padding-bottom: 2.5vh;">
+                    <img src="../../images/tip.png" class="img">
+                </div>
+            </div>
+        </div>   
+    </div>
+</body>
+
+<script type="text/javascript">
+
+var allRoles = '仓储经理,仓库主管,作业人员,其它人员,货主', WH_IDS = '';
+
+var topIcon = [
+    { name: '入库单', src: '/tss/pages/wms/asn.html' , roles: '仓储经理,仓库主管,供货商', color:'blue' },
+    { name: '出库单', src: '/tss/pages/wms/order.html', roles: '仓储经理,仓库主管', color:'blue' },
+    { name: '波次', src: '/tss/pages/wms/order_wave.html', roles: '仓库主管,仓储经理', color:'blue' },
+    { name: '库存', src: '/tss/pages/wms/inv.html', roles: '作业人员', color:'blue' },
+    // { name: '作业日志', src: '/tss/pages/wms/wms_log.html', roles: '作业人员', color:'white' },
+    // { name: '作业看板', src: '/tss/pages/wmsbi/dashboard_op.html', roles: '仓储经理,仓库主管', color:'blue' },
+    { name: '报表中心', onclick: 'myReports()', roles: allRoles, color:'blue' },
+    // { name: '计费', src: '/tss/pages/wms/bill_model_money.html', roles: '仓库主管,仓储经理,财务,体验者', color:'blue' },
+    // { name: '资金管理', src: '/tss/pages/fms/dashboard.html', roles: '仓储经理,财务', color:'red' },
+    { name: '录单', src: '/tss/pages/oms/order.html', roles: "货主", color:'blue' }
+],
+bar = [
+    { name: '今日入库（单/量）', num1: 0, num2: 0, src: '/tss/pages/wms/asn.html', id: 'asn', roles: allRoles+',供货商' },
+    { name: '今日出库（单/量）', num1: 0, num2: 0, src: '/tss/pages/wms/order.html', id: 'order', roles: allRoles },
+    { name: '作业进度', name2: '作业看板', num1: 0, num2: 0, src: '/tss/pages/wmsbi/dashboard_op.html', id: 'job', roles: allRoles },
+    { name: '异常监控', name2: '作业看板', num1: 0, num2: 0, src: '/tss/pages/wmsbi/dashboard_op.html', id: 'exc', roles: allRoles }
+],
+bottomIcon = [
+    { name: '系统设置', src: '/tss/pages/wms/wms_config.html', roles: '$域管理员', color:'white' },
+    { name: '仓库管理', src: '/tss/modules/dm/recorder.html?rctable=wms_warehouse', roles: '仓储经理', color:'white' },
+    { name: '货主（项目）', src: '/tss/modules/dm/recorder.html?rctable=wms_owner', roles: '仓储经理', color:'white' },
+    { name: '作业规则', src: '/tss/pages/wms/wms_rule.html', roles: '仓库主管,仓储经理', color:'white' },
+    { name: '往来对象', src: '/tss/modules/dm/recorder.html?rctable=wmsx_customer', roles: '仓库主管,仓储经理', color:'white' },
+    { name: '我的账户', src: '/tss/more/pay/account.html', roles: '$域管理员', color:'white' },
+    { name: '操作手册', src: 'https://www.boudata.com/tss/channel.portal?channelId=10', roles: allRoles+',供货商', color:'white' }
+];
+
+var roles = userHas[11], modules = userHas[13] || [], selectedDay = new Date();
+
+$(function(){
+    intiParams();
+    topSrc('header', topIcon);
+    topSrc('footer', bottomIcon);
+})
+
+function onshow() {
+	getChart();
+    getData();
+}
+
+function intiParams(){
+    $("#date1").datebox({
+        onSelect:function(data){
+            getOpProgress();  
+        }
+    })
+    $("#date2").datebox({
+        onSelect:function(data){
+            getOpProgress();  
+        }
+    })
+    $("#date1").datebox("setValue", subDate(now, 0).format('YYYY-MM-dd'));
+    $("#date2").datebox("setValue", subDate(now, -1).format('YYYY-MM-dd'));
+
+    $.getJSON(WAREHOUSE.QUERY, {status: 1}, function(data) {
+    	WH_IDS = [];
+    	data.length && data.each( function(i, item) {
+            if(!item.type || item.type == 1) {
+                WH_IDS.push( data[i].id );
+            }
+    	} );
+    	WH_IDS = WH_IDS.join(",");
+
+        getChart();
+        getData();
+    	showbar(bar);
+    })
+}
+
+function getData(date1, date2){
+    $.get("/tss/api/bi/queryIOQty", {wh_id: WH_IDS, date_from: cday}, function(r) {
+        var d = r.rows;
+        bar[0].num1 = d[1].num||0;
+        bar[0].num2 = (d[1].qty||0).toFixed(_qty_precision);
+
+        bar[1].num1 = d[0].num||0;
+        bar[1].num2 = (d[0].qty||0).toFixed(_qty_precision);
+
+        reloadBar(bar, cday, cday);
+    });
+
+    getOpProgress(); 
+}
+
+function topSrc(div, arr) {
+    var li = '';
+    arr.each(function(i,item){
+        var roleArr = item.roles.split(',');
+        roleArr.push('系统管理员');
+        for(var r = 0; r < roleArr.length; r++){
+            if(roles.indexOf(roleArr[r]) >= 0 && modules.indexOf(item.module) < 0) {
+            	if( item.onclick ) {
+            		single = `<button class='tssbutton medium ${item.color}' onclick="${item.onclick}"> ${item.name} </button>`;
+            	}
+            	else {
+            		single = `<button class='tssbutton medium ${item.color}' onclick="showTab('${item.name}','${item.src}')"> ${item.name} </button>`;
+            	}
+                li = li + single;
+                break;
+            }
+        }
+    })
+    $("#"+div).append(li);
+}
+
+function myReports(){
+	parent.parent.openLevelOne(-15);
+}
+
+function getOpProgress() {
+    var day1 =  $("#date1").val();
+    var day2 =  $("#date2").val();
+    var daydiff = dateDifferObj(day1,day2);
+    if(daydiff.day > 32) {
+        return $.messager.show({title: '提示', msg: '查询范围不能超过31天，请重新选择日期'});
+    }
+
+    var _day = '[' + day1 + ',' + day2 + ']';
+
+    $.getJSON( OPERATION.QUERY, { warehouse_id: WH_IDS, createtime: _day }, function(data) {
+    	bar[2].num1 =  bar[2].num2 = 0;
+        data.length && data.each(function(i, item) {
+            if(item.status == '已完成') {
+                bar[2].num1++;
+            }
+            if( ['新建', '已领用', '部分完成'].contains(item.status) ) {
+                bar[2].num2++;
+            }
+        })
+
+        $.getJSON( EXCEPTION.QUERY, { createtime: _day }, function(data) {
+        	bar[3].num1 = bar[3].num2 = 0;
+            var exc_count = data.length;
+            data.length && data.each(function(i, item) {
+                if(item.status == '关闭') {
+                    bar[3].num1++;
+                }
+            })
+            bar[3].num2 = exc_count - bar[3].num1
+
+            reloadBar(bar, day1, day2);
+        })
+
+    })
+}
+
+function getCountQty(data) {
+    var qty = 0;
+    data.length && data.each(function(i,item) {
+        qty += item.qty
+    })
+
+    return qty;
+}
+
+function reloadBar(bar, day1, day2) {
+    bar.each(function(i,item){
+        $("#"+item.id).html('');
+        if(i < 2) {
+            $("#"+item.id).html(item.num1 + "<br/>" + item.num2);
+        } else {
+            $("#"+item.id).html("<a class='num1'>" + item.num1 + "<br/></a><a class='num2'>" + item.num2 + "</a>");
+        }
+        $("#"+item.id).click(function(e){
+            var _params = "?wh_id=" + WH_IDS + "&date1=" + day1 + "&date2=" + day2 + '&userCode=-1';
+            showTab(item.name2||item.name, item.src, _params)
+        })
+    })
+}
+
+function showTab(name, src, params) {
+    parent.$('#tabs').tabs('close', name);
+    setTimeout( function() {
+        addTab( 'url', name, src + (params || '') );
+    }, 100);
+}
+
+function showbar(bar){
+    var li = '';
+
+    bar.each(function(i,item){
+        var roleArr = item.roles.split(',');
+        roleArr.push('系统管理员');
+        for(var r = 0; r < roleArr.length; r++){
+            if(roles.indexOf(roleArr[r]) >= 0 && modules.indexOf(item.module) < 0){
+                single = "<div class='dashlabel'><p>"+ item.name +"</p><div id='"+item.id+"'>"+ item.num1 + "<br/>" + item.num2 +"</div></div>";
+                li = li + single;
+                break;
+            }
+        }
+    })
+    $("#dash").append(li);
+}
+
+function chooseMonth(value){
+    if(value == 'last'){
+        selectedDay = subDate(selectedDay,getMonthDays(selectedDay.getFullYear,selectedDay.getMonth()))
+    }else{
+        selectedDay = subDate(selectedDay,-getMonthDays(selectedDay.getFullYear,selectedDay.getMonth()))
+    }
+    getChart(selectedDay, value);
+}
+
+function changeMonth(day){
+    var inday = day || selectedDay;
+    var first = getFirstDayOfMonth(inday);
+    var last  = getLastDayOfMonth(inday);
+    var year = inday.getFullYear();
+    var month = inday.getMonth();
+    var days = getMonthDays(year,month);
+    var chartday = [];
+    for(var i = 0; i < days; i++){
+        chartday.push(i+1);
+    }
+    return [first, last, month + 1, chartday]
+}
+
+function getChart(day, type){
+    $("#totalSum").html('');
+    var [first,last,month,chartday] = changeMonth(day);
+    var _day = '[' + first + ',' + last + ']';
+
+    $.getJSON(SERVICE.inv_day_io, { wh_id: WH_IDS, date_from: first, date_to: last }, function(data) {
+        var inv_data = data.rows, asn_qty = [], order_qty = [], totalAsn = 0, totalOrder = 0;
+        var inv_days = inv_data.map( e => e.day.substring(e.day.lastIndexOf('-') + 1, e.day.length) * 1 );
+
+        for(var i = inv_data.length - 1; i >= 0; i--) {
+            var item_day = inv_data[i]['day'];
+            var index = item_day.substring(item_day.lastIndexOf('-') + 1, item_day.length) * 1 - 1;
+            inv_data[index] = inv_data[i];
+        }
+        for(var i = 0; i < chartday.length; i++){
+            var _day = chartday[i];
+            if(!inv_days.includes(chartday[i])) {
+                inv_data[_day-1] = {'本期出': 0, '本期入': 0}
+            }
+        }
+
+        inv_data.each(function(i, item) {
+            asn_qty[i] = item['本期入'].toFixed(_qty_precision) * 1;
+            totalAsn += item['本期入'];
+            order_qty[i] = item['本期出'].toFixed(_qty_precision) * 1;
+            totalOrder += item['本期出'];
+
+            var adjust = (item['本期调整']||0).toFixed(_qty_precision) * 1;
+            asn_qty[i] = asn_qty[i] + adjust;
+            totalAsn += adjust;
+        })
+
+        li =  "总入库量："+"<b>"+ totalAsn.toFixed(_qty_precision) + "</b>，总出库量：<b>"+ totalOrder.toFixed(_qty_precision) + "</b>";
+        $("#totalSum").append(li);
+
+        setTimeout(show('chart1',month + '月出入库', chartday, asn_qty, order_qty),1000);
+
+    })
+}
+
+function show(id, title, label, asn_qty, order_qty){
+    var dom = document.getElementById(id);
+    var myChart = echarts.init(dom);
+    var option = {
+
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'cross',
+                crossStyle: {
+                    color: '#999'
+                }
+            }
+        },
+        toolbox: {
+            feature: {
+                myTool1: {
+                    show: true,
+                    title: '查看更多',
+                    icon: 'image://../../images/wms.png',
+                    onclick: function (){
+                        showTab('进出存报表', '/tss/pages/wmsbi/ios.html');
+                    }
+                },
+                restore: {show: true},
+                magicType: {show: false, type: ['line', 'bar']}
+            }
+        },
+        legend: {
+            data: ['入库量', '出库量']
+        },
+        grid: {
+            left: '3%',
+            right: '3%',
+            bottom: '4%',
+            containLabel: true
+        },
+        xAxis: [
+            {
+                type: 'category',
+                data: label,
+                splitLine: {
+                    show: false
+                }
+            }
+        ],
+        yAxis: [
+            {
+                type: 'value',
+                name: '数量',
+            }
+        ],
+        color:['#58a55c','#d9503f','#5299f5'],
+        series: [
+            {
+                name: '入库量',
+                type: 'bar',
+                smooth: true,
+                data: asn_qty
+            }, {
+                name: '出库量',
+                type: 'line',
+                smooth: true,
+                data: order_qty
+            }
+        ]
+    };
+
+    myChart.setOption(option, true);
+}
+
+function bindWx() {
+    window.open('/tss/more/bind_wx.html?account=' + userCode);
+}
+
+</script>
+</html>

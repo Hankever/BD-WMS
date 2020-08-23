@@ -1,0 +1,14 @@
+#searchFormDiv { min-width: 300px; max-width: 600px; max-height: 480px; top: 100px; left: 230px; }
+#searchFormDiv .content { padding: 12px; overflow: auto; max-height: 450px; }
+#searchFormDiv .buttonBox { margin: 0 auto; text-align: center; }
+#searchFormDiv .buttonBox input { margin-left: 12px;  }
+#searchFormDiv .max, #searchFormDiv .min { display: none; }
+
+.leftbar-hidden { left: -28px; }
+iframe.container { width: 100%; height: 100%; }
+
+#btSearch, #btDownload { line-height: 20px; height: 24px; }
+.white { color: #333; height: 16px; border: 1px solid #666; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1); }
+.white:hover { background-color: inherit; border-left: 1px solid #000; border-right: 1px solid #000; background-color: #eee;  }
+#gridTitle .small { background: inherit; margin: 0px 1px; border-top: 0px; border-bottom: 0px; }
+#gridTitle .small:hover { background-color: #eee; }

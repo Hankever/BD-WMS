@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sqls>
+	
+	<sql code="sysRules" name="常用规则池（系统级）">
+		<![CDATA[
+			SELECT * FROM wms_rule where status = 1 and domain = 'G1' and  domain <> '${DOMAIN}' order by type, name
+		]]>
+	</sql>
+	
+	<sql code="emptyLocFirst" name="空库位优先">
+		<![CDATA[
+		select l.id, IFNULL(IFNULL(t.udf1, inv.qty), 0) qty
+		from wms_location l
+		left join  (select location_id, sum(qty) qty from wms_inv where wh_id = ${whID} group by location_id) inv on l.id = inv.location_id
+		left join component_param p on l.type_id = p.id
+		left join TBL_TEMP_ t on l.id = t.id
+		where l.status = 1 and l.warehouse_id = ${whID} and p.text in ('存储区')
+		order by IFNULL(l.capacity, 99999) - IFNULL(IFNULL(t.udf1, inv.qty), 0) desc, l.id;
+		]]>
+	</sql>
+	
+	<sql code="findExistInv" name="寻找既有库存">
+		<![CDATA[
+		select l.id, IFNULL(t.udf1, inv.qty) qty
+        from wms_location l
+        left join  (select location_id, sum(qty) qty from wms_inv where wh_id = ${whID} and sku_id = ${skuID}  group by location_id) i on l.id = i.location_id
+        left join  (select location_id, sum(qty) qty from wms_inv where wh_id = ${whID} group by location_id) inv on l.id = inv.location_id
+        left join component_param p on l.type_id = p.id
+        left join TBL_TEMP_ t on l.id = t.id
+        where l.status = 1 and l.warehouse_id = ${whID} and p.text in ('存储区')
+        and i.qty > 0
+        order by IFNULL(l.capacity, 99999) - IFNULL(IFNULL(t.udf1, inv.qty), 0) desc, l.id;
+		]]>
+	</sql>
+	
+	<sql code="pwHistory" name="历史上架记录">
+		<![CDATA[
+		select l.id,IFNULL(IFNULL(tp.udf1, inv.qty), 0) qty
+		from wms_location l
+		left join  (select location_id, sum(qty) qty from wms_inv where wh_id = ${whID} group by location_id) inv on l.id = inv.location_id
+		left join wms_operation_item i on l.code = i.toloccode
+		left join wms_operation t on i.operation_id = t.id
+		left join component_param p on t.optype_id = p.id
+		left join wms_sku s on i.skucode = s.code
+		left join component_param p2 on l.type_id = p2.id
+		left join TBL_TEMP_ tp on l.id = tp.id
+		where t.status = '已完成'
+		and p.text = '上架'
+		and t.warehouse_id = ${whID}
+		and s.id = ${skuID}
+		and l.warehouse_id = t.warehouse_id
+		and l.status = 1
+		and p2.text in ('存储区')
+		order by IFNULL(l.capacity, 99999) - IFNULL(IFNULL(t.udf1, inv.qty), 0) desc, l.id;
+		]]>
+	</sql>
+	
+	<sql code="byAbcType" name="根据产品的ABC动性">
+		<![CDATA[
+		select l.id,IFNULL(t.udf1, inv.qty) qty
+		from wms_location l
+		left join (
+		select i.location_id, sum(i.qty) qty
+		from wms_inv i,wms_sku s
+		where s.abc in (select abc from wms_sku where id = ${skuID})
+		and i.sku_id = s.id
+		and i.wh_id = ${whID}
+		group by i.location_id) a on l.id = a.location_id
+		left join  (select location_id, sum(qty) qty from wms_inv where wh_id = ${whID} group by location_id) inv on l.id = inv.location_id
+		left join component_param p on l.type_id = p.id
+		left join TBL_TEMP_ t on l.id = t.id
+		where l.status = 1 
+		and l.warehouse_id = ${whID}
+		and p.text in ('存储区')
+		and a.qty > 0
+		order by IFNULL(l.capacity, 99999) - IFNULL(IFNULL(t.udf1, inv.qty), 0) desc, l.id;
+		]]>
+	</sql>
+	
+	<sql code="byInvStatus" name="根据产品的属性">
+		<![CDATA[
+		select l.id,IFNULL(t.udf1, inv.qty) qty
+		from wms_location l
+		left join (
+		select i.location_id, sum(i.qty) qty
+		from wms_inv i
+		where i.invstatus in (select invstatus from wms_inv where id = ${invID})
+		and i.wh_id = ${whID}
+		group by i.location_id) a on l.id = a.location_id
+		left join  (select location_id, sum(qty) qty from wms_inv where wh_id = ${whID} group by location_id) inv on l.id = inv.location_id
+		left join component_param p on l.type_id = p.id
+		left join TBL_TEMP_ t on l.id = t.id
+		where l.status = 1 
+		and l.warehouse_id = ${whID}
+		and p.text in ('存储区')
+		and a.qty > 0
+		order by IFNULL(l.capacity, 99999) - IFNULL(IFNULL(t.udf1, inv.qty), 0) desc, l.id;
+		]]>
+	</sql>
+	
+	<sql code="byPackType" name="按照不同的包装">
+		<![CDATA[
+		select l.id,IFNULL(t.udf1, inv.qty) qty
+		from wms_location l
+		left join (
+		select i.location_id, sum(i.qty) qty
+		from wms_inv i,wms_sku s
+		where s.uom in (select uom from wms_sku where id = ${skuID})
+		and i.sku_id = s.id
+		and i.wh_id = ${whID}
+		group by i.location_id) a on l.id = a.location_id
+		left join  (select location_id, sum(qty) qty from wms_inv where wh_id = ${whID} group by location_id) inv on l.id = inv.location_id
+		left join component_param p on l.type_id = p.id
+		left join TBL_TEMP_ t on l.id = t.id
+		where l.status = 1 
+		and l.warehouse_id = ${whID}
+		and p.text in ('存储区')
+		and a.qty > 0
+		order by IFNULL(l.capacity, 99999) - IFNULL(IFNULL(t.udf1, inv.qty), 0) desc, l.id;
+		]]>
+	</sql>
+	
+	<sql code="lotAndSkuLimit" name="混批号混产品限定">
+		<![CDATA[
+		select l.id,IFNULL(tp.udf1, m.qty) qty
+		from wms_location l
+		left join (
+		select c.loc_id,c.qty
+		from (select g.loc_id,g.sku_id,g.lot,g.qty
+		from (select f.loc_id,f.sku_id,f.lot,count(distinct f.sku_id) sku_n,count(distinct f.lot) lot_n,sum(f.qty) qty
+		from (selecte.loc_id,e.sku_id,e.qty,concat(e.ct,e.et,e.invstatus,e.lotatt01,e.lotatt02,e.lotatt03,e.lotatt04) lot
+		from (select 
+		ifnull(date_format(k.createdate,'%Y-%m-%d'),'') ct,
+		ifnull(date_format(k.expiredate,'%Y-%m-%d'),'') et,
+		ifnull(k.invstatus,'') invstatus,
+		ifnull(k.lotatt01,'') lotatt01,
+		ifnull(k.lotatt02,'') lotatt02,
+		ifnull(k.lotatt03,'') lotatt03,
+		ifnull(k.lotatt04,'') lotatt04,
+		k.location_id loc_id,k.sku_id,k.qty
+		from wms_inv k
+		where k.qty > 0) e) f
+		group by f.loc_id) g
+		where g.sku_n = 1
+		and g.lot_n = 1) c,
+		(select concat(a.ct,a.et,a.invstatus,a.lotatt01,a.lotatt02,a.lotatt03,a.lotatt04) lot,a.sku_id from (
+		select 
+		ifnull(date_format(createdate,'%Y-%m-%d'),'') ct,
+		ifnull(date_format(expiredate,'%Y-%m-%d'),'') et,
+		ifnull(invstatus,'') invstatus,
+		ifnull(lotatt01,'') lotatt01,
+		ifnull(lotatt02,'') lotatt02,
+		ifnull(lotatt03,'') lotatt03,
+		ifnull(lotatt04,'') lotatt04,
+		sku_id
+		from wms_inv where id = ${invID}) a) d
+		where c.lot = d.lot
+		and c.sku_id = d.sku_id) m on l.id = m.loc_id
+		left join component_param p on l.type_id = p.id
+		left join TBL_TEMP_ tp on l.id = tp.id
+		where m.loc_id is not null
+		and l.status = 1 
+		and l.warehouse_id = ${whID}
+		and p.text in ('存储区')
+		order by IFNULL(l.capacity, 99999) - IFNULL(IFNULL(tp.udf1, m.qty), 0) desc, l.id;
+		]]>
+	</sql>
+	
+</sqls>

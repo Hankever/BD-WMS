@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ABC分类</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="../wms/wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.data.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<script src="../../tools/echarts/echarts.min.js"></script>
+
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="../wms/wms.js"></script>
+
+<style type="text/css">
+    #queryContainerForm input{
+        width:95px;
+    }
+
+    #chart { height: 60%; }
+    #abc { height: 40%; }
+</style>
+
+<script type="text/javascript">
+
+$(function(){
+    init();
+});
+
+function init(){
+    $("#date_from").datebox("setValue", subDateS(now, 30));
+    $("#date_to").datebox("setValue", cday);
+    $('#owIDs, #whIDs').combobox({
+        textField:'name',
+        valueField:'id',
+        panelHeight:'100px',
+        editable: false
+    });
+
+    prepareWHs(function(val) {
+        $('#whIDs').combobox({
+            data: WAREHOUSE_D
+        });
+        $("#whIDs").combobox("setValue", [WAREHOUSE_D[WAREHOUSE_D.length-1].id]);
+
+        prepareOwners(function() {
+            $('#owIDs').combobox({
+                data: OWNER_D
+            })
+            if(OWNER_D.length == 1) {
+                $('#owIDs').combobox("setValues", [OWNER_D[0].id])
+            }
+
+            query();
+            bindRadio();
+        });
+    });
+
+    $('#type').combobox({
+        textField:'name',
+        valueField:'code',
+        panelHeight:'100px',
+        editable: false,
+        data: [{"name": "按数量", "code": "number", "selected": true}, {"name": "按货值", "code": "price"}]
+    });
+}
+
+function query(){
+    queryIQ();
+}
+
+function getParams() {
+    var params = getFormData("queryContainerForm");
+    tssJS.each(params, function(key, val){
+        if(!val) delete params[key];
+    });
+
+    return params;
+}
+
+var skuData;
+function queryIQ(){
+    var params = getParams();
+    tssJS.get(SERVICE.iq, params, function(result){
+        var data = result.rows;
+        skuData = [];
+        for(var i = 0; i < data.length; i++){
+            if(i > 0){
+                data[i]["iqSum"] = data[i-1]["iqSum"] + data[i]["iq"];
+                data[i]["valueSum"] = data[i-1]["valueSum"] + data[i]["value"];
+            }
+            else{
+                data[i]["iqSum"] = data[i]["iq"];
+                data[i]["valueSum"] = data[i]["value"];
+            }
+        }
+        skuData = data;
+        
+        if(params.type == "number"){
+            showChart(data);
+        }
+        else if(params.type == "price"){
+            showChartByValue(data);
+        }
+        
+        showTable();
+        forbidRow();
+    });
+}
+
+function showChart(data){
+    var skus = [], skuNum = [], iq = [], ik = [], iqSum = [];
+    data.each(function(i, item){
+        skus.push(item.sku);
+        skuNum.push(i + 1);
+        iq.push(item.iq);
+        iqSum.push(item.iqSum);
+        ik.push(item.ik);
+    });
+
+    var myChart = echarts.init(document.getElementById('chart'));
+
+    var option = {
+        title: {
+            text: 'IQ分布图',
+            x: 'center'
+        },
+        tooltip : {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'cross',
+                label: {
+                    backgroundColor: '#6a7985'
+                }
+            },
+            formatter: function(params){
+                var dataIndex = params[0].dataIndex;
+                var iqValue = iq[dataIndex];
+                var iqSumValue = iqSum[dataIndex];
+                var ikValue = ik[dataIndex];
+                var skuNumValue = skuNum[dataIndex];
+                var skuPercent = Math.round(skuNumValue / skuNum.length * 100);
+                var res = "";
+                res += "<p>SKU数量：" + skuNumValue + "</p>";
+                res += "<p>SKU占比：" + skuPercent + "%</p>";
+                res += "<p>数量（IQ）：" + round(iqValue) + "</p>";
+                res += "<p>累积数量：" + round(iqSumValue) + "</p>";
+                res += "<p>频次（IK）：" + ikValue + "</p>";
+                return res;
+            }
+        },
+        legend: {
+            x: 200,
+            data:['数量', '频次', '累积数量'],
+            selected: {
+                '数量': true,
+                '频次': false,
+                '累积数量': true
+            }
+        },
+        xAxis: {
+            type: 'category',
+            axisLabel: {
+                rotate: 30
+            },
+            splitLine: {
+                show: false
+            },
+            data: skuNum
+        },
+        yAxis: [
+            {
+                type: 'value',
+                name: '数量',
+                min: 0
+            },
+            {
+                type: 'value',
+                name: '累积数量',
+                splitLine: {
+                    show: false
+                },
+                min: 0
+            }
+        ],
+        series: [
+            {
+                name: '数量',
+                type: 'line',
+                smooth: true,
+                data: iq
+            },
+            {
+                name: '频次',
+                type: 'line',
+                smooth: true,
+                data: ik
+            },
+            {
+                name: '累积数量',
+                type: 'line',
+                smooth: true,
+                yAxisIndex: 1,
+                data: iqSum
+            }
+        ]
+    };
+
+    myChart.setOption(option, true);
+
+    $(window).resize(function(){
+        setTimeout(function() {
+            myChart.resize();
+        }, 0.5 * 1000);
+    });
+}
+
+function showChartByValue(data){
+    var skus = [], skuNum = [], value = [], valueSum = [];
+    data.each(function(i, item){
+        skus.push(item.sku);
+        skuNum.push(i + 1);
+        value.push(item.value);
+        valueSum.push(item.valueSum);
+    });
+
+    var myChart = echarts.init(document.getElementById('chart'));
+
+    var option = {
+        title: {
+            text: '货值分布图',
+            x: 'center'
+        },
+        tooltip : {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'cross',
+                label: {
+                    backgroundColor: '#6a7985'
+                }
+            },
+            formatter: function(params){
+                var dataIndex = params[0].dataIndex;
+                var valueValue = value[dataIndex];
+                var valueSumValue = valueSum[dataIndex];
+                var skuNumValue = skuNum[dataIndex];
+                var skuPercent = Math.round(skuNumValue / skuNum.length * 100);
+                var res = "";
+                res += "<p>SKU数量：" + skuNumValue + "</p>";
+                res += "<p>SKU占比：" + skuPercent + "%</p>";
+                res += "<p>货值：" + valueValue + "</p>";
+                res += "<p>累积货值：" + valueSumValue + "</p>";
+                return res;
+            }
+        },
+        legend: {
+            x: 200,
+            data:['货值', '累积货值']
+        },
+        xAxis: {
+            type: 'category',
+            axisLabel: {
+                rotate: 30
+            },
+            splitLine: {
+                show: false
+            },
+            data: skuNum
+        },
+        yAxis: [
+            {
+                type: 'value',
+                name: '货值',
+                min: 0
+            },
+            {
+                type: 'value',
+                name: '累积货值',
+                splitLine: {
+                    show: false
+                },
+                min: 0
+            }
+        ],
+        series: [
+            {
+                name: '货值',
+                type: 'line',
+                smooth: true,
+                data: value
+            },
+            {
+                name: '累积货值',
+                type: 'line',
+                smooth: true,
+                yAxisIndex: 1,
+                data: valueSum
+            }
+        ]
+    };
+
+    myChart.setOption(option, true);
+
+    $(window).resize(function(){
+        setTimeout(function() {
+            myChart.resize();
+        }, 0.5 * 1000);
+    });
+}
+
+var sortType, editRow = undefined;
+function showTable(){
+    sortType = $("input[type='radio'][name='sku']:checked").val();
+
+    var FIELDS_1 = [
+        [
+            { field: 'type', title: '类型', width: 100, halign: 'center', align: 'center' },
+            { field: 'a', title: 'A', width: 100, halign: 'center', align: 'center', editor: {type:'numberbox',options:{precision:0, min: 0}}},
+            { field: 'b', title: 'B', width: 100, halign: 'center', align: 'center', editor: {type:'numberbox',options:{precision:0, min: 0}}},
+            { field: 'c', title: 'C', width: 100, halign: 'center', align: 'center', editor: {type:'numberbox',options:{precision:0, min: 0}}},
+            { field: 'sum', title: '合计', width: 100, halign: 'center', align: 'center', formatter: formatSum },
+            { field: 'tip', title: '标记', width: 100, halign: 'center', align: 'center', hidden: true }
+        ]
+    ];
+
+    var rows = [
+        { "type": "SKU占比（%）", "a": 0, "b": 0, "c": 0, "sum": 100, "tip": "skuPercent" },
+        { "type": "SKU数量", "a": 0, "b": 0, "c": 0, "sum": skuData.length, "tip": "skuNumber" }
+    ];
+
+    $('#t1').datagrid({
+        rownumbers: false,
+        singleSelect: true,
+        fitColumns: true,
+        columns: FIELDS_1,
+        data: rows,
+        onClickCell: function(index, field, value){
+            toEdit(index);
+        },
+        onAfterEdit: function(index, row, changes){
+            editRow = undefined;
+        }
+    });
+}
+
+function formatSum(value, row, index){
+    if(row.tip == "skuPercent"){
+        return value + "%";
+    }
+    else{
+        return value;
+    }
+}
+
+function toEdit(index){
+    $('#t1').datagrid("endEdit", editRow);
+
+    var row = $('#t1').datagrid("getRows")[index];
+    if(sortType != row.tip){
+        return;
+    }
+
+    if (editRow == undefined) {
+        $('#t1').datagrid("beginEdit", index);
+        editRow = index;
+    }
+}
+
+function save(){
+    $('#t1').datagrid("endEdit", editRow);
+
+    if(skuData.length == 0){
+        $.messager.alert({ title: '提示', msg: '无sku需要划分！'});
+        return;
+    }
+
+    if(checkFieldValue()){
+        var row = getTargetRow();
+        var sortResult = {"a": [], "b": [], "c": []};
+        var a = 0, b = 0, c = 0;
+        if(row.tip == "skuPercent"){
+            a = Math.round(skuData.length * (row.a / 100));
+            b = Math.round(skuData.length * (row.b / 100));
+            c = Math.round(skuData.length * (row.c / 100));
+        }
+        else{
+            a = row.a * 1;
+            b = row.b * 1;
+            c = row.c * 1;
+        }
+        sortResult = {"a": skuData.slice(0,a), "b": skuData.slice(a,a + b), "c": skuData.slice(a + b)};
+
+        var abcResult = {};
+        for(key in sortResult){
+            var skuList = sortResult[key];
+            abcResult[key] = [];
+            skuList.each(function(i, item){
+                abcResult[key].push(item.sku);
+            });
+        }
+
+        var params = {"abc": JSON.stringify(abcResult)};
+
+        tssJS.post(SERVICE.abc_save, params, function(result){
+            if(result.code == "success"){
+                $.messager.alert({ title: '提示', msg: '保存成功！'});
+                query();
+            }
+        });
+    }
+    else{
+        $.messager.alert({ title: '提示', msg: '请检查输入数值！'});
+    }
+}
+
+function bindRadio(){
+    $(":radio").click(function(){
+        forbidRow();
+    });
+}
+
+function forbidRow(){
+    $('#t1').datagrid("endEdit", editRow);
+    editRow = undefined;
+    showTable();
+    setRowStyler("tip", sortType);
+}
+
+function setRowStyler(field, value){
+    var panel =  $('#t1').datagrid('getPanel'); 
+    var tr = panel.find('div.datagrid-body tr');  
+    tr.each(function(i, item){
+        var td = $(this).children('td[field="' + field + '"]');
+        var textValue = td.children("div").text();
+        if(textValue == value){
+            item.style.color = "black";
+        }
+        else{
+            item.style.color = "#D3D3D3";
+        }
+    });
+}
+
+function checkFieldValue(){
+    var row = getTargetRow();
+    var a = row.a * 1, b = row.b * 1, c = row.c * 1, sum = row.sum * 1;
+    if(a >= 0 && b >= 0 && c >= 0 && (a + b + c == sum)){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
+function getTargetRow(){
+    var rows = $('#t1').datagrid("getRows");
+    for(var i = 0; i < rows.length; i++){
+        if(sortType == rows[i].tip){
+            return rows[i];
+        }
+    }
+}
+
+
+</script>
+
+</head>
+<body>
+<div id="init"></div>
+<div id="main" class="easyui-layout" fit="true">
+    <div class="queryContainer" data-options="region:'north'" border="false" style="height:10%;">
+        <form id='queryContainerForm'>
+            <label>日期从:</label><input id="date_from" name="date_from" class="easyui-datebox"/>
+            <label>日期到:</label><input id="date_to" name="date_to" class="easyui-datebox"/>
+            <label>仓库:</label><input id="whIDs" name="whIDs" class="easyui-combobox"/>
+            <label>货主:</label><input id="owIDs" name="owIDs" class="easyui-combobox" style="width: 120px;"/>
+            <label>类型:</label><input id="type" name="type" class="easyui-combobox"/>
+            <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'ion ion-ios-search'" onclick='query()'>查询</a>
+        </form>
+    </div>
+    
+    <div id="dataContainer" data-options="region:'center'" border="false" style="height:90%;">
+        <div id="chart"></div>
+        <div id="abc">
+            <table id="t1" border="false" data-options="toolbar:'#tb'" style="height:100%;" title="ABC类型划分"></table>
+            <div id="tb" style="padding:2px 3px;" >
+                <form id='skuContainerForm'>
+                    <input id="skuPercent" type="radio" name="sku" value="skuPercent" checked><label for="skuPercent">按SKU占比</label>
+                    <input id="skuNumber" type="radio" name="sku" value="skuNumber"><label for="skuNumber">按SKU数量</label>
+                    <a href="#" class="easyui-linkbutton" iconCls="ion ion-ios-save" style="width:120px;" onclick="save()">保存ABC划分</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

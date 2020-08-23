@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>在线程序商店</title>
+	<meta name="viewport" content="width=device-width">
+	<link rel="shortcut icon" href="../../images/e8_logo.png">
+	<link rel="Bookmark"      href="../../images/e8_logo.png">
+	<link rel="stylesheet" href="../../tools/tssJS/css/reset.css">
+
+	<script src="../../tools/tssJS/tssJS.js"></script>
+	<script src="../../tools/jquery/jquery-2.1.1.min.js"></script>
+	<script src="_.js"></script>
+
+
+	<style type="text/css">
+		html, body { height: 100%; }
+		body { display: flex; flex-direction:column; }
+		iframe { width: 100%; box-sizing: border-box; flex: 1; }
+
+		.navigation { background: url(../../images/top-bg.png); height: 38px; color: white; }
+	 
+		.logo-text { position: absolute; left: 18px; line-height: 40px; font-size: 16px; }
+		.menu-list { float: right; right: 10px; list-style:none; }
+		.menu-list li { float: left; position: relative; }
+		.menu-list li a { display: block; text-decoration: none; padding: 4px 15px; color: white; font-size: 14px; line-height: 38px;}
+		.menu-list li a:hover { color: #54beda; }
+	}
+	</style>
+	<script type="text/javascript">
+		var moduleId = tssJS.Query.get("id");  // 指定模块购买
+
+	</script>
+</head>
+<body>
+	<div class="navigation">
+		<div class="logo-text">卜数科技程序商店</div>
+		<ul class="menu-list">
+			<li>
+				<a target="iframe" href="price.html">推荐产品</a>
+			</li>
+			<li >
+				<a target="self" href="../../bi.html">进入系统</a>
+			</li>
+			<li class="login-visible">
+				<a target="iframe" href="account.html">我的账户</a>
+			</li>
+		</ul>
+	</div>
+
+	<iframe name="iframe"></iframe>
+</body>
+
+<script type="text/javascript">
+
+	const index = tssJS.Query.get("index") || 0;
+	$('.menu-list li a')[index].click();
+
+	var isLogin = true, userHas;
+
+	function checkLogin() {
+		$.get('/tss/auth/user/has',{}, function(r){
+			isLogin = r.code != 'TSS-404';
+			if(isLogin) {
+				$('.login-visible').show();
+				userHas = r;
+			} else {
+				$('.login-visible').hide()
+			}
+		})
+	}
+
+	checkLogin();
+
+	if(window.parent != window.self) {
+		$(".navigation").hide();
+	}
+
+</script>
+</html>

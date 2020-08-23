@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Response>
+  <DataServiceList>
+    <actionSet>
+      <treeNode id="504" name="报表访问日志"></treeNode>
+      <treeNode id="502" name="用户访问情况统计"></treeNode>
+      <treeNode id="503" name="报表平均生成时间"></treeNode>
+      <treeNode id="388" name="CompanyList"></treeNode>
+      <treeNode id="399" name="GetFenBo"></treeNode>
+      <treeNode id="668" name="GetWHs"></treeNode>
+      <treeNode id="644" name="GetTopCustomers"></treeNode>
+      <treeNode id="645" name="GetTopCustomers2"></treeNode>
+      <treeNode id="646" name="GetTopSkusByCustomer"></treeNode>
+      <treeNode id="647" name="GetTopSkusByCustomerCode"></treeNode>
+      <treeNode id="648" name="GetRegionSoNums"></treeNode>
+      <treeNode id="649" name="GetDistributeInv"></treeNode>
+      <treeNode id="653" name="GetTopZCSkus"></treeNode>
+      <treeNode id="664" name="SOShipPM"></treeNode>
+      <treeNode id="665" name="SOShipPH"></treeNode>
+      <treeNode id="655" name="GetRegionSoNums2"></treeNode>
+      <treeNode id="638" name="GetOWCustomers"></treeNode>
+      <treeNode id="639" name="GetZones"></treeNode>
+      <treeNode id="640" name="GetRegions"></treeNode>
+      <treeNode id="674" name="订单TopX货主"></treeNode>
+      <treeNode id="657" name="模拟分仓效果（外来数据）"></treeNode>
+      <treeNode id="499" name="GetAllVisitors"></treeNode>
+      <treeNode id="498" name="GetAllServices"></treeNode>
+      <treeNode id="676" name="GetMyGroups"></treeNode>
+      <treeNode id="677" name="GetUsersByGroup"></treeNode>
+      <treeNode id="680" name="GetBBGroups"></treeNode>
+      <treeNode id="692" name="GetBBGroups2"></treeNode>
+    </actionSet>
+  </DataServiceList>
+</Response>

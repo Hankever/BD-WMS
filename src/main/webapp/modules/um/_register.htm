@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>用户注册</title>
+
+<link href="../../tools/tssJS/css/boubei.css" rel="stylesheet">
+<link href="../../css/css.css" rel="stylesheet">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssUtils.js"></script>
+
+<style>
+
+body { background-color: rgba(0,0,0,.65); }
+#d1 { padding: 20px 30px; width: 480px; margin: 40px auto; background-color: #fff; }
+#d1 .bts { padding: 8px 0 5px 200px; }
+#d1 h2 { padding: 20px 0; color: #999; font-size: 150%; text-align: center; }
+
+@media only screen and (max-height: 400px) {
+  #d1 { margin: 0; }
+}
+
+</style>
+
+<SCRIPT LANGUAGE="JavaScript">
+<!--
+
+    XML_REGISTER_INFO  = "UserInfo";
+    XML_SECURITY_LEVEL = "SecurityLevel";
+
+    /* XMLHTTP请求地址汇总 */
+    URL_INIT = AUTH_PATH + "user/register/form";
+    URL_REGISTER = NO_AUTH_PATH + "reg.in";
+    URL_CHECK_PASSWORD = NO_AUTH_PATH + "getPasswordStrength.in";
+    URL_CHECK_USER = NO_AUTH_PATH + "getLoginInfo.in";
+
+    if( IS_TEST ) {
+        URL_INIT = "data/_register_init.xml";
+        URL_REGISTER = "data/_success.xml";
+        URL_CHECK_PASSWORD = "data/_password_check.xml";
+        URL_CHECK_USER = "data/_randomkey.xml";
+    }
+
+    var registerForm, params = {};
+
+    function init() {
+        $.ajax({
+            url : URL_INIT,
+            headers : {"appCode": FROMEWORK_CODE, "anonymous": "true"},
+            onresult : function() { 
+                var registerXML = this.getNodeValue(XML_REGISTER_INFO);
+                $.cache.XmlDatas[XML_REGISTER_INFO] = registerXML;
+                registerForm = $.F("registerForm", registerXML);
+
+                $1("password").onblur = function() { 
+                    var password = this.value;
+                    registerForm.updateDataExternal("password", password);
+
+                    if(password == null || password == "") return;
+                    
+                    var loginName = registerForm.getData("loginName");
+                    checkPasswordSecurityLevel(registerForm, URL_CHECK_PASSWORD, password, loginName);
+                }
+            }
+        });
+
+        $.ajax({
+            url: URL_CHECK_USER,
+            params: {"loginName": "ANONYMOUS"},
+            onresult: function(){
+                params.randomKey = this.getNodeValue("randomKey"); 
+            }
+        });
+    }
+ 
+    function register(){
+        $.ajax({
+            url : URL_REGISTER,
+            headers : {"appCode": FROMEWORK_CODE, "anonymous": "true"},
+            params : params,
+            formNode : $.cache.XmlDatas[XML_REGISTER_INFO].querySelector("data"),
+            onsuccess : function() { 
+                $.alert("您已成功注册。");
+                init();
+
+                if(window.parent != window.self) {
+                    $._close();
+                } else {
+                    window.location.href = "/tss/login.html";
+                }
+            }
+        });
+    }
+
+    /* 检测注册表单是否填写正确 */
+    function checkRegisterForm(){
+        var flag = true;
+
+        if( !registerForm.checkForm()) {
+            return false;
+        }
+
+        var password1 = $1("password").value; 
+        var password2 = $1("password2").value; 
+        if(password1 != password2) {
+            flag = false;
+            alert("两次密码输入不一致，请重新输入");
+        }
+        return flag;
+    }
+
+    window.onload = init;
+
+//-->
+</SCRIPT>
+</head>
+
+<body>
+    <div id="d1">
+        <h2>新 用 户 注 册</h2>
+        <div id="registerForm"></div>
+        <div class="bts">
+            <button class="tssbutton medium blue" onclick="if(checkRegisterForm()){ register(); }">完成注册</button>
+        </div>
+    </div>
+</body>
+</html>

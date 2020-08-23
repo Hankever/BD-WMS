@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>流程导航页</title>
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.data.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+<script src="../../tools/easyui.js"></script>
+<script src="wms.js"></script>
+
+<style type="text/css">
+    html, body { height: 100%; text-align:center; overflow: hidden;}
+    #title{ font-size: 22px;font-weight: bold; position: relative; top: 3%;right: 1%;}
+
+</style>
+
+</head>
+
+<body>
+    <div id="title"></div>
+    <!-- <embed id="e1" src="images/wareHouse.svg" onload="activeMenu()"/> -->
+</body>
+
+<script type="text/javascript">
+
+var index = tssJS.Query.get('index') || 0;
+
+var mapList = [
+    {
+        title: '资金管理', src: 'images/finManage.svg', titleSrc: '/tss/pages/fms/dashboard.html|财务,$域管理员,系统管理员', index: 0,
+        content:{
+            '收款单': '/tss/pages/fms/asn.html|财务,$域管理员,系统管理员',
+            '付款单': '/tss/pages/fms/order.html|财务,$域管理员,系统管理员',
+            '账户': '/tss/pages/fms/account.html|财务,$域管理员,系统管理员',
+            '公司账户': '/tss/pages/fms/account.html|财务,$域管理员,系统管理员',
+            '往来方': '/tss/modules/dm/recorder.html?rctable=wmsx_customer|财务,$域管理员,系统管理员',
+            '开票审批': '/tss/modules/dm/recorder.html?rctable=fms_invoice|财务,$域管理员,系统管理员',
+            '资金流水': '/tss/pages/wms/wms_log.html|财务,$域管理员,系统管理员',
+            '设置': '/tss/pages/fms/fms_config.html|财务,$域管理员,系统管理员'
+        }
+    },
+    {
+        title: '计费模块', src: 'images/finConfig.svg',index: 1,
+        content:{
+            '计费项目': '/tss/pages/wms/bill_model.html|财务,$域管理员,系统管理员',
+            '货主（项目）': '/tss/modules/dm/recorder.html?rctable=wms_owner|财务,$域管理员,系统管理员',
+            '入库单': '/tss/pages/wms/asn.html|财务,$域管理员,系统管理员,仓储经理,仓库主管,作业人员',
+            '出库单': '/tss/pages/wms/order.html|财务,$域管理员,系统管理员,仓储经理,仓库主管,作业人员',
+            '其他计费数据导入': '/tss/modules/dm/recorder.html?rctable=wmsx_bill_qty|财务,$域管理员,系统管理员',
+            '劳务作业数据': '/tss/modules/dm/recorder.html?rctable=wmsx_bill_work|财务,$域管理员,系统管理员',
+            '计费结果': '/tss/pages/wms/bill_model_money.html|财务,$域管理员,系统管理员,仓储经理',
+            '计费报表': '/tss/pages/wms/bill_model_report.html|财务,$域管理员,系统管理员,仓储经理'
+        }
+    },
+]
+
+var mapping_obj = mapList[index].content, nodes=[], memus={};
+var ROLE = userHas[11];
+var svgDoc;
+var pnodes = [];
+
+$(function () {
+    $("#title").html(mapList[index].title);
+    let li =  `<embed id="e1" src="${mapList[index].src}"  onload="activeMenu()" />`;
+    $(document.body).append(li);
+
+    if(mapList[index].titleSrc){
+        $("#title").css('cursor', 'pointer');
+        $("#title").css('text-decoration','underline');
+        $("#title").click(function(){
+            let content = mapList[index].titleSrc.split("|"), _role = content[1].split(",")||'';
+            let  _have = _role.find(e => ROLE.indexOf(e)>=0);
+            if(_have == undefined){
+                return alert("您无权限！")
+            }
+            parent.addTab(mapList[index].title, content[0]||mapList[index].titleSrc);
+        })
+    }
+})
+
+function activeMenu(){
+    $("#e1").show(true).height(Math.round(document.body.offsetHeight*0.95));
+    $("#e1").show(true).width(Math.round(document.body.offsetWidth*1));
+
+    svgDoc = $1('e1').getSVGDocument();
+
+    var list = $(svgDoc).find("g g");
+
+    list.each(function(i, item) {
+        var text = $(item).text();
+        nodes.push( [text.trim(), item.parentNode,item] )
+    });
+    pnodes = nodes;
+
+    nodes.each(function(i,node){
+        var key = node[0]
+        if(mapping_obj[key]){
+            $(node[1]).css('cursor', 'pointer');
+            $(node[1]).click(function(){
+                let content = mapping_obj[key].split("|"), _role = content[1].split(",")||'';
+                let  _have = _role.find(e => ROLE.indexOf(e)>=0);
+                if(_have == undefined){
+                    return alert("您无权限！")
+                }
+
+                parent.addTab(key, content[0]||mapping_obj[key]);
+            })
+        }
+    })
+}
+
+</script>
+</html>

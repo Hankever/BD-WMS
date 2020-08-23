@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>封箱信息</title>
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.data.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="wms.js"></script>
+
+<style type="text/css">
+    #tb1 { height: 66px; }
+    #tb1 .easyui-linkbutton { margin-left: 10px; margin-top: 5px; }
+    a { color: black; }
+</style>
+
+</head>
+
+<body>
+
+<div id="init"></div>
+
+<div id="main" class="easyui-layout" fit="true">
+    <div data-options="region:'north',split:true" style="height:55%" border="false" title="封箱列表">
+        <table id="t1" border="false"></table>
+    </div>
+    <div id="dataContainer" data-options="region:'center'" border="false" title="<span id='x1'></span>封箱明细">
+        <table id="t2" border="false"></table>
+    </div>
+</div>
+
+<div id="tb1" class="queryContainer">
+    <input type="hidden" id="query_orderId">
+    <label>出库单号:</label><input id="query_orderno" class="easyui-textbox" style="width:250px;" prompt="多个单号用空格或逗号分隔">
+    <label>托盘码:</label><input id="query_palletno" class="easyui-textbox" style="width:90px;">
+    <label>箱码:</label><input id="query_boxno" class="easyui-textbox">
+    <label>封箱人:</label><input id="query_boxer" class="easyui-combobox" style="width:90px;">
+    <label>货主:</label><input id="owner_id" name="ownerId" class="easyui-combobox" style="width:90px;"/>
+    <label>封箱日期:</label><input id='boxdate1' class='easyui-datebox' style="width:96px;">
+    <label>--></label><input id='boxdate2' class='easyui-datebox' style="width:96px;">
+    <br>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-search" style="width:80px; color: blue;" onclick="beginQuery()">查 询</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-md-download" onclick='exportBoxs()'>导出</a>
+
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-save" style="width:100px;" onclick="saveBox()">保存箱信息</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-print" style="width:120px;" onclick="printBoxNoBatch()">箱码批量打印</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-md-more" style="width:80px;" onclick="makePallent()">绑定成托</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle-outline" style="width:80px;" onclick="outbound()">按单出库</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle-outline" style="width:80px;" onclick="outboundByPallet()">按托出库</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton len" iconCls="ion ion-ios-close-circle-outline" style="width:110px;" onclick="cancelBoxByOrder()">按单取消封箱</a>
+</div>
+
+<div id="dlg" class="easyui-dialog" closed="true" buttons="#dlg-buttons">
+    <form id="fm" method="post" novalidate>
+        <table class='l'>
+            <tr>
+                <td class='label'>托盘编码</td>
+                <td>
+                    <input name='pallet' id='pallet' class='easyui-textbox' required/>
+                </td>
+            </tr>
+        </table>      
+    </form>
+</div>
+<div id="dlg-buttons">
+    <a href="#" class="easyui-linkbutton" onclick="savePallent()">保 存</a>
+    <a href="#" class="easyui-linkbutton" onclick="closeDialog()">取 消</a>
+</div>
+
+</body>
+
+<style type="text/css">
+
+</style>
+
+<script type="text/javascript">
+
+var orderno_ = decodeURI(tssJS.Query.get("orderno"));
+
+var FIELDS_1 = [
+    // {field: 'ck', checkbox: true},
+    {field: "boxno", title: "箱码", width: "10%"},
+    {field: "boxdate", title: "封箱日期"},   
+    {field: "qty", title: "数量", width: "5%"},   
+    {field: "skus", title: "品项数", width: "5%"},
+    {field: "money", title: "金额合计", width: "6%", hidden: hide_money},
+    {field: "cube", title: "体积（立方）", width: "6%", editor: {type:'numberbox',options:{precision:3, min:0}}, styler: highlightStyler},
+    {field: "weight", title: "重量（千克）", width: "6%", editor: {type:'numberbox',options:{precision:2, min:0}}, styler: highlightStyler},
+    {field: "boxer", title: "封箱人", width: "7%", formatter: loginName2userName},
+    {field: "type", title: "类型", width: "4%"},
+    {field: "remark", title: "备注", editor: "textbox", width: "9%"},
+    {field: "pallet", title: "托盘编码"},
+    {field: "owner", title: "货主", hidden: hide_ow, width: "6%"},
+    {field:'x1', title: "操作", width: '19%',formatter:function(value, row, index) {  
+        if( value === 'footer') return "";
+        return "<a href='javascript:void(0)' onclick='cancelBox(" + index + ")' class='ion-ios-close-circle-outline'>取消封箱</a>&nbsp;&nbsp;&nbsp;"  + 
+            "<a href='javascript:void(0)' onclick='printBoxNo(" + index + ")' class='ion-ios-print'>打印箱码</a>&nbsp;&nbsp;&nbsp;" + 
+            "<a href='javascript:void(0)' onclick='printBoxDetail(" + index + ")' class='ion-ios-print'>打印封箱清单</a>&nbsp;&nbsp;&nbsp;";  
+    }}
+],
+FIELDS_2 = [
+    {field: "sku_id", title: "货品ID", hidden: true},
+    {field: "skuname", title: "货品", width: '12%', sortable: true, align: "left"},
+    {field: "skucode", title: "货品编码", align: "left"},
+    {field: "qty", title: "订单数量"},
+    {field: "guige", title: "规格", width:'5%'},
+    {field: "uom", title: "单位", width:'4%'},
+    {field: "invstatus"},
+    {field: "createdate"},
+    {field: "expiredate"},
+    {field: "lotatt01"},
+    {field: "lotatt02"},
+    {field: "lotatt03"},
+    {field: "lotatt04"},
+    {field: "price", title: "单价(元)", align: "right", hidden: hide_money},
+    {field: "money", title: "金额(元)", align: "right", hidden: hide_money}
+], 
+orderno, dg1, dg2, dg1_selected, dg2_data, pallet_orderIds = [], box_list = [], palletno;
+
+fixLotatts(FIELDS_2);
+fixFields(FIELDS_2, "wms_sku");
+
+$.each(FIELDS_1, function(i, field) {
+    field.align = field.align||"center";
+    field.width = field.width||"8%";
+});
+$.each(FIELDS_2, function(i, field) {
+    field.align = field.align||"center";
+    field.width = field.width||"9%";
+});
+
+$(function(){
+    initContext(drawTable);
+
+    dg2 = $('#t2').datagrid({
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        remoteSort: false,
+        columns: [FIELDS_2],
+        data: []
+    });
+
+    tssJS.getJSON("/tss/wx/api/users_ex_customer2", {roleName: role_operater}, function(data) {
+        $("#query_boxer").combobox({
+            data: data,
+            multiple: false,
+            textField: 'userName',
+            valueField: 'loginName',
+            panelHeight: '180px'
+        })
+    })
+
+    prepareOwners(function() {
+        $('#owner_id').combobox({
+            textField: 'name',
+            valueField: 'id',
+            panelHeight: '150px',
+            multiple: false,
+            data: OWNER_D
+        })
+    });
+});
+
+function drawTable(SELECTED_WH){
+    prepareSKUs(function(){
+        SELECTED_WH = SELECTED_WH;
+        if(orderno_ != 'undefined') {
+            orderno = orderno_;
+            $('#query_orderno').textbox('setValue', orderno);
+        }
+        query();  
+    });
+}
+
+function query() {
+    dg1 = $('#t1').datagrid({
+        // url: BOX.QUERY,
+        url: '/tss/api/data/boxlist',
+        method: 'GET',
+        queryParams: getParams(),
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        singleSelect: true,
+        checkOnSelect: false,
+        selectOnCheck: false,
+        toolbar: '#tb1' ,
+        columns: [FIELDS_1],
+        showFooter: true,
+        pagination: true,
+        pageList:[100, 200, 500],
+        pageSize: 100,
+        onLoadSuccess: function(data) {
+            if(data.total) {
+                setTimeout(function() {
+                    dg1.datagrid("selectRow", dg1_selected || 0);
+                }, 500);   
+            }
+            else{
+                dg2.datagrid({data:[]})
+            }
+            return data;
+        },
+        /* onClickRow 事件无法用JS去触发，故此优先用onSelect事件 */
+        onSelect: function(index, row) {
+            queryItems( row['id'] );
+            dg1_selected = index;
+            $("#x1").text(row.boxno);
+        },
+        onClickCell: function(index, field, value){
+            if(field == 'cube' || field == 'weight' || field == 'remark') {
+                endEdit();
+                dg1.datagrid("beginEdit", index);
+            } 
+        },
+        loadFilter: function(data){
+            var _qty = 0, _cube = 0, _weight = 0;
+            data.rows.each((i, item) => {
+                _qty += item.qty;
+                _cube += item.cube;
+                _weight += item.weight;
+            });
+
+            data.footer = [ {"boxno": "本页合计", "qty": round(_qty,2), "cube": round(_cube,2), "weight": round(_weight,2), "x1": "footer"} ];
+            return data;
+        }
+    });
+}
+
+function endEdit(){ dg1.datagrid('acceptChanges'); };
+
+function queryItems(box_id) {
+    var params = {};
+    params.boxId = box_id;
+ 
+    tssJS.get( SERVICE.order_query_box_item, params, function(data) {
+        showItems(data);  
+    });
+}
+
+function showItems(data) {
+    data.each(function(i, item) {
+        var sku = item.sku;
+        item.sku_id = sku.id;
+        item.skuname = sku.name;
+        item.skucode = sku.code;
+        item.brand = sku.brand;
+        item.guige = sku.guige;
+        item.price = item.price || sku.price2 || sku.price || sku.price0 || 0;
+        item.money = item.orderitem.money;
+        item.uom = sku.uom;
+        item.shelflife = sku.shelflife;  
+    });
+    dg2.datagrid("loadData", data);
+
+    dg2_data = data;
+}
+
+function beginQuery() {
+    // 先检查检查是否按多个订单号查询，是的话先翻译成订单ID
+    var query_orderno = tssJS.fixSplit($('#query_orderno').val()||"").split(",");
+    if( query_orderno.length >= 2) {
+        tssJS.get(ORDER.QUERY, {orderno: query_orderno.join(",")}, function(data) {
+            var orderIds = [];
+            data.each(function(i, item) {
+                orderIds.push(item.id);
+            });
+            $("#query_orderId").val( orderIds.join(",") );
+            query();
+        });
+    } 
+    else {
+        query();
+    }
+}
+
+function getParams(){
+    orderno = $('#query_orderno').val();
+    palletno = $('#query_palletno').val();
+
+    var params = {
+        boxno: $('#query_boxno').val(),
+        boxer: $('#query_boxer').val(),
+        pallet: palletno,
+        wh_id: SELECTED_WH,
+        owner_id: $('#owner_id').combobox("getValue")
+    };
+
+    var query_orderId = $("#query_orderId").val();
+    if( query_orderId ) {
+        params.order_id = query_orderId;
+    } else {
+        params.boxno = params.boxno || orderno; // 通过箱码前缀实现模糊查询
+    }
+
+    var boxdate1 = $('#boxdate1').datebox("getValue") || subDateS(now, TIME_SPAN),
+        boxdate2 = $('#boxdate2').datebox("getValue") || subDateS(now, -2);
+
+    $('#boxdate1').datebox('setValue', boxdate1);
+    $('#boxdate2').datebox('setValue', boxdate2);
+
+    params.boxdate = "[" + [boxdate1, boxdate2].join(",") + "]";
+    params.boxdate1 = boxdate1;
+    params.boxdate2 = boxdate2;
+
+    filterParams(params);
+    return params;
+}
+
+// 保存箱信息
+function saveBox() {
+    endEdit();
+    var rows = $('#t1').datagrid('getRows'), params = [];
+    
+    rows.each(function(i,item) {
+        if(item.cube * 1 > 0 || item.weight * 1 > 0 || item.remark) {
+            params.push({id: item.id, cube: item.cube * 1, weight: item.weight * 1, remark: item.remark });
+        }
+    })
+
+    params.length && JQ.post( BOX.CUD_JSON, { "json": JSON.stringify(params) }, function(result) {
+        if( result.created || result.updated ) {
+            $.messager.alert('提示', '保存成功')
+            dg1.datagrid('reload');
+        } else {
+            alert(result)
+        }
+    });   
+}
+
+// 取消封箱
+function cancelBoxByOrder() {
+    var box1 = dg1.datagrid("getRows")[0];
+    if(!orderno || !box1) {
+        return $.messager.alert('提示','请输入需要取消封箱的出库单号作为查询条件，筛选出封箱数据'); 
+    }
+
+    $.messager.confirm("操作提示", "是否取消出库单【" +orderno+ "】的所有封箱数据？", function (flag) {
+        flag && _cancelBox( { orderId: box1.order_id } );
+    });
+}
+
+function cancelBox(index) {
+    var row = $("#t1").datagrid("getRows")[index];
+    $.messager.confirm("操作提示", "是否取消箱码为【" + row.boxno + "】的封箱？", function (data) {
+        if (data) {
+            _cancelBox( { orderId: row.order_id, boxId: row.id } );
+        }
+    });
+}
+
+function _cancelBox(params_) {
+    tssJS.post(SERVICE.order_cancel_sealing, params_, function(res) {
+        query();
+    })
+}
+
+function outbound() {
+    var box1 = dg1.datagrid("getRows")[0];
+    if(!orderno || !box1) {
+        return $.messager.alert('提示', '请输入出库单号作为查询条件，筛选出待出库的封箱数据'); 
+    }
+    $.messager.confirm("操作提示", "是否确认将出库单【" +orderno + "】出库？", function (flag) {
+        flag && tssJS.post(SERVICE.order_pickupOutbound + box1.order_id, {}, function(res) {
+            $.messager.alert('提示', '按单出库完成！');
+            query();
+        })
+    });
+}
+
+function outboundByPallet() {
+    var box1 = dg1.datagrid("getRows")[0];
+    if(!palletno || !box1) {
+        return $.messager.alert('提示', '请输入托盘号作为查询条件，筛选出待出库的封箱数据'); 
+    }
+    $.messager.confirm("操作提示", "是否确认将托盘【" +palletno + "】出库？", function (flag) {
+        flag && tssJS.post(SERVICE.order_palletOutbound, { pallet: palletno, whId: SELECTED_WH }, function(res) {
+            $.messager.alert('提示', '按托出库完成！');
+            query();
+        })
+    });
+}
+
+function makePallent() {
+    var rows = $('#t1').datagrid('getRows');
+    if(rows.length == 0) {
+        return $.messager.show({ title: '提示', msg: '没有封箱数据'});; 
+    }
+    var orderNos = [];
+    pallet_orderIds = [];
+    rows.each(function(i, item) {
+        if(!pallet_orderIds.includes(item.order_id)) {
+            pallet_orderIds.push(item.order_id);
+            orderNos.push(item.boxno.substring(0, item.boxno.indexOf('-')));
+        }
+    })
+
+    $.messager.confirm("操作提示", "是否将出库单【" + orderNos.join('，') + "】的所有封箱绑定成托", function (flag) {
+        flag && openDialog('绑定成托');
+    });
+}
+
+function savePallent() {
+    var $saveBtn = $('#dlg-buttons5>a[onclick^="savePallent"]');
+    $saveBtn.linkbutton('disable');
+    var pallet = $('#pallet').val();
+
+    tssJS.post(SERVICE.order_pallet, {whId: SELECTED_WH, orderIds: pallet_orderIds.join(','), pallet: pallet}, function(res) {
+        closeDialog();
+        query();
+        $.messager.show({ title: '提示', msg: '操作成功'});
+    })
+
+}
+
+// 箱码打印
+var globalV = {};
+function printBoxNoBatch() {
+    var rows = $('#t1').datagrid('getRows'), codes = [];
+
+    rows.each(function(i,item) {
+        codes.push(item.boxno);
+    })
+    globalV.codes = codes.join(',');
+    var url = '/tss/pages/base/barcode_print.html';
+    openEasyuiIframe("p1", url, '箱码打印', 900, 500, true);
+}
+
+function printBoxNo(index) {
+    var row = $("#t1").datagrid("getRows")[index];
+    globalV.codes = row.boxno;
+    var url = '/tss/pages/base/barcode_print.html';
+    openEasyuiIframe("p1", url, '箱码打印', 900, 500, true);
+}
+
+// 封箱清单打印
+function printBoxDetail(index) {
+    var row = $("#t1").datagrid("getRows")[index];
+    globalV.box = row;
+
+    tssJS.get( SERVICE.order_query_box_item, {boxId: row.id}, function(data) {
+        globalV.data = data;
+
+        data.each(function(i, item) {
+            var sku = item.sku;
+            item.sku_id = sku.id;
+            item.skuname = sku.name;
+            item.skucode = sku.code;
+            item.barcode = sku.barcode;
+            item.guige = sku.guige;
+            item.uom = sku.uom;
+            item.price = item.price || sku.price2 || sku.price || sku.price0 || 0;
+            item.money = item.price * item.qty;
+        });
+        tssJS.openIframePanel("panel-1", " - 封箱清单打印", 800, 480, "box_print.html");
+    });
+}
+
+function exportBoxs() {
+    exportDataGrid("t1", "封箱列表");
+}
+
+</script>
+
+</html>

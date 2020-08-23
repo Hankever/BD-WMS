@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html> 
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>    
+<meta charset="UTF-8">
+<title>TSS-BI数据服务接口调试</title>
+<link rel="shortcut icon" href="../images/tss.ico">
+<link rel="Bookmark" href="../images/tss.ico">
+
+<link href="../tools/tssJS/css/boubei.css" rel="stylesheet">
+<script src="../tools/easyui/jquery.min.js"></script>
+
+<style type="text/css">
+
+body { font-family: "Microsoft Yahei"; padding: 20px 10px; }
+#uri { font-size: 16px; margin-bottom: 20px; width: 90%; display: inline-block; color: #666; }
+
+#tabmenu { height: 44px; 
+    width: 95%; height: 22px;
+    list-style-type: none; 
+    padding: 0; margin: 0;
+}
+#tabmenu li { 
+    list-style-type:none;
+    text-align: center; 
+    float:left;
+    width: 100px; 
+    line-height: 21px;
+    background-color: #EDF6FC;
+    cursor:pointer;
+    margin-left: 3px;
+    border-radius: 4px 4px 0 0;
+    border: 1px solid #95B8E7;
+    border-bottom: 0;
+}
+#tabmenu li.selected { background-color: #FFF; color: #000; cursor: default; height: 22px; }
+
+textarea { border: 1px solid #95B8E7; margin-bottom: 2px; padding: 3px; height: 430px; font-size: 14px; }
+#d1,#d2 { display: inline; padding: 0 10px 0 0; }
+#request { width: 48%; }
+#response { width: 49%; background-color: #eee; }
+
+</style>
+<script type="text/javascript">
+    
+    function showData(result) {
+        $("#response").text( "返回结果：\n" + JSON.stringify(result, null, 4) ); 
+    }
+
+    function wxDemo() {
+        $("#tabmenu li").removeClass("selected");
+        $("#l2").addClass("selected");
+        $(".tssbutton").hide();
+
+        var request = '\n wx.request( {' + 
+            '\n   url: "https://demo.boubei.com/tss/data/json/5",' + 
+            '\n   method: "POST",' + 
+            '\n   data: { param1: "xxx", param2: "yyy", "uName": "13588888888", "uSign": "7fa59411844a5db3970b8ae81b3532cc" },' +
+            '\n   header: {' + 
+            '\n       "Content-Type": "application/json"' + 
+            '\n   },' + 
+            '\n   success: res => {' + 
+            '\n       console.log(res.data)' + 
+            '\n   },' + 
+            '\n   fail: res => { },' + 
+            '\n   complete: res => { }' + 
+            '\n } )';
+        $("#request").text( request );
+    }
+
+    function javaDemo() {
+        $("#tabmenu li").removeClass("selected");
+        $("#l3").addClass("selected");
+        $(".tssbutton").hide();
+
+        var request = '\n String url = "http://demo.boubei.com/tss/data/json/5";' + 
+        '\n PostMethod postMethod = new PostMethod(url);' + 
+        '\n postMethod.setParameter("uName ", "XXX");' + 
+        '\n postMethod.setParameter("uSign ", "7fa59411844a5db3970b8ae81b3532cc"); ' + 
+        '\n postMethod.setParameter("paramX ", "...");' + 
+        '\n' + 
+        '\n HttpClient httpClient = new HttpClient();' + 
+        '\n int statusCode = httpClient.executeMethod(postMethod);' + 
+        '\n if(statusCode == 200) {' + 
+        '\n     String result = postMethod.getResponseBodyAsString(); ' + 
+        '\n     ...... // 返回结果    ' + 
+        '\n }';
+        $("#request").text( request );
+    }
+
+    function jsonpDemo() {
+        $("#tabmenu li").removeClass("selected");
+        $("#l4").addClass("selected");
+        $(".tssbutton").hide();
+
+        var request = '\n tssJS.JSONP.getJSON(' + 
+        '\n     "http://www.boubei.com/tss/data/jsonp/5", ' + 
+        '\n     postMethod.setParameter("uName ", "XXX");' + 
+        '\n     {"param1": "hello jsonp", "uName": "13588888888", "uSign": "7fa59411844a5db3970b8ae81b3532cc"}, ' + 
+        '\n     function(result) { console.log(result.length); }' + 
+        '\n);';
+        $("#request").text( request );
+    }
+
+</script>
+
+</head>
+
+<body>
+ 
+ 
+<h3 id="uri">接口地址：<span></span></h3>
+
+<div id="d1">
+    
+    <ul id="tabmenu">
+        <li id="l1" onclick="jQueryDemo();" class="selected">jQuery</li>
+        <li id="l2"  onclick="wxDemo();">小程序</li>
+        <li id="l3"  onclick="javaDemo();">JAVA</li>
+        <li id="l4"  onclick="jsonpDemo();">JSONP</li>
+    </ul>
+    <textarea id="request"></textarea>
+    
+</div>
+<div id="d2">
+    <textarea id="response" readonly></textarea> 
+</div>
+<div>
+    <button class="tssbutton blue medium" onclick="sendRequest();">发送请求</button>
+    <button class="tssbutton blue medium" onclick="sendRequest(true);" id="b2">查看脚本</button>
+</div>
+
+<script type="text/javascript">
+
+	var url = "/tss/xdata/json/<b style='color:blue;'>price_list</b>",
+        _url = "/tss/xdata/json/price_list",
+        method = "GET",
+        params = "{ rows: 2}",
+        manual = false;
+
+    if(parent && parent.cur_api) {
+        var cur_api = parent.cur_api;
+        url    = cur_api.url;
+        _url   = cur_api._url;
+        method = cur_api.method.split("、")[0];
+        params = parent.cur_params,
+        manual = cur_api.manual;
+
+        if( cur_api._href ) {
+            url += "<a href='http://www.boubei.com/doc/tss/manual/api-tss.html?id=#" +cur_api._href+ "' target='_blank'> 【接口说明】</a>"; 
+        }
+    }
+
+    $("#uri>span").html(location.protocol + "//" + location.host + url).css("text-decoration", "underline");
+
+    var request = 
+        '\n $.ajax({ ' + 
+        '\n     url: "' + _url + '",' + 
+        '\n     type: "' + method + '",' + 
+        '\n     dataType: "json", ' + 
+        '\n     data: ' + params + ',' + 
+        '\n     success:function(result){ ' + 
+        '\n         showData( result ); ' + 
+        '\n     } ' + 
+        '\n })';
+    
+    jQueryDemo();
+    function jQueryDemo() {
+        $("#request").text( request );
+        $(".tssbutton").show();
+        if(url.indexOf("data/json") < 0) {
+            $("#b2").hide();
+        }
+
+        $("#tabmenu li").removeClass("selected");
+        $("#l1").addClass("selected");
+    }
+
+    !manual && sendRequest();
+
+    function sendRequest(debugSQL) {
+        var js = $("#request").val();
+        if(debugSQL) {
+            js = js.replace("page:1", "page:1,debugSQL:1");
+            js = js.replace('"page":1', "page:1,debugSQL:1");
+        }
+
+        eval(js);
+    }
+    
+</script>
+
+</body>
+</html>

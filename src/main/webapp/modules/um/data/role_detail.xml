@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<RoleInfo>
+		<xform>
+			<declare>
+                <column name="name" caption="名称" mode="string" maxLength="20" empty="false" />
+                <column name="description" caption="描述" maxLength="255" mode="string"/>
+                <column name="startDate" caption="开始日期" mode="date" empty="false" />
+                <column name="endDate" caption="结束日期" mode="date" empty="false" />
+            </declare>
+            <layout>
+                <TR>
+                    <TD width="50"><label binding="name"/></TD>
+                    <TD><input binding="name" style="width:50%;"/></TD>
+                </TR>
+                <TR>
+                    <TD><label binding="startDate"/></TD>
+                    <TD><input binding="startDate"/></TD>
+                </TR>
+                <TR>
+                    <TD><label binding="endDate"/></TD>
+                    <TD><input binding="endDate"/></TD>
+                </TR>
+                <TR>
+                    <TD><label binding="description"/></TD>
+                    <TD><textarea binding="description" style="width:70%;height:100px"/></TD>
+                </TR>
+            </layout>
+			<data>
+				<row>
+                  <id><![CDATA[2]]></id>
+                  <name><![CDATA[角色1]]></name>
+                  <description><![CDATA[测试角色编辑]]></description>
+                </row>
+			</data>
+		</xform>
+	</RoleInfo>
+	<Role2UserTree>
+		<actionSet>
+			<treeNode id="-2" name="主用户组" icon="images/user_group_0.gif" groupType="1" _open="true">
+				<treeNode id="r1.1" name="用户组1.1" icon="images/user_group_0.gif" groupType="1">
+					<treeNode id="r1.1.1" name="用户组1.1.1" icon="images/user_group_0.gif" groupType="1"/>
+					<treeNode id="r1.1.1" name="用户组1.1.2" icon="images/user_group_0.gif" groupType="1"/>
+				</treeNode>
+				<treeNode id="r1.2" name="用户组1.2" icon="images/user_group_0.gif" groupType="1"/>
+				<treeNode id="r1.3" name="用户组1.3" icon="images/user_group_0.gif" groupType="1"/>
+				<treeNode id="r1.4" name="用户组1.4" icon="images/user_group_0.gif" groupType="1"/>
+				<treeNode id="r1.5" name="用户组1.5" icon="images/user_group_0.gif" groupType="1"/>
+				<treeNode id="r1.6" name="用户组1.6" icon="images/user_group_0.gif" groupType="1"/>
+				<treeNode id="r1.7" name="用户组1.7" icon="images/user_group_0.gif" groupType="1"/>
+				<treeNode id="r1.8" name="用户组1.8" icon="images/user_group_0.gif" groupType="1"/>
+				<treeNode id="r1.9" name="用户组1.9" icon="images/user_group_0.gif" groupType="1"/>
+				<treeNode id="r1.10" name="用户组1.10" icon="images/user_group_0.gif" groupType="1"/>
+				<treeNode id="r1.11" name="用户组1.11" icon="images/user_group_0.gif" groupType="1"/>
+				<treeNode id="r1.12" name="用户组1.12" icon="images/user_group_0.gif" groupType="1"/>
+				<treeNode id="r1.13" name="用户组1.13" icon="images/user_group_0.gif" groupType="1"/>
+				<treeNode id="r1.14" name="用户组1.14" icon="images/user_group_0.gif" groupType="1"/>
+				<treeNode id="r1.15" name="用户组1.15" icon="images/user_group_0.gif" groupType="1"/>
+				<treeNode id="r1.16" name="用户组1.16" icon="images/user_group_0.gif" groupType="1"/>
+			</treeNode>
+		</actionSet>
+	</Role2UserTree>
+	<Role2UserExistTree>
+        <actionSet>
+            <treeNode id="_root" name="全部" icon="images/user_0.gif" _open="true">
+                <treeNode id="1" name="用户1" icon="images/user_0.gif"/>
+            </treeNode>
+        </actionSet>
+	</Role2UserExistTree>
+    <Role2GroupTree>    
+		<actionSet>
+            <treeNode id="-2" name="主用户组" icon="images/user_group_0.gif" groupType="1" _open="true">
+                <treeNode id="r1.1" name="用户组1.1" icon="images/user_group_0.gif" groupType="1">
+                    <treeNode id="r1.1.1" name="用户组1.1.1" icon="images/user_group_0.gif" groupType="1"/>
+                    <treeNode id="r1.1.2" name="用户组1.1.2" icon="images/user_group_0.gif" groupType="1"/>
+                </treeNode>
+                <treeNode id="r1.2" name="用户组1.2" icon="images/user_group_0.gif" groupType="1"/>
+                <treeNode id="r1.3" name="用户组1.3" icon="images/user_group_0.gif" groupType="1"/>
+                <treeNode id="r1.4" name="用户组1.4" icon="images/user_group_0.gif" groupType="1"/>
+                <treeNode id="r1.5" name="用户组1.5" icon="images/user_group_0.gif" groupType="1"/>
+                <treeNode id="r1.6" name="用户组1.6" icon="images/user_group_0.gif" groupType="1"/>
+                <treeNode id="r1.7" name="用户组1.7" icon="images/user_group_0.gif" groupType="1"/>
+                <treeNode id="r1.8" name="用户组1.8" icon="images/user_group_0.gif" groupType="1"/>
+                <treeNode id="r1.9" name="用户组1.9" icon="images/user_group_0.gif" groupType="1"/>
+                <treeNode id="r1.10" name="用户组1.10" icon="images/user_group_0.gif" groupType="1"/>
+                <treeNode id="r1.11" name="用户组1.11" icon="images/user_group_0.gif" groupType="1"/>
+                <treeNode id="r1.12" name="用户组1.12" icon="images/user_group_0.gif" groupType="1"/>
+                <treeNode id="r1.13" name="用户组1.13" icon="images/user_group_0.gif" groupType="1"/>
+                <treeNode id="r1.14" name="用户组1.14" icon="images/user_group_0.gif" groupType="1"/>
+                <treeNode id="r1.15" name="用户组1.15" icon="images/user_group_0.gif" groupType="1"/>
+                <treeNode id="r1.16" name="用户组1.16" icon="images/user_group_0.gif" groupType="1"/>
+            </treeNode>
+            <treeNode id="-3" name="辅助用户组" icon="images/user_group_0.gif" groupType="2" _open="true">
+                <treeNode id="r2.1" name="用户组2.1" icon="images/user_group_0.gif" disabled="0" groupType="2"/>
+                <treeNode id="r2.2" name="用户组2.2" icon="images/user_group_0.gif" disabled="0" groupType="2"/>
+                <treeNode id="r2.3" name="用户组2.3" icon="images/user_group_0.gif" groupType="2"/>
+                <treeNode id="r2.4" name="用户组2.4" icon="images/user_group_0.gif" groupType="2"/>
+                <treeNode id="r2.5" name="用户组2.5" icon="images/user_group_0.gif" groupType="2"/>
+                <treeNode id="r2.6" name="用户组2.6" icon="images/user_group_0.gif" groupType="2"/>
+            </treeNode>
+		</actionSet>
+    </Role2GroupTree>
+	<Role2GroupExistTree>
+        <actionSet>
+            <treeNode id="_root" name="全部" icon="images/user_group_0.gif" _open="true">
+                <treeNode id="r1.1.1" name="用户组1.1.1" icon="images/user_group_0.gif" groupType="1"/>
+            </treeNode>
+        </actionSet>
+	</Role2GroupExistTree>
+</Response>

@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>多轮库存盘点</title>
+
+<link rel="stylesheet" href="../../tools/tssJS/css/boubei.css">
+<link rel="stylesheet" href="../../css/easyui.css">
+
+<link rel="stylesheet" href="../../tools/easyui/themes/default/easyui.css">
+<link rel="stylesheet" href="../../tools/easyui/themes/icon.css">
+<link rel="stylesheet" href="../../tools/ionicons.css">
+<link rel="stylesheet" href="wms.css">
+
+<script src="../../tools/tssJS/tssJS.all.js"></script>
+<script src="../../tools/tssJS/tssJS.data.js"></script>
+
+<script src="../../tools/easyui/jquery.min.js"></script>
+<script src="../../tools/easyui/jquery.easyui.min.js"></script>
+<script src="../../tools/easyui/datagrid-cellediting.js"></script>
+<script src="../../tools/easyui/easyui-lang-zh_CN.js"></script>
+
+<script src="../../tools/easyui.js"></script>
+<script src="../../tools/util_date.js"></script>
+<script src="wms.js"></script>
+</head>
+
+<body>
+<div id="init"></div>
+
+<div id="main" class="easyui-layout" fit="true">
+    <div data-options="region:'north',split:true" border="false" style="height: 30%">
+        <table id="t1" border="false"></table>
+    </div>
+
+    <div data-options="region:'center'" border="false">
+        <table id="t2" border="false"></table>
+    </div>
+</div>
+
+<div id="tb1" class="queryContainer">
+    <label>任务单号:</label><input id="query_code" class="easyui-textbox" style="width:110px;">
+    <label>盘点类型:</label><input id="query_type" class="easyui-combobox" style="width:65px;">
+    <label>状态:</label><input id="query_status" class="easyui-combobox" style="width:80px;">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-search" style="width:80px;" onclick="beginQuery()">查 询</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-md-create" style="width:80px;" onclick="updateInv()">修 改</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-refresh" style="width:80px;" onclick="queryInvCheck()">刷 新</a>
+</div>
+
+<div id="tb2" class="queryContainer">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-print" style="width:100px;" onclick="_print()">打印选中行</a>
+    <label>货品编码:</label><input id="query_skucode" class="easyui-textbox">
+    <label>库位:</label><input id="query_loccode" class="easyui-textbox">
+    <label>库存比较:</label><input id="qty_number1" class="easyui-combobox" style="width:80px;"><label>不等于</label><input id="qty_number2" class="easyui-combobox" style="width:80px;">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-search" style="width:60px;" onclick="beginQueryItems()">查 询</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-md-create" style="width:90px;" onclick="roundInv2()" disabled 
+    id="btn1">开始复盘</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-md-create" style="width:90px;" onclick="roundInv3()" disabled 
+    id="btn2">开始终盘</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-save" style="width:110px;" onclick="submitInvCheck()" 
+    id="btn3">保存盘点数据</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle-outline" style="width:110px;" onclick="saveChange('直接调整')" disabled 
+    id="btn4">正式调整库存</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle-outline" style="width:90px;" onclick="saveChange('盘盈入库')" disabled 
+    id="btn5">库存盘盈</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="ion ion-ios-checkmark-circle-outline" style="width:90px;" onclick="saveChange('盘亏出库')" disabled 
+    id="btn6">库存盘亏</a>
+</div>
+
+<div id="dlg1" class="easyui-dialog" title="修改盘点单" closed="true" buttons="#dlg1-buttons">
+    <form id="fm1" method="post" novalidate>
+        <input name="id" type="hidden"/>
+        <table class='l'>
+            <tr>
+                <td class='label'>盘点类型</td>
+                <td> <input id="type" name="type" class="easyui-combobox" required/> </td>
+                <td class='label'>盘点轮数</td>
+                <td> <input id="rounds" name="rounds" class="easyui-combobox" required/> </td>
+            </tr>
+        </table>      
+    </form>
+</div>
+<div id="dlg1-buttons">
+    <a href="#" class="easyui-linkbutton" onclick="_updateInv()">保 存</a>
+    <a href="#" class="easyui-linkbutton" onclick="closeDialog('fm1', 'dlg1')">取 消</a>
+</div>
+
+</body>
+
+<style type="text/css">
+</style>
+
+<script type="text/javascript">
+
+SELECTED_WH = tssJS.Query.get("wh_id") || SELECTED_WH;
+
+var dg1, dg2, dg1_selected,
+
+FIELDS_1 = [
+    {field: "id", title: "id", hidden:true},
+    {field: "code", title: "任务单号"},
+    {field: "type", title: "盘点类型", width:'5%', formatter: function(value,row,index){ return value == 1 ? '明盘' : '暗盘'}},
+    {field: "locs", title: "合计库位数", width:'6%'},
+    {field: "qtys", title: "合计库存量", width:'6%'},
+    {field: "skus", title: "合计品项数", width:'6%'},
+    {field: "rounds", title: "盘点轮数", width:'8%', formatter: function(value, row, index){ 
+        if( value == 2 )  return "初盘+复盘";
+        if( value == 3 )  return "初盘+复盘+终盘";
+        return "单轮";
+    }},
+    {field: "status", title: "状态", width:'5%'},
+    {field: "round1", title: "初盘进度", width:'6%', formatter: function(value,row,index){ return roundRate(row.qty1, row.toqty1)}},
+    {field: "worker1", title: "盘点人", width:'5%', formatter: formatterWorker},
+    {field: "round2", title: "复盘进度", width:'6%', formatter: function(value,row,index){ return roundRate(row.qty2, row.toqty2)}},
+    {field: "worker2", title: "盘点人", width:'5%', formatter: formatterWorker},
+    {field: "round3", title: "终盘进度", width:'6%', formatter: function(value,row,index){ return roundRate(row.qty3, row.toqty3)}},
+    {field: "worker3", title: "盘点人", width:'5%', formatter: formatterWorker},
+    {field: "creator", title: "创建人", width: "5%", formatter: loginName2userName},
+    {field: "createtime", title: "创建时间", width: "6%"},
+    {field:'x1', title: "操作", width: '6%',formatter:function(value, row, index) { 
+        var html_a = ""; 
+        if(row.status == '初盘中') {
+            html_a += "<a href='javascript:void(0)' onclick='cancelIC(" + index + ")'>取消</a>";
+        } else if(row.status != '关闭') {
+            html_a += "<a href='javascript:void(0)' onclick='closeIC(" + index + ")'>关闭</a>";  
+        }
+        if(row.status != '盘点完成' && ((row.rounds == 1 && row.toqty1 > 0) || (row.rounds == 2 && row.toqty2 > 0) || (row.rounds == 3 && row.toqty3 > 0))) {
+            html_a += "&nbsp;&nbsp;<a href='javascript:void(0)' onclick='finishIC(" + index + ")'>完成</a>";
+        }
+        return html_a;
+    }}
+],
+FIELDS_2 = [
+    {field: 'ck', checkbox: true},
+    {field: "id", title: "id", hidden:true},
+    {field: "skucode", title: "货品编码", width:'6%'},
+    {field: "skuname", title: "货品名称", width:'10%'},
+    {field: "barcode", title: "条码", width:'7%'},
+    {field: "guige", title: "规格", width:'4%'},
+    {field: "uom", title: "单位", width:'4%'},
+    {field: "owner_id", title: "货主", width:'6%', formatter:ownerid2name, styler: cursorHand},
+    {field: "location_code", title: "库位", width:'6%'},
+    {field: "invstatus"},
+    {field: "createdate"},
+    {field: "expiredate"},
+    {field: "lotatt01"},
+    {field: "lotatt02"},
+    {field: "lotatt03"},
+    {field: "lotatt04"},
+    {field: "qty1", title: "系统库存", styler: cursorHand},
+    {field: "toqty1", title: "初盘结果", width:'5%', editor: {type: "numberbox", options: qty_precision}, styler: cursorHand}
+], 
+FIELDS_2_1 = [
+    {field: "toqty2", title: "复盘结果", width:'5%', editor: {type: "numberbox", options: qty_precision}, styler: cursorHand},
+    {field: "toqty3", title: "终盘结果", width:'5%', editor: {type: "numberbox", options: qty_precision}, styler: cursorHand}
+],
+FIELDS_2_2 = [
+    {field: "opi_udf1", title: "操作", width:'7%', align: 'center', sortable: true}
+],
+inv_status = [{text: '初盘中'}, {text: '复盘中'}, {text: '终盘中'}, {text: '盘点完成'}, {text: '取消'}, {text: '关闭'}],
+round_num;
+
+fixLotatts(FIELDS_2);
+fixFields(FIELDS_2, "wms_sku");
+
+$.each(FIELDS_1, function(i, field) {
+    field.align = field.align||"center";
+    field.width = field.width||"7%";
+    field.sortable = true;
+});
+
+$.each(FIELDS_2, function(i, field) {
+    field.align = field.align||"center";
+    field.sortable = true;
+});
+
+$.each(FIELDS_2_1, function(i, field) {
+    field.align = field.align||"center";
+    field.sortable = true;
+});
+
+$(function(){
+    initContext(drawTable);
+    init();
+
+    dg2 = $('#t2').datagrid({});
+    dg2.datagrid('enableCellEditing');
+});
+
+function drawTable(){
+    prepareSKUs(function() {
+        prepareOwners(function() {  
+            prepareLOCs(function() {
+                SELECTED_WH = SELECTED_WH;
+                $('#query_loccode').combobox({
+                    data: LOC_D,
+                    textField: 'code',
+                    valueField: 'code',
+                })
+
+                queryInvCheck();
+            })
+        })
+    });
+}
+
+function init() {
+    $('#query_type, #type').combobox({
+        data: [{value: '0', text: '暗盘'}, {value: '1', text: '明盘'}],
+        panelHeight: 'auto',
+        editable: false
+    });
+    $('#query_status').combobox({
+        data: inv_status,
+        textField: 'text',
+        valueField: 'text',
+        panelHeight: 'auto',
+        editable: false
+    });
+    $('#qty_number1, #qty_number2').combobox({
+        data: [{value: '0', text: '原始库存'}, {value: '1', text: '初盘结果'}, {value: '2', text: '复盘结果'}, {value: '3', text: '终盘结果'}],
+        panelHeight: 'auto',
+        editable: false
+    });
+    $('#rounds').combobox({
+        data: [ {value: 1, text: '单轮盘点'}, {value: 2, text: '初盘+复盘'}, {value: 3, text: '初盘+复盘+终盘'} ],
+        panelHeight: 'auto',
+        editable: false
+    });
+}
+
+function queryInvCheck() {
+    dg1 = $('#t1').datagrid({
+        url: SERVICE.inv_check_query,
+        method: 'GET',
+        queryParams: getParams(),
+        fit: true,
+        fitColumns: true,
+        pagination: true,
+        rownumbers: true,
+        pageSize : 30,
+        pageList:[30, 50, 100, 200],
+        singleSelect: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        remoteSort: false,
+        columns: [FIELDS_1],
+        onLoadSuccess: function(data) {
+            if(data.total) {
+                setTimeout(function() {
+                    dg1.datagrid("selectRow", dg1_selected || 0);
+                }, 500);   
+            }
+            else{
+                // dg2.datagrid({data:[]});
+                queryInvCheckItems( { id: -1 } );
+            }
+            return data;
+        },
+        onSelect: function(index, row) {
+            var rounds = row.rounds;
+            FIELDS_2_1[0].hidden = rounds < 2;
+            FIELDS_2_1[1].hidden = rounds != 3;
+
+            $('#btn1,#btn2,#btn4,#btn5,#btn6').linkbutton('disable');
+            $('#btn3').linkbutton('enable');
+            inv_status.each(function(i,item) {
+                var r = i + 1;
+                if(item.text == row.status) {
+                    if(r <= 2) { 
+                        if(row['qty' + r] && row['qty' + r] == row['toqty' + r]) {
+                            $('#btn' + r).linkbutton('enable'); 
+                        }
+                    } 
+                    if (r == rounds) {
+                        if(row['qty' + r] && row['qty' + r] == row['toqty' + r]) {
+                            $('#btn3').linkbutton('disable'); 
+                        }
+                    } 
+                    if (r == 4) {
+                        $('#btn3').linkbutton('disable');
+                    } 
+                } 
+            })
+            if (row.status != '盘点完成') {
+                $('#btn3').linkbutton('enable');
+            }
+            if (row.status == '盘点完成') {
+                $('#btn4,#btn5,#btn6').linkbutton('enable'); 
+            }
+            if(rounds == 3) {
+                btnHideAndShow('btn1'); 
+                btnHideAndShow('btn2');
+            } else if(rounds == 2) {
+                $('#btn2').hide();
+                btnHideAndShow('btn1');
+            } else {
+                $('#btn2, #btn1').hide();
+            }
+            for(var i = 3; i < 7; i++) {
+                btnHideAndShow('btn' + i);
+            }
+            
+            queryInvCheckItems( { id: row.check_id } );
+            dg1_selected = index;
+        },
+        toolbar: '#tb1'
+    });
+}
+
+function btnHideAndShow(btn_id) {
+    var _id = '#' + btn_id;
+    var _disable = $( _id ).linkbutton('options').disabled;
+    if(_disable) {
+        $( _id ).hide();
+    } else {
+        $( _id ).show();
+    }
+}
+
+function beginQuery() {
+    queryInvCheck();
+}
+
+function getParams(){
+    var params = {
+        whId: SELECTED_WH,
+        code: $('#query_code').val(),
+        type : $('#query_type').combobox('getValue'),
+        status: $('#query_status').combobox('getValue'),
+        detail: '0'
+    };
+
+    return params;
+}
+
+function updateInv() {
+    var row = dg1.datagrid("getRows")[dg1_selected] || getSelectedRow("t1");
+    row.id = row.check_id;
+    if(row.status == inv_status[3].text) {
+        return $.messager.alert('提示','【' + row.code + '】任务单，状态为“' + row.status + '”，无法修改');
+    }
+    $('#dlg1').dialog( {"modal": true} ).dialog('open');
+    $('#fm1').form('load', row);
+}
+
+function _updateInv() {
+    var $saveBtn = $('#dlg1_buttons>a[onclick^="updateInv"]');
+    $saveBtn.linkbutton("disable");
+
+    var id = $("#dlg1 input[name='id']").val();
+    var flag = $("#fm1").form('validate');
+    if (flag) {
+        var data = $("#fm1").serializeArray();
+        $.post( BASE_RECORD_URL + invCheckTable +  "/" + id, data,
+            function(result) {
+                $saveBtn.linkbutton("enable");
+                closeDialog('fm1', 'dlg1');
+                queryInvCheck();
+            }
+        );
+    } 
+    else {
+        $.messager.alert('提示', "必填项（红线输入框）不能为空，请填写完成后再保存");
+        $saveBtn.linkbutton("enable");
+    }
+
+    var obj = {fm: 'fm1', dlg: 'dlg1', 'dlg-buttons': 'dlg1-buttons'}
+}
+
+function queryInvCheckItems(params_) {
+    params_.whId = SELECTED_WH;
+    params_.detail = '1';
+    if(round_num > 1) {
+        params_['round' + round_num] = '1'
+    }
+
+    dg2 = $('#t2').datagrid({
+        url: SERVICE.inv_check_query,
+        method: 'GET',
+        queryParams: params_,
+        fit: true,
+        fitColumns: true,
+        rownumbers: true,
+        checkOnSelect: true,
+        selectOnCheck: true,
+        pagination: true,
+        pageSize : 100,
+        pageList:[100, 200, 500, 1000],
+        remoteSort: false,
+        showFooter:true,
+        toolbar: '#tb2',
+        columns: [(FIELDS_2.concat(FIELDS_2_1)).concat(FIELDS_2_2)],
+        loadFilter: function(data){
+            var _qty1 = 0, _toqty1 = 0, _toqty2 = 0, _toqty3 = 0;
+            if(!(data && data.total)) return { total: 0, rows:[] };
+            data.rows.each((i, item)=>{
+                var sku = SKU_C[item.skucode];
+                item.sku = sku;
+                item.sku_id = sku.id;
+                item.skuname = sku.name;
+                item.skucode = sku.code;
+                item.barcode = sku.barcode;
+                item.guige = sku.guige;
+                item.uom = sku.uom;
+                item.category = sku.category;
+                item.location = {code: item.location_code};
+                item.qty = item.qty1;
+
+                _qty1 += item.qty1;
+                _toqty1 += item.toqty1;
+                _toqty2 += item.toqty2;
+                _toqty3 += item.toqty3;
+            })
+
+            data.footer = [ {"skucode": "本页合计", "qty1": round(_qty1,2), "toqty1": round(_toqty1,2), "toqty2": round(_toqty2,2), "toqty3": round(_toqty3,2)} ];
+            return data;
+        }
+    });
+}
+
+function beginQueryItems() {
+    var row = dg1.datagrid("getRows")[dg1_selected] || getSelectedRow("t1");
+    var qty_number1 = $('#qty_number1').val(), qty_number2 = $('#qty_number2').val(); 
+    var params_ = {
+        id: row.check_id,
+        loccode: $("#query_loccode").combobox('getValue'),
+        skucode: $("#query_skucode").val(),
+        compareType: (qty_number1 && qty_number2) ? qty_number1 + qty_number2 : ''
+    }
+
+    queryInvCheckItems(params_);
+}
+
+function roundInv2() {
+    createRoundInv(2)
+}
+
+function roundInv3() {
+    createRoundInv(3)
+}
+
+function createRoundInv(round) {
+    var row = dg1.datagrid("getRows")[dg1_selected] || getSelectedRow("t1");
+    var rows = dg2.datagrid("getChecked"), save_items = [];
+
+    rows.each(function(i,item) {
+        save_items.push({inv_id: item.inv1_id})
+    })
+
+    if(!save_items.length) {
+        return $.messager.alert('提示','请选择需要创建盘点单的数据');
+    }
+
+    $.post(SERVICE.inv_check_create, {code: row.code, whId: SELECTED_WH, items: JSON.stringify(save_items), type: row.type, round: round, rounds: row.rounds}, function(result) {
+        if(result && result.errorMsg) {
+            $.messager.alert('提示','创建盘点单失败。'+ result.errorMsg);
+        }
+        else {
+            round_num = round;
+            queryInvCheck();
+            $.messager.show({ title: '提示', msg: '创建盘点单成功'});
+        }
+    }) 
+}
+
+function submitInvCheck() {
+    dg2.datagrid('acceptChanges');
+
+    var row = dg1.datagrid("getRows")[dg1_selected] || getSelectedRow("t1");
+    var rows = dg2.datagrid('getRows'), list = [];
+    rows.each(function(i,item) {
+        if(item.opi_id3) {
+            if(item.toqty3) {
+                list.push({id: item.opi_id3, toqty: item.toqty3 * 1})
+            }
+        } else if(item.opi_id2) {
+            if(item.toqty2) {
+                list.push({id: item.opi_id2, toqty: item.toqty2 * 1})
+            }
+        } else if(item.opi_id1) {
+            if(item.toqty1) {
+                list.push({id: item.opi_id1, toqty: item.toqty1 * 1})
+            }
+        }
+    })
+    if(!list.length) {
+        return $.messager.alert('提示','没有需要提交的盘点数据');
+    }
+    var _round = 1
+    if(row.qty3) {
+        _round = 3
+    } else if (row.qty2) {
+        _round = 2
+    }
+
+    $.post(SERVICE.inv_check_submit, {items: JSON.stringify(list), invCheckId: row.check_id, round: _round}, function(result) {
+        if(result && result.errorMsg) {
+            $.messager.alert('提示', '保存盘点结果失败。'+ result.errorMsg);
+        }
+        else {
+            round_num = 0;
+            queryInvCheck();
+            $.messager.show({ title: '提示', msg: '保存盘点结果成功'});
+        }
+    })
+}
+
+function saveChange(type) {
+    var row = dg1.datagrid("getRows")[dg1_selected] || getSelectedRow("t1");
+    var rows_2 = dg2.datagrid("getChecked");
+    if(!rows_2.length) {
+        rows_2 = dg2.datagrid("getRows");
+    }
+
+    var itemIds = [], data_list = [];
+    rows_2.each(function (i, item) {
+        if(!item.opi_udf1) {
+            var rounds = item.rounds;
+            var _qty = item.qty1,
+                _toqty = rounds == 1 ? item.toqty1 : (rounds == 2 ? item.toqty2 : item.toqty3),
+                _opi_id = rounds == 1 ? item.opi_id1 : (rounds == 2 ? item.opi_id2 : item.opi_id3);
+            if(type == '盘盈入库') {
+                if(_qty < _toqty) {
+                    data_list.push(item);
+                    itemIds.push(_opi_id);
+                }
+            } else if (type == '盘亏出库') {
+                if(_qty > _toqty) {
+                    data_list.push(item);
+                    itemIds.push(_opi_id);
+                }
+            } else if (type == '直接调整') {
+                data_list.push(item);
+                itemIds.push(_opi_id);
+            }
+        }
+    })
+    // console.log(type, itemIds, data_list)
+
+    if(!itemIds.length) {
+        return $.messager.alert('提示','没有可操作的数据');
+    } else {
+        var _data = {};
+        _data.total = data_list.length;
+        _data.rows = data_list;
+        dg2.datagrid("loadData", _data);
+    }
+
+    $.messager.confirm("操作确认", "可" + type + "的数据共" + itemIds.length + "条，是否确定按最后一轮盘点结果执行操作？", function (flag) {
+        flag && 
+        $.post(SERVICE.inv_check_save, {invCheckId: row.check_id, opId: row.op_id, itemIds: itemIds.join(','), type: type}, function(result) {
+            if(result && result.errorMsg) {
+                $.messager.alert('提示', type + '失败。'+ result.errorMsg);
+            }
+            else {
+                round_num = 0;
+                queryInvCheck();
+                $.messager.show({ title: '提示', msg: type + '成功'});
+            }
+        });
+    });
+}
+
+function roundRate(qty, toqty) {
+    if(!qty) {
+        return '-';
+    } else {
+        return (toqty / qty * 100).toFixed(0) + '%';
+    }
+}
+
+function cancelIC(index) {
+    var row = dg1.datagrid("getRows")[index];
+    if( row.status != '初盘中' ) {
+        return $.messager.alert('提示', '当前盘点单状态无法取消，只有初盘中可以取消'); 
+    }
+
+    $.messager.confirm("操作确认", "是否确定取消盘点单【" +row.code+ "】？取消后盘点将终止", function (flag) {
+        flag && $.post(SERVICE.inv_check_cancel + '/' + row.check_id, {}, function(result) { 
+            queryInvCheck(); 
+            $.messager.show({ title: '提示', msg: '取消成功'});
+        });
+    });
+}
+
+function closeIC(index) {
+    var row = dg1.datagrid("getRows")[index];
+    $.messager.confirm("操作确认", "是否确定关闭盘点单【" +row.code+ "】吗？关闭后盘点将终止", function (flag) {
+        flag && $.post(SERVICE.inv_check_close + '/' + row.check_id, {}, function(result) { 
+            queryInvCheck(); 
+            $.messager.show({ title: '提示', msg: '关闭成功'});
+        });
+    });
+}
+
+function finishIC(index) {
+    var row = dg1.datagrid("getRows")[index];
+    $.messager.confirm("操作确认", "是否确定完成盘点单【" +row.code+ "】吗？完成后盘点将终止", function (flag) {
+        flag && $.post(INVCHECK.UPDATE + '/' + row.check_id, {status: '盘点完成'}, function(result) { 
+            queryInvCheck(); 
+            $.messager.show({ title: '提示', msg: '盘点完成'});
+        });
+    });
+}
+
+var globalV = {};
+function _print() {
+    var row = dg1.datagrid("getRows")[dg1_selected] || getSelectedRow("t1");
+    globalV.opno = row.now_opno;
+    globalV.data = dg2.datagrid("getChecked");
+    if( globalV.data.length == 0 ) {
+        return  $.messager.alert('提示', '请勾选要打印的记录行。');
+    }
+
+    if( row.type != 1) {
+        globalV.data.each(function(i, item){
+            item.qty = '*';
+        });
+    }
+
+    tssJS.openIframePanel("panel-1", " - 库存盘点单打印", 800, 480, "inv_print.html");
+}
+
+</script>
+
+</html>

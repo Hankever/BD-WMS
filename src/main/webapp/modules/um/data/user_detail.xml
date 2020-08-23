@@ -1,0 +1,138 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+	<UserInfo>
+      <xform action="null">
+        <declare prefix="user">
+		  <column name="id" caption="用户ID" mode="hidden" maxLength="10"/>
+		  <column name="userName" caption="姓名" mode="string" empty="false" maxLength="100"/>
+          <column name="loginName" caption="帐号" mode="string" empty="false" maxLength="100"/>
+          <column name="telephone" caption="电话" mode="hidden" maxLength="100"/>
+          <column name="groupName" caption="所在组名称" mode="string" maxLength="10"/>
+          <column name="groupId" caption="所在组ID" mode="hidden" maxLength="100"/>
+          <column name="disabled" caption="账号状态" mode="hidden" maxLength="32"/>
+          <column name="address" caption="地址" mode="string" maxLength="100"/>
+          <column name="postalCode" caption="邮编" mode="string" maxLength="100" inputReg="^\d{0,10}$"/>
+          <column name="mail" caption="电子邮件" mode="string" maxLength="100" inputReg="\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*"/>
+          <column name="employeeNo" caption="员工编号" mode="string" maxLength="100"/>
+          <column name="birthday" caption="出生年月" mode="date"/>
+          <column name="sex" caption="性别" mode="combo" values="0|1" texts="男|女"/> 
+        </declare>
+        <layout>
+          <TR>
+              <TD width="60"><label binding="loginName"/></TD>
+              <TD><input binding="loginName"/></TD>
+              <TD><label binding="userName"/></TD>
+              <TD><input binding="userName"/></TD>
+          </TR><TR>
+              <TD><label binding="sex"/></TD>
+              <TD><input binding="sex"/></TD>
+              <TD><label binding="birthday"/></TD>
+              <TD><input binding="birthday"/></TD>
+          </TR><TR>
+              <TD><label binding="employeeNo"/></TD>
+              <TD><input binding="employeeNo"/></TD>
+              <TD><label binding="mail"/></TD>
+              <TD><input binding="mail"/></TD>
+          </TR><TR>
+              <TD><label binding="groupName"/></TD>
+              <TD><input binding="groupName"/></TD>
+              <TD><label binding="postalCode"/></TD>
+              <TD><input binding="postalCode"/></TD>
+          </TR><TR>
+              <TD><label binding="address"/></TD>
+              <TD><input binding="address"/></TD>
+              <TD></TD>
+              <TD></TD>
+          </TR>
+        </layout><data><row><loginName><![CDATA[Jon.King]]></loginName><userName><![CDATA[XXX]]></userName><sex><![CDATA[1]]></sex><mail><![CDATA[xxx@xxx.com]]></mail></row></data></xform>
+	</UserInfo>
+	<AuthInfo>
+        <xform>
+            <declare>
+                <column name="certificateCategory" caption="证件种类" mode="combo" values="1|2" texts="工作证|身份证"/>
+                <column name="certificateNumber" caption="证件号" mode="string" empty="false"/>
+                <column name="password" caption="密　　码" mode="string" empty="false"/>
+                <column name="passwordQuestion" caption="密码提示问题" mode="string" empty="false"/>
+                <column name="passwordAnswer" caption="密码提示答案" mode="string" empty="false"/>
+                <column name="accountUsefulLife" caption="帐户有效期限" mode="string" pattern="yyyy-MM-dd" empty="false"/>
+                <column name="authenticateMethod" caption="认证方式" mode="combo" values="1|2" texts="本地|LDAP"/>
+            </declare>
+            <layout>
+                <TR>
+                    <TD><label binding="certificateCategory"/></TD>
+                    <TD><input binding="certificateCategory" type="text"/></TD>
+                    <TD><label binding="certificateNumber"/></TD>
+                    <TD><input binding="certificateNumber" type="text"/></TD>
+                    <TD><label binding="password"/></TD>
+                    <TD><input binding="password" type="text"/></TD>
+                </TR>
+                <TR>
+                    <TD><label binding="passwordQuestion"/></TD>
+                    <TD><input binding="passwordQuestion" type="text"/></TD>
+                    <TD><label binding="passwordAnswer"/></TD>
+                    <TD><input binding="passwordAnswer" type="text"/></TD>
+                    <TD><label binding="accountUsefulLife"/></TD>
+                    <TD><input binding="accountUsefulLife" type="text"/></TD>
+                </TR>
+                <TR>
+                    <TD><label binding="authenticateMethod"/></TD>
+                    <TD><input binding="authenticateMethod" type="text"/></TD>
+                    <TD></TD>
+                    <TD></TD>
+                </TR>
+            </layout>
+            <data>
+                <row><authenticateMethod><![CDATA[2]]></authenticateMethod><certificateCategory><![CDATA[2]]></certificateCategory><passwordAnswer><![CDATA[XXX]]></passwordAnswer><certificateNumber><![CDATA[XXX]]></certificateNumber><accountUsefulLife><![CDATA[2006-07-06]]></accountUsefulLife><password><![CDATA[XXX]]></password><accountState><![CDATA[1]]></accountState><passwordQuestion><![CDATA[XXX]]></passwordQuestion></row></data>
+        </xform>
+	</AuthInfo>
+	<User2GroupExistTree>
+		<actionSet>
+			<treeNode id="_root" name="全部" icon="images/user_group_0.gif" _open="true">
+        <treeNode icon="images/user_group_0.gif" name="有关部" id="102" groupType="1"/>
+			</treeNode>
+    </actionSet>
+	</User2GroupExistTree>
+	<User2RoleTree>
+		<actionSet>
+			<treeNode id="r1" name="角色组1" icon="images/user_group_0.gif" isGroup="1" _open="true">
+				<treeNode id="r1.1" name="角色组1.1" icon="images/user_group_0.gif" isGroup="1" _open="true">
+					<treeNode id="r1.1.1" name="角色1.1.1" icon="images/role_0.gif"/>
+					<treeNode id="r1.1.2" name="角色1.1.2" icon="images/role_0.gif"/>
+				</treeNode>
+				<treeNode id="r1.2" name="角色1.2" icon="images/role_0.gif"/>
+				<treeNode id="r1.3" name="角色1.3" icon="images/role_0.gif"/>
+				<treeNode id="r1.4" name="角色1.4" icon="images/role_0.gif"/>
+				<treeNode id="r1.5" name="角色1.5" icon="images/role_0.gif"/>
+				<treeNode id="r1.6" name="角色1.6" icon="images/role_0.gif"/>
+				<treeNode id="r1.7" name="角色1.7" icon="images/role_0.gif"/>
+				<treeNode id="r1.8" name="角色1.8" icon="images/role_0.gif"/>
+				<treeNode id="r1.9" name="角色1.9" icon="images/role_0.gif"/>
+				<treeNode id="r1.10" name="角色1.10" icon="images/role_0.gif"/>
+				<treeNode id="r1.11" name="角色1.11" icon="images/role_0.gif"/>
+				<treeNode id="r1.12" name="角色1.12" icon="images/role_0.gif"/>
+			</treeNode>
+			<treeNode id="r2" name="角色组2" icon="images/user_group_0.gif" isGroup="1" _open="true">
+				<treeNode id="r2.1" name="角色2.1" icon="images/role_0.gif"/>
+				<treeNode id="r2.2" name="角色2.2" icon="images/role_0.gif"/>
+				<treeNode id="r2.3" name="角色2.3" icon="images/role_0.gif"/>
+				<treeNode id="r2.4" name="角色2.4" icon="images/role_0.gif"/>
+				<treeNode id="r2.5" name="角色2.5" icon="images/role_0.gif"/>
+				<treeNode id="r2.6" name="角色2.6" icon="images/role_0.gif"/>
+				<treeNode id="r2.7" name="角色2.7" icon="images/role_0.gif"/>
+				<treeNode id="r2.8" name="角色2.8" icon="images/role_0.gif"/>
+				<treeNode id="r2.9" name="角色2.9" icon="images/role_0.gif"/>
+				<treeNode id="r2.10" name="角色2.10" icon="images/role_0.gif"/>
+				<treeNode id="r2.11" name="角色2.11" icon="images/role_0.gif"/>
+				<treeNode id="r2.12" name="角色2.12" icon="images/role_0.gif"/>
+			</treeNode>
+		</actionSet>
+	</User2RoleTree>
+	<User2RoleExistTree>
+        <actionSet>
+            <treeNode id="_root" name="全部" icon="images/user_group_0.gif" _open="true">
+                <treeNode id="r1.1.1" name="角色1.1.1" icon="images/role_0.gif"/>
+				        <treeNode id="r2.12"  name="角色2.12"  icon="images/role_0.gif"/>
+            </treeNode>
+        </actionSet>
+	</User2RoleExistTree>
+</Response>
